@@ -42,6 +42,18 @@
     }
     window.scrollTo({ top: 0 });
     if (typeof window.onViewChange === "function") window.onViewChange(name);
+    closeDrawer();
+  };
+
+  // ---- Mobile drawer ----
+  window.toggleDrawer = function () {
+    const app = document.querySelector(".app");
+    if (!app) return;
+    app.setAttribute("data-drawer", app.getAttribute("data-drawer") === "open" ? "closed" : "open");
+  };
+  window.closeDrawer = function () {
+    const app = document.querySelector(".app");
+    if (app) app.setAttribute("data-drawer", "closed");
   };
 
   function initView() {

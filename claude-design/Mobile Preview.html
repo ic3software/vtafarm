@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cipher · Mobile Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #ececE6;
+    --ink: #16150f;
+    --muted: #6e6c66;
+    --line: #d9d6cc;
+    --card: #fff;
+    --accent: #6b4eff;
+    --sans: "IBM Plex Sans", -apple-system, sans-serif;
+    --mono: "IBM Plex Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: var(--sans);
+    background:
+      radial-gradient(120% 80% at 50% -10%, #f5f3ee 0%, #e7e4dc 55%, #ddd9cf 100%);
+    color: var(--ink);
+    display: flex; flex-direction: column;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Toolbar */
+  .bar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(10px);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand { display: inline-flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; }
+  .brand .mark { width: 22px; height: 22px; border-radius: 6px; background: var(--ink); position: relative; overflow: hidden; }
+  .brand .mark::before { content:""; position:absolute; inset:5px; border-radius:2px; background: var(--accent); transform: rotate(45deg); }
+  .brand .tag { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); background: #ece8ff; border: 1px solid #d9d0ff; padding: 2px 7px; border-radius: 999px; }
+
+  .seg { display: inline-flex; gap: 3px; padding: 3px; background: #e3e0d6; border-radius: 11px; }
+  .seg button {
+    font-family: var(--sans); font-size: 13px; font-weight: 500;
+    border: none; background: transparent; color: var(--muted);
+    padding: 7px 14px; border-radius: 8px; cursor: pointer;
+    transition: background .15s, color .15s, box-shadow .15s;
+  }
+  .seg button[data-on="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+  .spacer { flex: 1; }
+  .label { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+  .seg.small button { padding: 6px 11px; font-size: 12px; font-family: var(--mono); }
+
+  .hint { font-size: 12.5px; color: var(--muted); }
+  .hint a, .open-link { color: var(--accent); text-decoration: none; font-weight: 500; cursor: pointer; }
+  .open-link:hover { text-decoration: underline; }
+
+  /* Stage */
+  .stage {
+    flex: 1; display: grid; place-items: center;
+    padding: 36px 20px 48px;
+    overflow: auto;
+  }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+
+  /* Device bezel */
+  .phone {
+    position: relative;
+    border-radius: 56px;
+    background: #0a0a0a;
+    padding: 13px;
+    box-shadow:
+      0 2px 4px rgba(0,0,0,.4) inset,
+      0 50px 80px -30px rgba(30,25,60,.5),
+      0 20px 40px -20px rgba(0,0,0,.35);
+  }
+  .phone::after {
+    /* side buttons */
+    content: ""; position: absolute; right: -2px; top: 150px;
+    width: 3px; height: 64px; border-radius: 3px; background: #1c1c1c;
+    box-shadow: 0 -86px 0 #1c1c1c, 0 -140px 0 0 #1c1c1c;
+  }
+  .screen {
+    position: relative;
+    width: 390px; height: 250px; /* set by JS */
+    border-radius: 44px;
+    overflow: hidden;
+    background: #f7f5f0;
+  }
+  .notch {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 112px; height: 32px; background: #000; border-radius: 999px; z-index: 5;
+    pointer-events: none;
+  }
+  .notch::after {
+    content: ""; position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    width: 9px; height: 9px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #2a2a45, #050505 70%);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.04);
+  }
+  iframe {
+    width: 100%; height: 100%; border: none; display: block;
+    background: #f7f5f0;
+  }
+
+  .device-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .04em; }
+
+  @media (max-width: 560px) {
+    .bar { gap: 10px; padding: 12px 14px; }
+    .spacer { display: none; }
+    .hint { width: 100%; order: 5; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="brand"><span class="mark"></span> Cipher <span class="tag">Mobile preview</span></span>
+
+  <div class="seg" id="seg-app">
+    <button data-app="Cipher.html" data-on="true" onclick="pickApp(this)">Homepage</button>
+    <button data-app="Portal.html" onclick="pickApp(this)">Portal</button>
+    <button data-app="Admin.html" onclick="pickApp(this)">Admin</button>
+  </div>
+
+  <div class="spacer"></div>
+
+  <span class="label">Device</span>
+  <div class="seg small" id="seg-size">
+    <button data-w="390" data-h="844" data-on="true" onclick="pickSize(this)">iPhone 390</button>
+    <button data-w="360" data-h="800" onclick="pickSize(this)">Android 360</button>
+    <button data-w="414" data-h="896" onclick="pickSize(this)">Max 414</button>
+  </div>
+
+  <span class="hint">Live, interactive — scroll & tap inside. <span class="open-link" onclick="openFull()">Open full screen ↗</span></span>
+</div>
+
+<div class="stage">
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen" id="screen">
+        <iframe id="frame" src="Cipher.html" title="preview"></iframe>
+      </div>
+    </div>
+    <div class="device-meta" id="meta">Homepage · 390 × 844</div>
+  </div>
+</div>
+
+<script>
+  var state = { app: "Cipher.html", appName: "Homepage", w: 390, h: 844 };
+
+  function applySize() {
+    var screen = document.getElementById("screen");
+    var stage = document.querySelector(".stage");
+    // available height for the screen inside bezel (minus toolbar + paddings)
+    var maxH = window.innerHeight - 220;
+    var scale = Math.min(1, maxH / state.h);
+    screen.style.width = state.w + "px";
+    screen.style.height = state.h + "px";
+    // scale the whole phone down if viewport is short
+    var phone = document.querySelector(".phone");
+    phone.style.transform = "scale(" + scale.toFixed(3) + ")";
+    phone.style.transformOrigin = "top center";
+    document.getElementById("meta").textContent = state.appName + " · " + state.w + " × " + state.h;
+  }
+
+  function pickApp(btn) {
+    document.querySelectorAll("#seg-app button").forEach(function (b) { b.setAttribute("data-on", "false"); });
+    btn.setAttribute("data-on", "true");
+    state.app = btn.getAttribute("data-app");
+    state.appName = btn.textContent;
+    document.getElementById("frame").src = state.app;
+    applySize();
+  }
+  function pickSize(btn) {
+    document.querySelectorAll("#seg-size button").forEach(function (b) { b.setAttribute("data-on", "false"); });
+    btn.setAttribute("data-on", "true");
+    state.w = +btn.getAttribute("data-w");
+    state.h = +btn.getAttribute("data-h");
+    applySize();
+  }
+  function openFull() { window.open(state.app, "_blank"); }
+
+  window.addEventListener("resize", applySize);
+  applySize();
+</script>
+</body>
+</html>
