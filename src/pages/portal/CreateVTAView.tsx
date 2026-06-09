@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
-import { api, API_BASE } from '@/lib/api'
+import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
+import { statusBadge } from './portalUtils'
 
 type Stage = 0 | 1 | 2 | 3
 
@@ -20,12 +21,30 @@ export function CreateVTAView() {
   const [provisionError, setProvisionError] = useState('')
   const [provisioning, setProvisioning] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
+  const [liveSession, setLiveSession] = useState<SetupSession | null>(null)
+  const [copiedVta, setCopiedVta] = useState(false)
+
+  function copyVtaDid(did: string) {
+    navigator.clipboard.writeText(did).catch(() => {})
+    setCopiedVta(true)
+    setTimeout(() => setCopiedVta(false), 2000)
+  }
 
   useEffect(() => {
     api.listImages()
       .then(imgs => { setImages(imgs); setSelectedImage(imgs[0]?.image ?? '') })
       .catch(() => {})
   }, [])
+
+  // Poll session status every 3 s during Stage 1 so the FQDN appears as soon as DNS is ready
+  useEffect(() => {
+    if (stage !== 1 || !sessionId) return
+    api.getSession(sessionId).then(setLiveSession).catch(() => {})
+    const iv = setInterval(() => {
+      api.getSession(sessionId).then(setLiveSession).catch(() => {})
+    }, 3000)
+    return () => clearInterval(iv)
+  }, [stage, sessionId])
 
   useEffect(() => {
     if (stage !== 2 || !sessionId) return
@@ -82,7 +101,18 @@ export function CreateVTAView() {
     navigate('/portal')
   }
 
-  const stepState = (i: number) => i < stage ? 'done' : i === stage ? 'active' : ''
+  const currentStep = (() => {
+    if (stage === 3) return 6
+    if (stage === 2) return 4
+    if (stage === 0) return 0
+    if (!liveSession) return 1
+    switch (liveSession.status) {
+      case 'dns_provisioned': return 1
+      case 'vta_setup_running': return 2
+      case 'vta_setup_complete': return 3
+      default: return 1
+    }
+  })()
 
   return (
     <section className="p-content" style={{ maxWidth: 840 }}>
@@ -91,26 +121,29 @@ export function CreateVTAView() {
           <h1>Create a Verifiable Trust Agent</h1>
           <p className="sub">Configure your VTA session — Cipher provisions the agent online.</p>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={handleDone}>Cancel</button>
+        <button className="btn btn-outline" onClick={handleDone}>Cancel</button>
       </div>
 
       {/* Stepper */}
       <div className="p-card" style={{ marginBottom: 20 }}>
         <div className="card-content" style={{ padding: '26px 28px 22px' }}>
           <div className="stepper">
-            {(['Create session', 'Connect locally', 'Provision', 'Running'] as const).map((label, i) => (
-              <div key={i} className={`step ${stepState(i)}`}>
-                <div className="bar" />
-                <div className="node">
-                  {i < stage ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M20 6 9 17l-5-5"/></svg>
-                  ) : stage === 2 && i === 2 ? (
-                    <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                  ) : i + 1}
+            {(['Create session', 'DNS provisioned', 'Setup running', 'Setup complete', 'Provisioning', 'Running'] as const).map((label, i) => {
+              const s = i < currentStep ? 'done' : i === currentStep ? 'active' : ''
+              return (
+                <div key={i} className={`step ${s}`}>
+                  <div className="bar" />
+                  <div className="node">
+                    {i < currentStep ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M20 6 9 17l-5-5"/></svg>
+                    ) : i === currentStep && stage === 2 ? (
+                      <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                    ) : i + 1}
+                  </div>
+                  <div className="s-label">{label}</div>
                 </div>
-                <div className="s-label">{label}</div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>
@@ -152,42 +185,130 @@ export function CreateVTAView() {
         </div>
       )}
 
-      {/* Stage 1 */}
+      {/* Stage 1 — wait for vta_setup_complete, then accept admin DID */}
       {stage === 1 && sessionId && (
         <>
-          <div className="p-alert alert-info" style={{ marginBottom: 16 }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg>
-            <div className="grow">
-              <p className="alert-title">Session created</p>
-              <p className="alert-desc p-mono" style={{ wordBreak: 'break-all' }}>Session #{sessionId} · {vtaName}</p>
-            </div>
-          </div>
-          <div className="p-card">
-            <div className="card-header">
-              <h3 className="card-title">Provision admin DID</h3>
-              <p className="card-desc">Generate your admin identity locally and paste the DID below.</p>
-            </div>
-            <div className="card-content p-col gap-16">
-              <div>
-                <div className="p-label">Enter your admin DID</div>
-                <div className="input-group">
-                  <input className="p-input p-mono" type="text" placeholder="did:key:z6Mk…"
-                    value={adminDid} onChange={e => setAdminDid(e.target.value)} />
-                  {adminDid && (
-                    <button className="ig-suffix" type="button" onClick={() => navigator.clipboard.writeText(adminDid).catch(() => {})}>copy</button>
-                  )}
+          {/* Live status bar */}
+          <div className="p-card" style={{ marginBottom: 16 }}>
+            <div className="card-content" style={{ padding: '14px 20px' }}>
+              <div className="p-row between center">
+                <div className="p-col" style={{ gap: 4 }}>
+                  <span className="p-label" style={{ marginBottom: 0 }}>
+                    Session #{sessionId} · <span className="p-mono">{vtaName}</span>
+                  </span>
+                  {liveSession?.fqdn
+                    ? <span className="p-mono text-xs p-muted">{liveSession.fqdn}</span>
+                    : <span className="text-xs p-muted">Waiting for DNS provisioning…</span>
+                  }
                 </div>
-                <div className="field-hint">Generate with your local identity tool and paste the <span className="p-mono">did:key:…</span> here.</div>
+                <div className="p-row gap-8 center">
+                  {liveSession && statusBadge(liveSession.status)}
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/portal/session/${sessionId}`)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                    View session
+                  </button>
+                </div>
               </div>
-              {provisionError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{provisionError}</p>}
-            </div>
-            <div className="card-footer between">
-              <button className="btn btn-ghost" onClick={handleDone}>Cancel</button>
-              <button className="btn btn-default" onClick={handleProvision} disabled={provisioning || !adminDid.trim()}>
-                {provisioning ? 'Provisioning…' : <>Provision agent <span className="arrow">→</span></>}
-              </button>
             </div>
           </div>
+
+          {liveSession?.status !== 'vta_setup_complete' ? (
+            /* Waiting for VTA setup to finish */
+            <div className="p-card">
+              <div className="card-header with-action">
+                <div>
+                  <h3 className="card-title">VTA setup in progress</h3>
+                  <p className="card-desc">Cipher is preparing the VTA environment. This usually takes a minute.</p>
+                </div>
+                <span className="p-badge badge-warning"><span className="dot pulse-dot"/>waiting</span>
+              </div>
+              <div className="card-content">
+                <div className="p-console">
+                  <div className="console-head">
+                    <div className="dots"><span/><span/><span/></div>
+                    <span className="p-mono">cipher · vta-setup {vtaName}</span>
+                    <span className="grow"/>
+                    <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
+                      <span className="dot pulse-dot"/>polling
+                    </span>
+                  </div>
+                  <div className="console-body" style={{ minHeight: 64 }}>
+                    <div className="ln"><span className="p-muted text-xs">
+                      {liveSession?.status === 'vta_setup_running'
+                        ? 'VTA setup running — waiting for completion…'
+                        : 'DNS provisioned — waiting for VTA setup to start…'}
+                      <span className="caret"/>
+                    </span></div>
+                  </div>
+                </div>
+              </div>
+              <div className="card-footer between">
+                <span className="field-hint" style={{ marginTop: 0 }}>
+                  Once setup completes you will be prompted to enter your admin DID.
+                </span>
+                <button className="btn btn-ghost" onClick={handleDone}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            /* vta_setup_complete — ready for admin DID */
+            <div className="p-card">
+              <div className="card-header">
+                <h3 className="card-title">Provision admin DID</h3>
+                <p className="card-desc">
+                  VTA setup is complete. Run <span className="p-mono">pnm setup</span> locally with the FQDN above, then paste the DID it generates.
+                </p>
+              </div>
+              <div className="card-content p-col gap-16">
+                {liveSession?.vta_did && (
+                  <div className="p-card" style={{ background: 'hsl(var(--muted)/.4)', border: 'none' }}>
+                    <div className="card-content" style={{ padding: '12px 16px' }}>
+                      <div className="p-row between center" style={{ gap: 12 }}>
+                        <div className="p-col" style={{ minWidth: 0 }}>
+                          <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+                            VTA DID — pass to <span className="p-mono">pnm setup</span>
+                          </span>
+                          <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>
+                            {liveSession.vta_did}
+                          </p>
+                        </div>
+                        <button
+                          className="btn btn-outline btn-sm"
+                          style={{ flexShrink: 0, gap: 6 }}
+                          onClick={() => copyVtaDid(liveSession.vta_did!)}
+                        >
+                          {copiedVta
+                            ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M20 6 9 17l-5-5"/></svg>
+                            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                          }
+                          {copiedVta ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <div className="p-label">Admin DID</div>
+                  <div className="input-group">
+                    <input className="p-input p-mono" type="text" placeholder="did:key:z6Mk…" autoFocus
+                      value={adminDid} onChange={e => setAdminDid(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleProvision()} />
+                    {adminDid && (
+                      <button className="ig-suffix" type="button"
+                        onClick={() => navigator.clipboard.writeText(adminDid).catch(() => {})}>copy</button>
+                    )}
+                  </div>
+                  <div className="field-hint">Paste the <span className="p-mono">did:key:…</span> generated by your local identity tool.</div>
+                </div>
+                {provisionError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{provisionError}</p>}
+              </div>
+              <div className="card-footer between">
+                <button className="btn btn-ghost" onClick={handleDone}>Cancel</button>
+                <button className="btn btn-default" onClick={handleProvision} disabled={provisioning || !adminDid.trim()}>
+                  {provisioning ? 'Provisioning…' : <>Provision agent <span className="arrow">→</span></>}
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

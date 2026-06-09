@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
 import { statusBadge } from './portalUtils'
+import type { PortalContext } from './Portal'
 
-const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] }> = [
+const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
+  { label: 'Create session',   sub: 'created',            status: null },
   { label: 'DNS provisioned',  sub: 'dns_provisioned',    status: 'dns_provisioned' },
   { label: 'Setup running',    sub: 'vta_setup_running',  status: 'vta_setup_running' },
   { label: 'Setup complete',   sub: 'vta_setup_complete', status: 'vta_setup_complete' },
@@ -15,6 +17,7 @@ const ORDER = STATUS_STEPS.map(s => s.status)
 export function SessionDetailView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { loadSessions } = useOutletContext<PortalContext>()
   const sessionId = Number(id)
 
   const [session, setSession] = useState<SetupSession | null>(null)
@@ -24,6 +27,12 @@ export function SessionDetailView() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
   const [copied, setCopied] = useState(false)
+  const [copiedVta, setCopiedVta] = useState(false)
+
+  // Provision form (shown when status === 'vta_setup_complete')
+  const [adminDid, setAdminDid] = useState('')
+  const [provisioning, setProvisioning] = useState(false)
+  const [provisionError, setProvisionError] = useState('')
 
   function copyDid(did: string) {
     navigator.clipboard.writeText(did).catch(() => {})
@@ -31,8 +40,15 @@ export function SessionDetailView() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  function stepClass(stepStatus: SetupSession['status']) {
+  function copyVtaDid(did: string) {
+    navigator.clipboard.writeText(did).catch(() => {})
+    setCopiedVta(true)
+    setTimeout(() => setCopiedVta(false), 2000)
+  }
+
+  function stepClass(stepStatus: SetupSession['status'] | null) {
     if (!session) return ''
+    if (stepStatus === null) return 'done'
     const cur = ORDER.indexOf(session.status)
     const idx = ORDER.indexOf(stepStatus)
     if (session.status === 'failed') return idx <= cur ? 'failed' : ''
@@ -45,6 +61,7 @@ export function SessionDetailView() {
     api.getSession(sessionId).then(setSession).catch(() => {}).finally(() => setLoading(false))
   }, [sessionId])
 
+  // Poll every 3 s while provisioning in progress
   useEffect(() => {
     if (!session || ['running', 'failed'].includes(session.status)) return
     const iv = setInterval(() => {
@@ -52,7 +69,7 @@ export function SessionDetailView() {
         setSession(s)
         if (['running', 'failed'].includes(s.status)) clearInterval(iv)
       }).catch(() => {})
-    }, 5000)
+    }, 3000)
     return () => clearInterval(iv)
   }, [sessionId, session?.status])
 
@@ -66,11 +83,27 @@ export function SessionDetailView() {
     return () => es.close()
   }, [sessionId, session?.status])
 
+  async function handleProvision() {
+    if (!adminDid.trim()) { setProvisionError('Enter the admin DID from pnm'); return }
+    setProvisionError('')
+    setProvisioning(true)
+    try {
+      await api.provisionAdmin(sessionId, adminDid.trim())
+      setAdminDid('')
+      // Session status will update via the polling interval above
+    } catch (err) {
+      setProvisionError(err instanceof Error ? err.message : 'Provisioning failed')
+    } finally {
+      setProvisioning(false)
+    }
+  }
+
   async function handleDelete() {
     if (deleteInput !== name) return
     setDeleting(true)
     try {
       await api.deleteSession(sessionId)
+      loadSessions()
       navigate('/portal', { replace: true })
     } catch {}
     setDeleting(false)
@@ -131,7 +164,7 @@ export function SessionDetailView() {
         <div className="card-content" style={{ padding: '28px 28px 24px' }}>
           <div className="stepper">
             {STATUS_STEPS.map(step => (
-              <div key={step.status} className={`step ${stepClass(step.status)}`}>
+              <div key={step.sub} className={`step ${stepClass(step.status)}`}>
                 <div className="bar"/>
                 <div className="node">
                   {stepClass(step.status) === 'done' ? (
@@ -140,7 +173,7 @@ export function SessionDetailView() {
                     <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                   ) : stepClass(step.status) === 'failed' ? (
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6 6 18M6 6l12 12"/></svg>
-                  ) : (STATUS_STEPS.findIndex(s => s.status === step.status) + 1)}
+                  ) : (STATUS_STEPS.findIndex(s => s.sub === step.sub) + 1)}
                 </div>
                 <div className="s-label">{step.label}</div>
                 <div className="s-sub">{step.sub}</div>
@@ -149,6 +182,80 @@ export function SessionDetailView() {
           </div>
         </div>
       </div>
+
+      {/* Full-width action card — shown when VTA setup is done and admin DID is needed */}
+      {session.status === 'vta_setup_complete' && (
+        <div className="p-card" style={{ marginBottom: 20, borderColor: 'hsl(var(--primary)/.35)' }}>
+          <div className="card-header with-action">
+            <div>
+              <h3 className="card-title">Step 2 — Connect locally &amp; provision</h3>
+              <p className="card-desc">
+                Run <span className="p-mono">pnm setup</span> with the VTA DID below, then paste the admin DID it outputs.
+              </p>
+            </div>
+            <span className="p-badge" style={{ background: 'hsl(var(--destructive)/.12)', color: 'hsl(var(--destructive))', borderColor: 'hsl(var(--destructive)/.3)', flexShrink: 0 }}>
+              Action required
+            </span>
+          </div>
+          <div className="card-content p-col gap-16">
+            {session.vta_did && (
+              <div className="p-card" style={{ background: 'hsl(var(--muted)/.4)', border: 'none' }}>
+                <div className="card-content" style={{ padding: '12px 16px' }}>
+                  <div className="p-row between center" style={{ gap: 12 }}>
+                    <div className="p-col" style={{ minWidth: 0 }}>
+                      <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+                        VTA DID — pass to <span className="p-mono">pnm setup</span>
+                      </span>
+                      <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>
+                        {session.vta_did}
+                      </p>
+                    </div>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      style={{ flexShrink: 0, gap: 6 }}
+                      onClick={() => copyVtaDid(session.vta_did!)}
+                    >
+                      {copiedVta
+                        ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M20 6 9 17l-5-5"/></svg>
+                        : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      }
+                      {copiedVta ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div>
+              <label className="p-label" htmlFor="sd-did">Admin DID <span className="req">*</span></label>
+              <div className="input-group">
+                <input
+                  id="sd-did"
+                  className="p-input p-mono"
+                  placeholder="did:key:z6Mk…"
+                  value={adminDid}
+                  onChange={e => setAdminDid(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleProvision()}
+                  autoFocus
+                />
+              </div>
+              <div className="field-hint">Paste the <span className="p-mono">did:key:…</span> generated by your local identity tool.</div>
+            </div>
+            {provisionError && (
+              <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{provisionError}</p>
+            )}
+          </div>
+          <div className="card-footer between">
+            <span className="field-hint" style={{ marginTop: 0 }}>The agent will begin provisioning as soon as the DID is confirmed.</span>
+            <button
+              className="btn btn-default"
+              onClick={handleProvision}
+              disabled={provisioning || !adminDid.trim()}
+            >
+              {provisioning ? 'Provisioning…' : <>Provision agent <span className="arrow">→</span></>}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="p-grid-2" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'start' }}>
         {/* Log console */}
@@ -166,7 +273,7 @@ export function SessionDetailView() {
           <div className="console-body" style={{ maxHeight: 'none', minHeight: 120 }}>
             {logs.length === 0 ? (
               <div className="ln"><span className="p-muted text-xs">
-                {session.status === 'dns_provisioned' ? 'Waiting for setup to begin…' : 'No logs yet.'}
+                {session.status === 'vta_setup_complete' ? 'Waiting for admin DID provisioning…' : 'No logs yet.'}
               </span></div>
             ) : logs.map((line, i) => (
               <div key={i} className="ln"><span className="msg">{line}</span></div>
@@ -176,6 +283,7 @@ export function SessionDetailView() {
 
         {/* Metadata */}
         <div className="p-col gap-16">
+
           <div className="p-card">
             <div className="card-header"><h3 className="card-title">Configuration</h3></div>
             <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
