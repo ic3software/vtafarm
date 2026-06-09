@@ -68,7 +68,7 @@ export function Portal() {
   if (!user) return null
 
   const path = location.pathname
-  const sessionId = matchSession ? parseInt(matchSession.params.id!) : null
+  const sessionId = matchSession?.params.id ?? null
   const crumb = path.includes('/create') ? 'Create VTA'
     : matchSession ? (sessions.find(s => s.id === sessionId)?.vta_name ?? 'Detail')
     : path.includes('/settings') ? 'Settings'
@@ -81,7 +81,7 @@ export function Portal() {
         {/* Sidebar */}
         <aside className="p-sidebar">
           <div className="sidebar-head">
-            <a className="sidebar-brand" href="/">
+            <a className="sidebar-brand" href="/portal">
               <span className="sidebar-mark"/>
               <span>Cipher</span>
             </a>
@@ -100,7 +100,7 @@ export function Portal() {
             <div className="user-pop" data-open={userMenuOpen ? 'true' : 'false'}>
               <div className="user-menu" role="menu">
                 <div className="menu-item" onClick={() => { setUserMenuOpen(false); goTo('/portal/settings') }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                   Settings
                 </div>
                 <div className="menu-sep" />

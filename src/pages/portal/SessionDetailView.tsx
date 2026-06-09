@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
 import { statusBadge } from './portalUtils'
@@ -18,11 +18,12 @@ export function SessionDetailView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { loadSessions } = useOutletContext<PortalContext>()
-  const sessionId = Number(id)
+  const sessionId = id!
 
   const [session, setSession] = useState<SetupSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [logs, setLogs] = useState<string[]>([])
+  const logEndRef = useRef<HTMLDivElement>(null)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
@@ -48,12 +49,13 @@ export function SessionDetailView() {
 
   function stepClass(stepStatus: SetupSession['status'] | null) {
     if (!session) return ''
+    if (session.status === 'complete' || session.status === 'running') return 'done'
     if (stepStatus === null) return 'done'
     const cur = ORDER.indexOf(session.status)
     const idx = ORDER.indexOf(stepStatus)
     if (session.status === 'failed') return idx <= cur ? 'failed' : ''
     if (idx < cur) return 'done'
-    if (idx === cur) return session.status === 'running' ? 'done' : 'active'
+    if (idx === cur) return 'active'
     return ''
   }
 
@@ -61,13 +63,13 @@ export function SessionDetailView() {
     api.getSession(sessionId).then(setSession).catch(() => {}).finally(() => setLoading(false))
   }, [sessionId])
 
-  // Poll every 3 s while provisioning in progress
+  // Poll every 3 s until complete or failed
   useEffect(() => {
-    if (!session || ['running', 'failed'].includes(session.status)) return
+    if (!session || ['complete', 'failed'].includes(session.status)) return
     const iv = setInterval(() => {
       api.getSession(sessionId).then(s => {
         setSession(s)
-        if (['running', 'failed'].includes(s.status)) clearInterval(iv)
+        if (['complete', 'failed'].includes(s.status)) clearInterval(iv)
       }).catch(() => {})
     }, 3000)
     return () => clearInterval(iv)
@@ -75,13 +77,17 @@ export function SessionDetailView() {
 
   useEffect(() => {
     if (!session) return
-    if (!['vta_setup_running', 'provisioning'].includes(session.status)) return
+    if (session.status === 'dns_provisioned') return
     const es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs`, { withCredentials: true })
     es.onmessage = e => setLogs(prev => [...prev, e.data])
     es.addEventListener('done', () => es.close())
     es.onerror = () => es.close()
     return () => es.close()
   }, [sessionId, session?.status])
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [logs])
 
   async function handleProvision() {
     if (!adminDid.trim()) { setProvisionError('Enter the admin DID from pnm'); return }
@@ -99,7 +105,7 @@ export function SessionDetailView() {
   }
 
   async function handleDelete() {
-    if (deleteInput !== name) return
+    if (deleteInput !== sessionId) return
     setDeleting(true)
     try {
       await api.deleteSession(sessionId)
@@ -128,8 +134,8 @@ export function SessionDetailView() {
             <h1 className="p-mono" style={{ fontFamily: 'var(--mono)', fontSize: 22, whiteSpace: 'nowrap', marginBottom: 0 }}>{name}</h1>
             {statusBadge(session.status)}
           </div>
-          {session.fqdn && (
-            <p className="sub p-mono" style={{ marginTop: 4 }}>{session.fqdn}</p>
+          {session.url && (
+            <p className="sub p-mono" style={{ marginTop: 4 }}>{session.url}</p>
           )}
         </div>
       </div>
@@ -176,7 +182,6 @@ export function SessionDetailView() {
                   ) : (STATUS_STEPS.findIndex(s => s.sub === step.sub) + 1)}
                 </div>
                 <div className="s-label">{step.label}</div>
-                <div className="s-sub">{step.sub}</div>
               </div>
             ))}
           </div>
@@ -190,7 +195,7 @@ export function SessionDetailView() {
             <div>
               <h3 className="card-title">Step 2 — Connect locally &amp; provision</h3>
               <p className="card-desc">
-                Run <span className="p-mono">pnm setup</span> with the VTA DID below, then paste the admin DID it outputs.
+                Run <span className="p-mono">pnm setup</span> locally and paste the admin DID it outputs.
               </p>
             </div>
             <span className="p-badge" style={{ background: 'hsl(var(--destructive)/.12)', color: 'hsl(var(--destructive))', borderColor: 'hsl(var(--destructive)/.3)', flexShrink: 0 }}>
@@ -270,7 +275,7 @@ export function SessionDetailView() {
               </span>
             )}
           </div>
-          <div className="console-body" style={{ maxHeight: 'none', minHeight: 120 }}>
+          <div className="console-body" style={{ minHeight: 120 }}>
             {logs.length === 0 ? (
               <div className="ln"><span className="p-muted text-xs">
                 {session.status === 'vta_setup_complete' ? 'Waiting for admin DID provisioning…' : 'No logs yet.'}
@@ -278,6 +283,7 @@ export function SessionDetailView() {
             ) : logs.map((line, i) => (
               <div key={i} className="ln"><span className="msg">{line}</span></div>
             ))}
+            <div ref={logEndRef} />
           </div>
         </div>
 
@@ -313,14 +319,14 @@ export function SessionDetailView() {
             <div className="card-content">
               <hr className="p-sep" style={{ marginBottom: 14 }} />
               <div className="p-col" style={{ gap: 0 }}>
-                <span className="text-sm fw-600">Delete VTA</span>
+                <span className="text-sm fw-600">Delete Agent</span>
                 <span className="p-muted text-xs" style={{ margin: '4px 0 14px' }}>Permanently removes the agent, DNS record, and all session data.</span>
                 <div>
                   <button
                     className="btn btn-destructive btn-sm"
                     onClick={() => setShowDeleteConfirm(true)}
                   >
-                    Delete VTA
+                    Delete Agent
                   </button>
                 </div>
               </div>
@@ -339,14 +345,14 @@ export function SessionDetailView() {
             </div>
             <div className="dialog-body">
               <div>
-                <label className="p-label">Type <span className="p-mono">{name}</span> to confirm</label>
-                <input className="p-input p-mono" placeholder={name} value={deleteInput} onChange={e => setDeleteInput(e.target.value)} />
+                <label className="p-label">Type <span className="p-mono">{sessionId}</span> to confirm</label>
+                <input className="p-input p-mono" placeholder={sessionId} value={deleteInput} onChange={e => setDeleteInput(e.target.value)} />
               </div>
             </div>
             <div className="dialog-footer">
               <button className="btn btn-ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-              <button className="btn btn-destructive" onClick={handleDelete} disabled={deleting || deleteInput !== name}>
-                {deleting ? 'Deleting…' : 'Delete agent'}
+              <button className="btn btn-destructive" onClick={handleDelete} disabled={deleting || deleteInput !== sessionId}>
+                {deleting ? 'Deleting…' : 'Delete Agent'}
               </button>
             </div>
           </div>

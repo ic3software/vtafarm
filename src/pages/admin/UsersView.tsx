@@ -1,30 +1,60 @@
-import { useState, type FormEvent } from 'react'
-import { useOutletContext } from 'react-router-dom'
-import { api } from '@/lib/api'
-import { initials } from '../portal/portalUtils'
-import type { AdminContext } from './AdminPanel'
+import { useState, useEffect, useCallback, type FormEvent } from 'react'
+import { api, type User } from '@/lib/api'
+
+const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'
+
+function fmt(iso: string) {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: browserTz })
+}
 
 export function UsersView() {
-  const { email } = useOutletContext<AdminContext>()
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+
   const [showCreate, setShowCreate] = useState(false)
   const [newEmail, setNewEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
-  const [createSuccess, setCreateSuccess] = useState('')
+
+  const [resetTarget, setResetTarget] = useState<User | null>(null)
+  const [resetPw, setResetPw] = useState('')
+  const [resetting, setResetting] = useState(false)
+  const [resetError, setResetError] = useState('')
+
+  const loadUsers = useCallback(() => {
+    setLoading(true)
+    api.listUsers().then(setUsers).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => { loadUsers() }, [loadUsers])
 
   async function handleCreateUser(e: FormEvent) {
     e.preventDefault()
-    setCreateError(''); setCreateSuccess(''); setCreating(true)
+    setCreateError(''); setCreating(true)
     try {
-      const user = await api.createUser(newEmail, password)
-      setCreateSuccess(`User ${user.email} created (ID: ${user.id})`)
-      setNewEmail(''); setPassword('')
+      await api.createUser(newEmail, newPassword)
+      setNewEmail(''); setNewPassword('')
       setShowCreate(false)
+      loadUsers()
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create user')
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function handleResetPassword(e: FormEvent) {
+    e.preventDefault()
+    if (!resetTarget) return
+    setResetError(''); setResetting(true)
+    try {
+      await api.resetUserPassword(resetTarget.id, resetPw)
+      setResetTarget(null); setResetPw('')
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : 'Failed to reset password')
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -41,47 +71,47 @@ export function UsersView() {
         </button>
       </div>
 
-      {createSuccess && (
-        <div className="p-alert alert-success" style={{ marginBottom: 20 }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg>
-          <p className="alert-desc">{createSuccess}</p>
-        </div>
-      )}
-
       <div className="table-wrap">
         <table className="p-table">
           <thead>
             <tr>
-              <th>User</th>
-              <th>Role</th>
-              <th>Status</th>
+              <th>ID</th>
+              <th>User ID</th>
+              <th>Email</th>
+              <th>Created</th>
+              <th>Updated</th>
               <th className="col-actions"/>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>
-                <div className="p-row">
-                  <span className="p-avatar" style={{ width: 30, height: 30, fontSize: 11, background: 'hsl(var(--primary))', color: '#fff' }}>
-                    {initials(email)}
-                  </span>
-                  <div className="p-col">
-                    <span className="fw-600">{email} <span className="admin-pill" style={{ marginLeft: 4 }}>you</span></span>
-                    <span className="text-xs p-muted">Admin account</span>
-                  </div>
-                </div>
-              </td>
-              <td><span className="p-badge badge-default">admin</span></td>
-              <td><span className="p-badge badge-success"><span className="dot"/>active</span></td>
-              <td className="col-actions"/>
-            </tr>
+            {loading ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                  Loading…
+                </td>
+              </tr>
+            ) : users.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                  No users yet.
+                </td>
+              </tr>
+            ) : users.map(u => (
+              <tr key={u.id}>
+                <td><span className="p-mono" style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{u.id}</span></td>
+                <td><span className="p-mono" style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{u.unique_id}</span></td>
+                <td>{u.email}</td>
+                <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(u.created_at)}</td>
+                <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(u.updated_at)}</td>
+                <td className="col-actions">
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setResetTarget(u); setResetPw(''); setResetError('') }}>
+                    Reset password
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
-      </div>
-
-      <div className="p-alert" style={{ marginTop: 16, background: 'hsl(var(--muted)/.4)' }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ color: 'hsl(var(--muted-foreground))' }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-        <p className="alert-desc">User list is not available via the API yet. Create users with the button above; they can then sign in via <span className="p-mono">/login</span>.</p>
       </div>
 
       {showCreate && (
@@ -102,15 +132,37 @@ export function UsersView() {
                 </div>
                 <div>
                   <label className="p-label">Password <span className="req">*</span></label>
-                  <input className="p-input" type="password" placeholder="min. 8 characters" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
+                  <input className="p-input" type="password" placeholder="min. 8 characters" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8} />
                 </div>
                 {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
               </div>
               <div className="dialog-footer">
                 <button className="btn btn-ghost" type="button" onClick={() => { setShowCreate(false); setCreateError('') }}>Cancel</button>
-                <button className="btn btn-default" type="submit" disabled={creating}>
-                  {creating ? 'Creating…' : 'Create user'}
-                </button>
+                <button className="btn btn-default" type="submit" disabled={creating}>{creating ? 'Creating…' : 'Create user'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {resetTarget && (
+        <div className="p-overlay">
+          <div className="p-dialog">
+            <div className="dialog-header">
+              <h3 className="dialog-title">Reset password</h3>
+              <p className="dialog-desc">Set a new password for <span className="fw-600">{resetTarget.email}</span>.</p>
+            </div>
+            <form onSubmit={handleResetPassword}>
+              <div className="dialog-body">
+                <div>
+                  <label className="p-label">New password <span className="req">*</span></label>
+                  <input className="p-input" type="password" placeholder="min. 8 characters" value={resetPw} onChange={e => setResetPw(e.target.value)} required minLength={8} autoFocus />
+                </div>
+                {resetError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{resetError}</p>}
+              </div>
+              <div className="dialog-footer">
+                <button className="btn btn-ghost" type="button" onClick={() => { setResetTarget(null); setResetError('') }}>Cancel</button>
+                <button className="btn btn-default" type="submit" disabled={resetting}>{resetting ? 'Saving…' : 'Save password'}</button>
               </div>
             </form>
           </div>

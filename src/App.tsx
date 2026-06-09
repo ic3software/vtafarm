@@ -15,8 +15,8 @@ import { CreateVTAView } from '@/pages/portal/CreateVTAView'
 import { SessionDetailView } from '@/pages/portal/SessionDetailView'
 import { SettingsView } from '@/pages/portal/SettingsView'
 import { AdminPanel } from '@/pages/admin/AdminPanel'
+import { AdminsView } from '@/pages/admin/AdminsView'
 import { UsersView } from '@/pages/admin/UsersView'
-import { AuditView } from '@/pages/admin/AuditView'
 import { SecurityView } from '@/pages/admin/SecurityView'
 import { UserAuthProvider } from '@/contexts/UserAuthContext'
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
@@ -57,10 +57,9 @@ export default function App() {
           <Route path="/admin" element={<AdminAuthProvider><Outlet /></AdminAuthProvider>}>
             <Route path="login" element={<AdminLogin />} />
             <Route element={<AdminPanel />}>
-              <Route index element={<Navigate to="users" replace />} />
+              <Route index element={<AdminsView />} />
               <Route path="users" element={<UsersView />} />
-              <Route path="audit" element={<AuditView />} />
-              <Route path="security" element={<SecurityView />} />
+              <Route path="settings" element={<SecurityView />} />
             </Route>
           </Route>
 

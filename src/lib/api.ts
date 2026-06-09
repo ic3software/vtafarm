@@ -3,10 +3,9 @@ if (!_apiUrl) throw new Error('VITE_API_URL is not set. Create a .env file with 
 export const API_BASE: string = _apiUrl
 
 export interface SetupSession {
-  id: number
-  status: 'dns_provisioned' | 'vta_setup_running' | 'vta_setup_complete' | 'provisioning' | 'running' | 'failed'
+  id: string
+  status: 'dns_provisioned' | 'vta_setup_running' | 'vta_setup_complete' | 'provisioning' | 'vta_starting' | 'running' | 'complete' | 'failed'
   mode: 'vta_only' | 'full_stack'
-  fqdn?: string
   url?: string
   vta_name?: string
   vta_did?: string
@@ -20,6 +19,21 @@ export interface UserInfo {
   id: number
   email: string
   role: 'user' | 'admin'
+}
+
+export interface User {
+  id: number
+  unique_id: string
+  email: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminRecord {
+  id: number
+  email: string
+  created_at: string
+  updated_at: string
 }
 
 interface ApiError extends Error {
@@ -52,6 +66,10 @@ export const api = {
     req<{ token: string; user: UserInfo }>('POST', '/api/v1/auth/admin/login', { email, password }),
   adminLogout: () => req<null>('POST', '/api/v1/auth/admin/logout'),
 
+  listAdmins: () => req<AdminRecord[]>('GET', '/api/v1/admins'),
+  createAdmin: (email: string, password: string) =>
+    req<{ id: number; email: string }>('POST', '/api/v1/admins', { email, password }),
+  listUsers: () => req<User[]>('GET', '/api/v1/users'),
   createUser: (email: string, password: string) =>
     req<{ id: number; unique_id: string; email: string }>('POST', '/api/v1/users', { email, password }),
   changeAdminPassword: (current_password: string, new_password: string) =>
@@ -69,9 +87,9 @@ export const api = {
     vta_name?: string
     portable?: boolean
     pre_rotation_count?: number
-  }) => req<{ id: number; subdomain: string; url: string; status: string }>('POST', '/api/v1/setup', data),
-  getSession: (id: number) => req<SetupSession>('GET', `/api/v1/setup/${id}`),
-  deleteSession: (id: number) => req<null>('DELETE', `/api/v1/setup/${id}`),
-  provisionAdmin: (id: number, admin_did: string) =>
+  }) => req<{ id: string; url: string; status: string }>('POST', '/api/v1/setup', data),
+  getSession: (id: string) => req<SetupSession>('GET', `/api/v1/setup/${id}`),
+  deleteSession: (id: string) => req<null>('DELETE', `/api/v1/setup/${id}`),
+  provisionAdmin: (id: string, admin_did: string) =>
     req<{ status: string }>('POST', `/api/v1/setup/${id}/admin`, { admin_did }),
 }

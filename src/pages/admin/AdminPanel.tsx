@@ -47,9 +47,9 @@ export function AdminPanel() {
   if (!admin) return null
 
   const path = location.pathname
-  const crumb = path.includes('/audit') ? 'Audit log'
-    : path.includes('/security') ? 'Security'
-    : 'Users'
+  const crumb = path.includes('/settings') ? 'Settings'
+    : path.includes('/users') ? 'Users'
+    : 'Admins'
 
   return (
     <div className="portal-root">
@@ -57,52 +57,37 @@ export function AdminPanel() {
         {/* Sidebar */}
         <aside className="p-sidebar">
           <div className="sidebar-head">
-            <a className="sidebar-brand" href="/">
+            <a className="sidebar-brand" href="/admin">
               <span className="sidebar-mark"/>
               <span>Cipher</span>
               <span className="admin-pill">Admin</span>
             </a>
-            <button className="btn btn-ghost btn-icon btn-sm theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
-              <svg className="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-              <svg className="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-            </button>
           </div>
 
           <div className="sidebar-section">
             <div className="s-title">Control plane</div>
             <div
-              className={`nav-item ${path === '/admin/users' || path === '/admin' ? 'active' : ''}`}
-              onClick={() => goTo('/admin/users')}
+              className={`nav-item ${!path.includes('/users') && !path.includes('/settings') ? 'active' : ''}`}
+              onClick={() => goTo('/admin')}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Admins
+            </div>
+            <div
+              className={`nav-item ${path.includes('/users') ? 'active' : ''}`}
+              onClick={() => goTo('/admin/users')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               Users
-            </div>
-            <div
-              className={`nav-item ${path === '/admin/audit' ? 'active' : ''}`}
-              onClick={() => goTo('/admin/audit')}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 5h16M4 12h16M4 19h10"/></svg>
-              Audit log
-            </div>
-          </div>
-
-          <div className="sidebar-section">
-            <div className="s-title">Account</div>
-            <div
-              className={`nav-item ${path === '/admin/security' ? 'active' : ''}`}
-              onClick={() => goTo('/admin/security')}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              Security
             </div>
           </div>
 
           <div className="sidebar-foot">
             <div className="user-pop" data-open={userMenuOpen ? 'true' : 'false'}>
               <div className="user-menu" role="menu">
-                <div className="menu-item" onClick={() => { setUserMenuOpen(false); goTo('/admin/security') }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                  Security
+                <div className="menu-item" onClick={() => { setUserMenuOpen(false); goTo('/admin/settings') }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  Settings
                 </div>
                 <div className="menu-sep" />
                 <div className="menu-item destructive" onClick={() => { setUserMenuOpen(false); handleLogout() }}>
@@ -135,6 +120,10 @@ export function AdminPanel() {
               <span className="cur">{crumb}</span>
             </div>
             <div className="spacer"/>
+            <button className="btn btn-ghost btn-icon btn-sm theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
+              <svg className="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+              <svg className="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </button>
           </header>
 
           <Outlet context={{ email: admin.email } satisfies AdminContext} />

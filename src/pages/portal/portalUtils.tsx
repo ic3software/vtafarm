@@ -2,20 +2,23 @@ import type { SetupSession } from '@/lib/api'
 
 export function statusBadge(status: SetupSession['status']) {
   const map: Record<SetupSession['status'], { cls: string; label: string }> = {
-    dns_provisioned:   { cls: 'badge-secondary', label: 'DNS provisioned' },
-    vta_setup_running: { cls: 'badge-warning',   label: 'setup running' },
-    vta_setup_complete:{ cls: 'badge-warning',   label: 'setup complete' },
-    provisioning:      { cls: 'badge-warning',   label: 'provisioning' },
-    running:           { cls: 'badge-success',   label: 'running' },
-    failed:            { cls: 'badge-destructive', label: 'failed' },
+    dns_provisioned:    { cls: 'badge-secondary',   label: 'DNS provisioned' },
+    vta_setup_running:  { cls: 'badge-warning',     label: 'setup running' },
+    vta_setup_complete: { cls: 'badge-warning',     label: 'setup complete' },
+    provisioning:       { cls: 'badge-warning',     label: 'provisioning' },
+    vta_starting:       { cls: 'badge-warning',     label: 'VTA starting' },
+    running:            { cls: 'badge-success',     label: 'running' },
+    complete:           { cls: 'badge-success',     label: 'complete' },
+    failed:             { cls: 'badge-destructive', label: 'failed' },
   }
   const { cls, label } = map[status] ?? { cls: 'badge-secondary', label: status }
-  const pulse = status !== 'running' && status !== 'failed' && status !== 'dns_provisioned'
+  const done = status === 'running' || status === 'complete'
+  const pulse = !done && status !== 'failed' && status !== 'dns_provisioned'
   return (
     <span className={`p-badge ${cls}`}>
       {pulse
         ? <span className="dot pulse-dot" />
-        : status === 'running'
+        : done
           ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M20 6 9 17l-5-5"/></svg>
           : status === 'failed'
             ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6 6 18M6 6l12 12"/></svg>
