@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { api, type UserInfo } from '@/lib/api'
 
 interface UserAuthCtx {
@@ -12,36 +12,27 @@ const UserAuthContext = createContext<UserAuthCtx | null>(null)
 const SESSION_KEY = 'cipher-user'
 
 function readSession(): UserInfo | null {
-  try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? 'null') }
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null') }
   catch { return null }
 }
 
 export function UserAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(readSession)
-  const [loading, setLoading] = useState(true)
+  // Auth state comes from localStorage synchronously — no API call needed on mount.
+  // loading is kept in the interface for consumers but is always false.
+  const loading = false
 
-  useEffect(() => {
-    api.listSessions()
-      .catch((err: { status?: number }) => {
-        if (err.status === 401) {
-          setUser(null)
-          try { sessionStorage.removeItem(SESSION_KEY) } catch {}
-        }
-      })
-      .finally(() => setLoading(false))
-  }, [])
-
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const data = await api.userLogin(email, password)
     setUser(data.user)
-    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(data.user)) } catch {}
-  }
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(data.user)) } catch {}
+  }, [])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await api.userLogout().catch(() => {})
     setUser(null)
-    try { sessionStorage.removeItem(SESSION_KEY) } catch {}
-  }
+    try { localStorage.removeItem(SESSION_KEY) } catch {}
+  }, [])
 
   return (
     <UserAuthContext.Provider value={{ user, loading, login, logout }}>

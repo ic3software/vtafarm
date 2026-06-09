@@ -28,9 +28,11 @@ export function Portal() {
     setSessionsLoading(true)
     api.listSessions()
       .then(setSessions)
-      .catch(() => {})
+      .catch((err: { status?: number }) => {
+        if (err.status === 401) logout()
+      })
       .finally(() => setSessionsLoading(false))
-  }, [])
+  }, [logout])
 
   useEffect(() => {
     if (!loading && !user) navigate('/login', { replace: true })

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { NavBar } from '@/components/home/NavBar'
 import { HeroSection } from '@/components/home/HeroSection'
 import { HowItWorks } from '@/components/home/HowItWorks'
@@ -41,30 +41,31 @@ export default function App() {
   return (
     <BrowserRouter>
       <UserAuthProvider>
-        <AdminAuthProvider>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/preview" element={<MobilePreview />} />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/preview" element={<MobilePreview />} />
 
-            <Route path="/login" element={<UserLogin />} />
-            <Route path="/portal" element={<Portal />}>
-              <Route index element={<AgentsView />} />
-              <Route path="create" element={<CreateVTAView />} />
-              <Route path="session/:id" element={<SessionDetailView />} />
-              <Route path="settings" element={<SettingsView />} />
-            </Route>
+          <Route path="/login" element={<UserLogin />} />
+          <Route path="/portal" element={<Portal />}>
+            <Route index element={<AgentsView />} />
+            <Route path="create" element={<CreateVTAView />} />
+            <Route path="session/:id" element={<SessionDetailView />} />
+            <Route path="settings" element={<SettingsView />} />
+          </Route>
 
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin" element={<AdminPanel />}>
+          {/* AdminAuthProvider scoped to /admin/* only */}
+          <Route path="/admin" element={<AdminAuthProvider><Outlet /></AdminAuthProvider>}>
+            <Route path="login" element={<AdminLogin />} />
+            <Route element={<AdminPanel />}>
               <Route index element={<Navigate to="users" replace />} />
               <Route path="users" element={<UsersView />} />
               <Route path="audit" element={<AuditView />} />
               <Route path="security" element={<SecurityView />} />
             </Route>
+          </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AdminAuthProvider>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </UserAuthProvider>
     </BrowserRouter>
   )

@@ -1,15 +1,13 @@
-import { useState, useEffect, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, type FormEvent } from 'react'
+import { useNavigate, Navigate } from 'react-router-dom'
 import '@/styles/portal.css'
 import { useAdminAuth } from '@/contexts/AdminAuthContext'
 
 export function AdminLogin() {
-  const { login, admin, loading: authLoading } = useAdminAuth()
+  const { login, admin } = useAdminAuth()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    if (!authLoading && admin) navigate('/admin', { replace: true })
-  }, [authLoading, admin, navigate])
+  if (admin) return <Navigate to="/admin" replace />
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
