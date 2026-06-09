@@ -50,7 +50,7 @@ export function CreateVTAView() {
     if (stage !== 2 || !sessionId) return
     const es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs`, { withCredentials: true })
     es.onmessage = e => setLogs(prev => [...prev, e.data])
-    es.addEventListener('done', () => { es.close(); setStage(3) })
+    es.addEventListener('done', () => { es.close() })
     es.onerror = () => es.close()
     return () => es.close()
   }, [stage, sessionId])
@@ -63,7 +63,7 @@ export function CreateVTAView() {
         if (s.status === 'running') { clearInterval(iv); setStage(3) }
         if (s.status === 'failed') { clearInterval(iv); setLogs(p => [...p, `ERROR: ${s.error_msg ?? 'Setup failed'}`]) }
       } catch {}
-    }, 5000)
+    }, 3000)
     return () => clearInterval(iv)
   }, [stage, sessionId])
 
@@ -265,7 +265,7 @@ export function CreateVTAView() {
                       <div className="p-row between center" style={{ gap: 12 }}>
                         <div className="p-col" style={{ minWidth: 0 }}>
                           <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
-                            VTA DID — pass to <span className="p-mono">pnm setup</span>
+                            VTA DID
                           </span>
                           <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>
                             {liveSession.vta_did}

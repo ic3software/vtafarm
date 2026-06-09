@@ -119,7 +119,7 @@ export function SessionDetailView() {
       <div className="page-head">
         <div>
           <div className="p-row gap-12" style={{ marginBottom: 6 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/portal')} style={{ padding: '0 8px 0 6px' }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => { loadSessions(); navigate('/portal') }} style={{ padding: '0 8px 0 6px' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="m15 18-6-6 6-6"/></svg>
               Agents
             </button>
@@ -204,7 +204,7 @@ export function SessionDetailView() {
                   <div className="p-row between center" style={{ gap: 12 }}>
                     <div className="p-col" style={{ minWidth: 0 }}>
                       <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
-                        VTA DID — pass to <span className="p-mono">pnm setup</span>
+                        VTA DID
                       </span>
                       <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>
                         {session.vta_did}
@@ -309,21 +309,20 @@ export function SessionDetailView() {
           <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
             <div className="card-header">
               <h3 className="card-title" style={{ color: 'hsl(var(--destructive))' }}>Danger Zone</h3>
-              <p className="card-desc">Irreversible actions for this agent.</p>
             </div>
-            <div className="card-content" style={{ paddingTop: 0 }}>
-              <div className="p-row between center">
-                <div className="p-col">
-                  <span className="text-sm fw-600">Delete VTA</span>
-                  <span className="p-muted text-xs">Permanently removes the agent, DNS record, and all session data.</span>
+            <div className="card-content">
+              <hr className="p-sep" style={{ marginBottom: 14 }} />
+              <div className="p-col" style={{ gap: 0 }}>
+                <span className="text-sm fw-600">Delete VTA</span>
+                <span className="p-muted text-xs" style={{ margin: '4px 0 14px' }}>Permanently removes the agent, DNS record, and all session data.</span>
+                <div>
+                  <button
+                    className="btn btn-destructive btn-sm"
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    Delete VTA
+                  </button>
                 </div>
-                <button
-                  className="btn btn-destructive btn-sm"
-                  style={{ flexShrink: 0, marginLeft: 16 }}
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  Delete VTA
-                </button>
               </div>
             </div>
           </div>
