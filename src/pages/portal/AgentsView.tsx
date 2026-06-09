@@ -16,6 +16,16 @@ export function AgentsView() {
           <h1>Your Agents</h1>
           <p className="sub">Verifiable Trust Agents provisioned to your account.</p>
         </div>
+        <div className="p-row gap-8">
+          <button className="btn btn-outline" onClick={loadSessions}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 2v6h6M21 12A9 9 0 0 0 6 5.3L3 8M21 22v-6h-6M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg>
+            Refresh
+          </button>
+          <button className="btn btn-default" onClick={() => navigate('/portal/create')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 5v14M5 12h14"/></svg>
+            Create VTA
+          </button>
+        </div>
       </div>
 
       <div className="p-grid-2" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 24 }}>
@@ -81,10 +91,6 @@ export function AgentsView() {
         </div>
       )}
 
-      <button className="btn btn-ghost btn-sm" onClick={loadSessions} style={{ marginTop: 12 }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 2v6h6M21 12A9 9 0 0 0 6 5.3L3 8M21 22v-6h-6M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg>
-        Refresh
-      </button>
     </section>
   )
 }

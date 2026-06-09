@@ -48,8 +48,7 @@ export default function App() {
 
             <Route path="/login" element={<UserLogin />} />
             <Route path="/portal" element={<Portal />}>
-              <Route index element={<Navigate to="agents" replace />} />
-              <Route path="agents" element={<AgentsView />} />
+              <Route index element={<AgentsView />} />
               <Route path="create" element={<CreateVTAView />} />
               <Route path="session/:id" element={<SessionDetailView />} />
               <Route path="settings" element={<SettingsView />} />

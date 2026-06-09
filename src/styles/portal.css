@@ -210,6 +210,30 @@
 .portal-root .menu-item.destructive svg { color: hsl(var(--destructive)); }
 .portal-root .menu-sep { height: 1px; background: hsl(var(--border)); margin: 5px 0; }
 
+/* --- User popover --- */
+.portal-root .user-pop { position: relative; }
+.portal-root .user-menu {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 8px);
+  padding: 5px;
+  background: hsl(var(--popover)); color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius) - 1px);
+  box-shadow: var(--shadow-lg);
+  opacity: 0; transform: translateY(6px) scale(0.98); transform-origin: bottom center;
+  pointer-events: none; transition: opacity .16s ease, transform .16s cubic-bezier(.2,.7,.2,1);
+  z-index: 40;
+}
+.portal-root .user-pop[data-open="true"] .user-menu { opacity: 1; transform: none; pointer-events: auto; }
+.portal-root .user-pop[data-open="true"] .user-chip { background: hsl(var(--muted)); }
+.portal-root .user-pop[data-open="true"] .user-chip > svg:last-child { transform: rotate(180deg); }
+.portal-root .user-chip > svg:last-child { transition: transform .18s; }
+
+/* --- Theme toggle --- */
+.portal-root .theme-toggle .sun,
+.portal-root .theme-toggle .moon { display: block; transition: opacity .2s; }
+.portal-root .theme-toggle .moon { display: none; }
+.dark .portal-root .theme-toggle .sun { display: none; }
+.dark .portal-root .theme-toggle .moon { display: block; }
+
 /* --- Dialog overlay --- */
 .portal-root .p-overlay { position: fixed; inset: 0; background: hsl(0 0% 0% / 0.5); backdrop-filter: blur(2px); display: grid; place-items: center; padding: 24px; z-index: 100; }
 .portal-root .p-dialog { width: 100%; max-width: 460px; background: hsl(var(--popover)); color: hsl(var(--popover-foreground)); border: 1px solid hsl(var(--border)); border-radius: var(--radius); box-shadow: var(--shadow-lg); overflow: hidden; }

@@ -79,7 +79,7 @@ export function CreateVTAView() {
 
   function handleDone() {
     loadSessions()
-    navigate('/portal/agents')
+    navigate('/portal')
   }
 
   const stepState = (i: number) => i < stage ? 'done' : i === stage ? 'active' : ''

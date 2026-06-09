@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import '@/styles/portal.css'
 import { useAdminAuth } from '@/contexts/AdminAuthContext'
+import { useTheme } from '@/lib/useTheme'
 import { initials } from '../portal/portalUtils'
 
 export interface AdminContext {
@@ -10,13 +11,22 @@ export interface AdminContext {
 
 export function AdminPanel() {
   const { admin, logout, loading } = useAdminAuth()
+  const { toggle: toggleTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   useEffect(() => {
     if (!loading && !admin) navigate('/admin/login', { replace: true })
   }, [loading, admin, navigate])
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+    const close = () => setUserMenuOpen(false)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [userMenuOpen])
 
   async function handleLogout() {
     await logout()
@@ -52,6 +62,10 @@ export function AdminPanel() {
               <span>Cipher</span>
               <span className="admin-pill">Admin</span>
             </a>
+            <button className="btn btn-ghost btn-icon btn-sm theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
+              <svg className="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+              <svg className="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </button>
           </div>
 
           <div className="sidebar-section">
@@ -84,13 +98,26 @@ export function AdminPanel() {
           </div>
 
           <div className="sidebar-foot">
-            <div className="user-chip" onClick={() => goTo('/admin/security')}>
-              <span className="p-avatar" style={{ background: 'hsl(var(--primary))', color: '#fff' }}>{initials(admin.email)}</span>
-              <div className="meta grow">
-                <div className="n">{admin.email}</div>
-                <div className="e">Admin account</div>
+            <div className="user-pop" data-open={userMenuOpen ? 'true' : 'false'}>
+              <div className="user-menu" role="menu">
+                <div className="menu-item" onClick={() => { setUserMenuOpen(false); goTo('/admin/security') }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Security
+                </div>
+                <div className="menu-sep" />
+                <div className="menu-item destructive" onClick={() => { setUserMenuOpen(false); handleLogout() }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                  Sign out
+                </div>
               </div>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 15, height: 15, color: 'hsl(var(--muted-foreground))' }}><path d="m18 15-6-6-6 6"/></svg>
+              <div className="user-chip" onClick={e => { e.stopPropagation(); setUserMenuOpen(v => !v) }}>
+                <span className="p-avatar" style={{ background: 'hsl(var(--primary))', color: '#fff' }}>{initials(admin.email)}</span>
+                <div className="meta grow">
+                  <div className="n">{admin.email}</div>
+                  <div className="e">Admin account</div>
+                </div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 15, height: 15, color: 'hsl(var(--muted-foreground))' }}><path d="m18 15-6-6-6 6"/></svg>
+              </div>
             </div>
           </div>
         </aside>
@@ -108,15 +135,6 @@ export function AdminPanel() {
               <span className="cur">{crumb}</span>
             </div>
             <div className="spacer"/>
-            {path === '/admin/users' || path === '/admin' ? (
-              <button className="btn btn-outline btn-sm" onClick={() => goTo('/admin/users')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
-                New user
-              </button>
-            ) : null}
-            <button className="btn btn-ghost btn-icon btn-sm" onClick={handleLogout} title="Sign out">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-            </button>
           </header>
 
           <Outlet context={{ email: admin.email } satisfies AdminContext} />

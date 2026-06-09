@@ -23,6 +23,13 @@ export function SessionDetailView() {
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  function copyDid(did: string) {
+    navigator.clipboard.writeText(did).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   function stepClass(stepStatus: SetupSession['status']) {
     if (!session) return ''
@@ -64,7 +71,7 @@ export function SessionDetailView() {
     setDeleting(true)
     try {
       await api.deleteSession(sessionId)
-      navigate('/portal/agents', { replace: true })
+      navigate('/portal', { replace: true })
     } catch {}
     setDeleting(false)
   }
@@ -79,7 +86,7 @@ export function SessionDetailView() {
       <div className="page-head">
         <div>
           <div className="p-row gap-12" style={{ marginBottom: 6 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/portal/agents')} style={{ padding: '0 8px 0 6px' }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/portal')} style={{ padding: '0 8px 0 6px' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="m15 18-6-6 6-6"/></svg>
               Agents
             </button>
@@ -88,30 +95,36 @@ export function SessionDetailView() {
             <h1 className="p-mono" style={{ fontFamily: 'var(--mono)', fontSize: 22, whiteSpace: 'nowrap', marginBottom: 0 }}>{name}</h1>
             {statusBadge(session.status)}
           </div>
-          {session.vta_did && (
-            <p className="sub p-mono" style={{ marginTop: 8, wordBreak: 'break-all' }}>{session.vta_did}</p>
-          )}
           {session.fqdn && (
             <p className="sub p-mono" style={{ marginTop: 4 }}>{session.fqdn}</p>
           )}
         </div>
-        <div className="p-row gap-12">
-          {session.vta_did && (
-            <button className="btn btn-outline btn-sm" onClick={() => navigator.clipboard.writeText(session.vta_did!).catch(() => {})}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-              Copy DID
-            </button>
-          )}
-          <button
-            className="btn btn-outline btn-icon btn-sm"
-            style={{ background: 'transparent', color: 'hsl(var(--destructive))', borderColor: 'hsl(var(--destructive)/.3)' }}
-            onClick={() => setShowDeleteConfirm(true)}
-            title="Delete"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          </button>
-        </div>
       </div>
+
+      {/* DID block */}
+      {session.vta_did && (
+        <div className="p-card" style={{ marginBottom: 20 }}>
+          <div className="card-content" style={{ padding: '16px 20px' }}>
+            <div className="p-row between center" style={{ gap: 12 }}>
+              <div className="p-col" style={{ minWidth: 0 }}>
+                <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>DID</span>
+                <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 13, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>{session.vta_did}</p>
+              </div>
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ flexShrink: 0, gap: 6 }}
+                onClick={() => copyDid(session.vta_did!)}
+              >
+                {copied
+                  ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M20 6 9 17l-5-5"/></svg>
+                  : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                }
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stepper */}
       <div className="p-card" style={{ marginBottom: 20 }}>
@@ -170,7 +183,7 @@ export function SessionDetailView() {
               <hr className="p-sep"/>
               <div className="p-row between"><span className="p-muted text-sm">Created</span><span className="text-sm">{new Date(session.created_at).toLocaleString()}</span></div>
               {session.url && (
-                <><hr className="p-sep"/><div className="p-row between"><span className="p-muted text-sm">URL</span><a href={session.url} target="_blank" rel="noopener" className="p-mono text-xs" style={{ color: 'hsl(var(--primary))' }}>{session.url}</a></div></>
+                <><hr className="p-sep"/><div className="p-row between"><span className="p-muted text-sm">URL</span><a href={`${session.url}/health`} target="_blank" rel="noopener" className="p-mono text-xs" style={{ color: 'hsl(var(--primary))' }}>{session.url}/health</a></div></>
               )}
               {session.mediator_did && (
                 <><hr className="p-sep"/><div className="p-row between center"><span className="p-muted text-sm">Mediator</span><span className="p-mono text-xs">{session.mediator_did.slice(-12)}</span></div></>
@@ -183,6 +196,29 @@ export function SessionDetailView() {
               <div className="grow"><p className="alert-title">Error</p><p className="alert-desc">{session.error_msg}</p></div>
             </div>
           )}
+
+          {/* Danger Zone */}
+          <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
+            <div className="card-header">
+              <h3 className="card-title" style={{ color: 'hsl(var(--destructive))' }}>Danger Zone</h3>
+              <p className="card-desc">Irreversible actions for this agent.</p>
+            </div>
+            <div className="card-content" style={{ paddingTop: 0 }}>
+              <div className="p-row between center">
+                <div className="p-col">
+                  <span className="text-sm fw-600">Delete VTA</span>
+                  <span className="p-muted text-xs">Permanently removes the agent, DNS record, and all session data.</span>
+                </div>
+                <button
+                  className="btn btn-destructive btn-sm"
+                  style={{ flexShrink: 0, marginLeft: 16 }}
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Delete VTA
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
