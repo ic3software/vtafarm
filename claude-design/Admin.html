@@ -124,13 +124,26 @@
     </div>
 
     <div class="sidebar-foot">
-      <div class="user-chip" onclick="goPanel('security')">
-        <span class="avatar" style="background:hsl(var(--primary));color:#fff;">OP</span>
-        <div class="meta grow">
-          <div class="n">Operator</div>
-          <div class="e"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="600f1013200309100805124e0e0514">[email&#160;protected]</a></div>
+      <div class="user-pop" id="userPop">
+        <div class="user-menu" role="menu">
+          <div class="menu-item" onclick="closeUserMenu();goPanel('security')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Security
+          </div>
+          <div class="menu-sep"></div>
+          <div class="menu-item destructive" onclick="closeUserMenu();showLogin()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            Sign out
+          </div>
         </div>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;color:hsl(var(--muted-foreground));"><path d="m18 15-6-6-6 6"/></svg>
+        <div class="user-chip" onclick="toggleUserMenu(event)">
+          <span class="avatar" style="background:hsl(var(--primary));color:#fff;">OP</span>
+          <div class="meta grow">
+            <div class="n">Operator</div>
+            <div class="e"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2e415e5d6e4d475e464b5c00404b5a">[email&#160;protected]</a></div>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;color:hsl(var(--muted-foreground));"><path d="m18 15-6-6-6 6"/></svg>
+        </div>
       </div>
     </div>
   </aside>
@@ -141,20 +154,19 @@
       <button class="btn btn-ghost btn-icon btn-sm menu-btn" onclick="toggleDrawer()" aria-label="Open menu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
       </button>
+      <span class="topbar-brand"><span class="sidebar-mark"></span>Cipher</span>
       <div class="crumb">
         <span>Admin</span>
         <span class="sep">/</span>
         <span class="cur" data-crumb-current>Users</span>
       </div>
       <div class="spacer"></div>
-      <button class="btn btn-outline btn-sm" onclick="openDialog('dlg-create-user')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
-        New user
-      </button>
-      <button class="btn btn-ghost btn-icon btn-sm" onclick="showLogin()" title="Sign out" aria-label="Sign out">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-      </button>
     </header>
+    <nav class="page-crumb" aria-label="Breadcrumb">
+      <span>Admin</span>
+      <span class="sep">/</span>
+      <span class="cur" data-crumb-current>Users</span>
+    </nav>
 
     <!-- ===== USERS ===== -->
     <section class="view content hidden" data-view="users" data-title="Users">
@@ -201,7 +213,7 @@
           </thead>
           <tbody>
             <tr>
-              <td><div class="row"><span class="avatar" style="width:30px;height:30px;font-size:11px;">AL</span><div class="col"><span class="fw-600">Ava Lindqvist</span><span class="text-xs muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bfdec9deffd7dad3d6d0cc91dcd0d0cf">[email&#160;protected]</a></span></div></div></td>
+              <td><div class="row"><span class="avatar" style="width:30px;height:30px;font-size:11px;">AL</span><div class="col"><span class="fw-600">Ava Lindqvist</span><span class="text-xs muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="95f4e3f4d5fdf0f9fcfae6bbf6fafae5">[email&#160;protected]</a></span></div></div></td>
               <td><span class="badge badge-secondary">user</span></td>
               <td class="mono text-sm">3</td>
               <td><span class="badge badge-success"><span class="dot"></span>active</span></td>
@@ -209,7 +221,7 @@
               <td class="col-actions"><button class="btn btn-ghost btn-icon btn-sm" onclick="openDialog('dlg-user-menu')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></td>
             </tr>
             <tr>
-              <td><div class="row"><span class="avatar" style="width:30px;height:30px;font-size:11px;background:hsl(var(--primary));color:#fff;">OP</span><div class="col"><span class="fw-600">Operator <span class="admin-pill" style="margin-left:4px;">you</span></span><span class="text-xs muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d6b9a6a596b5bfa6beb3a4f8b8b3a2">[email&#160;protected]</a></span></div></div></td>
+              <td><div class="row"><span class="avatar" style="width:30px;height:30px;font-size:11px;background:hsl(var(--primary));color:#fff;">OP</span><div class="col"><span class="fw-600">Operator <span class="admin-pill" style="margin-left:4px;">you</span></span><span class="text-xs muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b2ddc2c1f2d1dbc2dad7c09cdcd7c6">[email&#160;protected]</a></span></div></div></td>
               <td><span class="badge badge-default">admin</span></td>
               <td class="mono text-sm">—</td>
               <td><span class="badge badge-success"><span class="dot"></span>active</span></td>
@@ -217,7 +229,7 @@
               <td class="col-actions"><button class="btn btn-ghost btn-icon btn-sm" onclick="openDialog('dlg-user-menu')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></td>
             </tr>
             <tr>
-              <td><div class="row"><span class="avatar" style="width:30px;height:30px;font-size:11px;">JM</span><div class="col"><span class="fw-600">Jonas Mbetsä</span><span class="text-xs muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="dfb5b0b1beac9fb1b0adabb7a8b6b1bbf1b6b0">[email&#160;protected]</a></span></div></div></td>
+              <td><div class="row"><span class="avatar" style="width:30px;height:30px;font-size:11px;">JM</span><div class="col"><span class="fw-600">Jonas Mbetsä</span><span class="text-xs muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="39535657584a7957564b4d514e50575d175056">[email&#160;protected]</a></span></div></div></td>
               <td><span class="badge badge-secondary">user</span></td>
               <td class="mono text-sm">1</td>
               <td><span class="badge badge-success"><span class="dot"></span>active</span></td>
@@ -225,7 +237,7 @@
               <td class="col-actions"><button class="btn btn-ghost btn-icon btn-sm" onclick="openDialog('dlg-user-menu')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></td>
             </tr>
             <tr>
-              <td><div class="row"><span class="avatar" style="width:30px;height:30px;font-size:11px;">RK</span><div class="col"><span class="fw-600">Rie Kawamura</span><span class="text-xs muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="beccd7dbfed2c7ccdf90cdcacbdad7d1">[email&#160;protected]</a></span></div></div></td>
+              <td><div class="row"><span class="avatar" style="width:30px;height:30px;font-size:11px;">RK</span><div class="col"><span class="fw-600">Rie Kawamura</span><span class="text-xs muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="97e5fef2d7fbeee5f6b9e4e3e2f3fef8">[email&#160;protected]</a></span></div></div></td>
               <td><span class="badge badge-secondary">user</span></td>
               <td class="mono text-sm">2</td>
               <td><span class="badge badge-warning"><span class="dot"></span>pending</span></td>
@@ -233,7 +245,7 @@
               <td class="col-actions"><button class="btn btn-ghost btn-icon btn-sm" onclick="openDialog('dlg-user-menu')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></td>
             </tr>
             <tr>
-              <td><div class="row"><span class="avatar" style="width:30px;height:30px;font-size:11px;">DF</span><div class="col"><span class="fw-600">Diego Ferreira</span><span class="text-xs muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1f7b767a78705f79706a717b6d662728317c7072">[email&#160;protected]</a></span></div></div></td>
+              <td><div class="row"><span class="avatar" style="width:30px;height:30px;font-size:11px;">DF</span><div class="col"><span class="fw-600">Diego Ferreira</span><span class="text-xs muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d3b7bab6b4bc93b5bca6bdb7a1aaebe4fdb0bcbe">[email&#160;protected]</a></span></div></div></td>
               <td><span class="badge badge-secondary">user</span></td>
               <td class="mono text-sm">0</td>
               <td><span class="badge badge-warning"><span class="dot"></span>pending</span></td>
@@ -261,11 +273,11 @@
         <table class="table">
           <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th class="col-actions">Hash</th></tr></thead>
           <tbody>
-            <tr><td class="mono text-xs muted">14:02:41</td><td class="text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4629363506252f362e233468282332">[email&#160;protected]</a></td><td><span class="badge badge-default">user.create</span></td><td class="mono text-xs"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="fd9994989a92bd9b928893998f84c5cad39e9290">[email&#160;protected]</a></td><td class="col-actions mono text-xs muted">a3f1…9c2</td></tr>
-            <tr><td class="mono text-xs muted">13:48:09</td><td class="text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4926393a092a2039212c3b67272c3d">[email&#160;protected]</a></td><td><span class="badge badge-warning">user.reset_pw</span></td><td class="mono text-xs"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a7d5cec2e7cbded5c689d4d3d2c3cec8">[email&#160;protected]</a></td><td class="col-actions mono text-xs muted">7be4…01d</td></tr>
-            <tr><td class="mono text-xs muted">11:20:55</td><td class="text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7d1c0b1c3d15181114120e531e12120d">[email&#160;protected]</a></td><td><span class="badge badge-secondary">vta.create</span></td><td class="mono text-xs">vault-agent</td><td class="col-actions mono text-xs muted">f09a…44e</td></tr>
-            <tr><td class="mono text-xs muted">09:15:33</td><td class="text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="721d020132111b021a17005c1c1706">[email&#160;protected]</a></td><td><span class="badge badge-destructive">user.suspend</span></td><td class="mono text-xs"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="244b484064424b514a40565d1c130a474b49">[email&#160;protected]</a></td><td class="col-actions mono text-xs muted">2c8d…7a1</td></tr>
-            <tr><td class="mono text-xs muted">08:02:17</td><td class="text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4d223d3e0d2e243d25283f63232839">[email&#160;protected]</a></td><td><span class="badge badge-default">auth.login</span></td><td class="mono text-xs">—</td><td class="col-actions mono text-xs muted">bb31…f60</td></tr>
+            <tr><td class="mono text-xs muted">14:02:41</td><td class="text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="711e0102311218011914035f1f1405">[email&#160;protected]</a></td><td><span class="badge badge-default">user.create</span></td><td class="mono text-xs"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e2868b87858da2848d978c86909bdad5cc818d8f">[email&#160;protected]</a></td><td class="col-actions mono text-xs muted">a3f1…9c2</td></tr>
+            <tr><td class="mono text-xs muted">13:48:09</td><td class="text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3b544b487b58524b535e4915555e4f">[email&#160;protected]</a></td><td><span class="badge badge-warning">user.reset_pw</span></td><td class="mono text-xs"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="64160d0124081d16054a171011000d0b">[email&#160;protected]</a></td><td class="col-actions mono text-xs muted">7be4…01d</td></tr>
+            <tr><td class="mono text-xs muted">11:20:55</td><td class="text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="08697e6948606d6461677b266b676778">[email&#160;protected]</a></td><td><span class="badge badge-secondary">vta.create</span></td><td class="mono text-xs">vault-agent</td><td class="col-actions mono text-xs muted">f09a…44e</td></tr>
+            <tr><td class="mono text-xs muted">09:15:33</td><td class="text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6f001f1c2f0c061f070a1d41010a1b">[email&#160;protected]</a></td><td><span class="badge badge-destructive">user.suspend</span></td><td class="mono text-xs"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d4bbb8b094b2bba1bab0a6adece3fab7bbb9">[email&#160;protected]</a></td><td class="col-actions mono text-xs muted">2c8d…7a1</td></tr>
+            <tr><td class="mono text-xs muted">08:02:17</td><td class="text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="402f3033002329302825326e2e2534">[email&#160;protected]</a></td><td><span class="badge badge-default">auth.login</span></td><td class="mono text-xs">—</td><td class="col-actions mono text-xs muted">bb31…f60</td></tr>
           </tbody>
         </table>
       </div>
@@ -341,7 +353,7 @@
   <div class="dialog" style="max-width:380px;">
     <div class="dialog-header">
       <h3 class="dialog-title">Manage user</h3>
-      <p class="dialog-desc"><span class="mono"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f5948394b59d90999c9a86db969a9a85">[email&#160;protected]</a></span></p>
+      <p class="dialog-desc"><span class="mono"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3a5b4c5b7a525f56535549145955554a">[email&#160;protected]</a></span></p>
     </div>
     <div class="dialog-body" style="padding-top:6px;">
       <div class="menu" style="box-shadow:none;border:none;padding:0;">
@@ -372,7 +384,7 @@
   <div class="dialog">
     <div class="dialog-header">
       <h3 class="dialog-title">Reset password</h3>
-      <p class="dialog-desc">Issue a new temporary password for <span class="mono"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="17766176577f727b7e78643974787867">[email&#160;protected]</a></span>.</p>
+      <p class="dialog-desc">Issue a new temporary password for <span class="mono"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5f3e293e1f373a3336302c713c30302f">[email&#160;protected]</a></span>.</p>
     </div>
     <div class="dialog-body">
       <div class="alert alert-warning">

@@ -34,11 +34,12 @@
     if (!opts.silent) {
       try { localStorage.setItem(VIEW_KEY, name); } catch (e) {}
     }
-    // update breadcrumb if present
-    const crumb = document.querySelector("[data-crumb-current]");
+    // update breadcrumb(s) — topbar (desktop) + in-page (mobile)
     const target = document.querySelector('.view[data-view="' + name + '"]');
-    if (crumb && target && target.getAttribute("data-title")) {
-      crumb.textContent = target.getAttribute("data-title");
+    if (target && target.getAttribute("data-title")) {
+      document.querySelectorAll("[data-crumb-current]").forEach((c) => {
+        c.textContent = target.getAttribute("data-title");
+      });
     }
     window.scrollTo({ top: 0 });
     if (typeof window.onViewChange === "function") window.onViewChange(name);
@@ -55,6 +56,24 @@
     const app = document.querySelector(".app");
     if (app) app.setAttribute("data-drawer", "closed");
   };
+
+  // ---- User popover menu ----
+  window.toggleUserMenu = function (e) {
+    if (e) e.stopPropagation();
+    const pop = document.getElementById("userPop");
+    if (!pop) return;
+    pop.setAttribute("data-open", pop.getAttribute("data-open") === "true" ? "false" : "true");
+  };
+  window.closeUserMenu = function () {
+    const pop = document.getElementById("userPop");
+    if (pop) pop.setAttribute("data-open", "false");
+  };
+  document.addEventListener("click", function (e) {
+    const pop = document.getElementById("userPop");
+    if (pop && pop.getAttribute("data-open") === "true" && !pop.contains(e.target)) {
+      pop.setAttribute("data-open", "false");
+    }
+  });
 
   function initView() {
     let v = null;

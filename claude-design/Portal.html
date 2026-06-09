@@ -55,7 +55,7 @@
             <label class="label" for="lg-email">Email</label>
             <div class="input-group">
               <svg class="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-              <input class="input" id="lg-email" type="email" placeholder="you@company.com" value="ava@helios.coop" />
+              <input class="input" id="lg-email" type="email" placeholder="you@company.com" value="olivia@ic3.dev" />
             </div>
           </div>
           <div>
@@ -146,13 +146,26 @@
     </div>
 
     <div class="sidebar-foot">
-      <div class="user-chip" onclick="goPanel('settings')">
-        <span class="avatar">AL</span>
-        <div class="meta grow">
-          <div class="n">Ava Lindqvist</div>
-          <div class="e"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="07667166476f626b6e68742964686877">[email&#160;protected]</a></div>
+      <div class="user-pop" id="userPop">
+        <div class="user-menu" role="menu">
+          <div class="menu-item" onclick="closeUserMenu();goPanel('settings')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Settings
+          </div>
+          <div class="menu-sep"></div>
+          <div class="menu-item destructive" onclick="closeUserMenu();showLogin()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            Sign out
+          </div>
         </div>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;color:hsl(var(--muted-foreground));"><path d="m18 15-6-6-6 6"/></svg>
+        <div class="user-chip" onclick="toggleUserMenu(event)">
+          <span class="avatar">OB</span>
+          <div class="meta grow">
+            <div class="n">Olivia Bennett</div>
+            <div class="e"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="355a595c435c54755c56061b515043">[email&#160;protected]</a></div>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;color:hsl(var(--muted-foreground));"><path d="m18 15-6-6-6 6"/></svg>
+        </div>
       </div>
     </div>
   </aside>
@@ -164,20 +177,19 @@
       <button class="btn btn-ghost btn-icon btn-sm menu-btn" onclick="toggleDrawer()" aria-label="Open menu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
       </button>
+      <span class="topbar-brand"><span class="sidebar-mark"></span>Cipher</span>
       <div class="crumb">
         <span>Portal</span>
         <span class="sep">/</span>
         <span class="cur" data-crumb-current>Agents</span>
       </div>
       <div class="spacer"></div>
-      <button class="btn btn-outline btn-sm" onclick="goPanel('create')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-        New VTA
-      </button>
-      <button class="btn btn-ghost btn-icon btn-sm" onclick="showLogin()" title="Sign out" aria-label="Sign out">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-      </button>
     </header>
+    <nav class="page-crumb" aria-label="Breadcrumb">
+      <span>Portal</span>
+      <span class="sep">/</span>
+      <span class="cur" data-crumb-current>Agents</span>
+    </nav>
 
     <!-- ===== DASHBOARD ===== -->
     <section class="view content hidden" data-view="dashboard" data-title="Agents">
@@ -604,15 +616,15 @@
         <div class="card-header"><h3 class="card-title">Profile</h3></div>
         <div class="card-content col gap-16">
           <div class="row gap-16 center">
-            <span class="avatar" style="width:52px;height:52px;font-size:18px;">AL</span>
+            <span class="avatar" style="width:52px;height:52px;font-size:18px;">OB</span>
             <div class="col">
-              <span class="fw-600">Ava Lindqvist</span>
-              <span class="muted text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9cfdeafddcf4f9f0f5f3efb2fff3f3ec">[email&#160;protected]</a></span>
+              <span class="fw-600">Olivia Bennett</span>
+              <span class="muted text-sm"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f6999a9f809f97b69f95c5d8929380">[email&#160;protected]</a></span>
             </div>
           </div>
           <div class="grid-2">
-            <div><label class="label">Display name</label><input class="input" value="Ava Lindqvist" /></div>
-            <div><label class="label">Email</label><input class="input" value="ava@helios.coop" disabled /></div>
+            <div><label class="label">Display name</label><input class="input" value="Olivia Bennett" /></div>
+            <div><label class="label">Email</label><input class="input" value="olivia@ic3.dev" disabled /></div>
           </div>
         </div>
         <div class="card-footer" style="justify-content:flex-end;"><button class="btn btn-default">Save changes</button></div>
