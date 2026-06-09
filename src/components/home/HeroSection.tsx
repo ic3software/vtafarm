@@ -235,7 +235,7 @@ export function HeroSection() {
 
             <div className="hero-ctas hero-el flex flex-wrap gap-3">
               <a
-                href="#cta"
+                href="/portal"
                 className="btn-ink group flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
               >
                 Create your VTA

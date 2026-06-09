@@ -61,7 +61,7 @@ export function NavBar() {
         <div className="flex items-center gap-1">
           {/* Desktop CTA */}
           <a
-            href="#cta"
+            href="/portal"
             className="btn-ink group hidden items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium md:flex"
           >
             Open Portal
@@ -114,7 +114,7 @@ export function NavBar() {
             </a>
           ))}
           <a
-            href="#cta"
+            href="/portal"
             className="btn-ink flex items-center justify-center gap-2 rounded-full text-[15px] font-medium"
             style={{ marginTop: 14, padding: '14px 20px' }}
             onClick={close}

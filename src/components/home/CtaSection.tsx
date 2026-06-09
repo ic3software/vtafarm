@@ -36,7 +36,7 @@ export function CtaSection() {
 
           <div className="flex flex-col gap-3">
             <a
-              href="#"
+              href="/portal"
               className="btn-ink group flex items-center justify-center gap-2 rounded-full px-5 py-4 text-[15px] font-medium"
             >
               Create your VTA
