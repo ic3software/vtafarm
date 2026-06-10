@@ -49,7 +49,7 @@ export function SessionDetailView() {
 
   function stepClass(stepStatus: SetupSession['status'] | null) {
     if (!session) return ''
-    if (session.status === 'complete' || session.status === 'running') return 'done'
+    if (session.status === 'running') return 'done'
     if (stepStatus === null) return 'done'
     const cur = ORDER.indexOf(session.status)
     const idx = ORDER.indexOf(stepStatus)
@@ -77,7 +77,7 @@ export function SessionDetailView() {
 
   useEffect(() => {
     if (!session) return
-    if (session.status === 'dns_provisioned') return
+    if (session.status === 'dns_provisioned' || session.status === 'vta_setup_complete') return
     const es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs`, { withCredentials: true })
     es.onmessage = e => setLogs(prev => [...prev, e.data])
     es.addEventListener('done', () => es.close())

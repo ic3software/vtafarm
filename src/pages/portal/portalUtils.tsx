@@ -6,13 +6,11 @@ export function statusBadge(status: SetupSession['status']) {
     vta_setup_running:  { cls: 'badge-warning',     label: 'setup running' },
     vta_setup_complete: { cls: 'badge-warning',     label: 'setup complete' },
     provisioning:       { cls: 'badge-warning',     label: 'provisioning' },
-    vta_starting:       { cls: 'badge-warning',     label: 'VTA starting' },
     running:            { cls: 'badge-success',     label: 'running' },
-    complete:           { cls: 'badge-success',     label: 'complete' },
     failed:             { cls: 'badge-destructive', label: 'failed' },
   }
   const { cls, label } = map[status] ?? { cls: 'badge-secondary', label: status }
-  const done = status === 'running' || status === 'complete'
+  const done = status === 'running'
   const pulse = !done && status !== 'failed' && status !== 'dns_provisioned'
   return (
     <span className={`p-badge ${cls}`}>

@@ -25,6 +25,13 @@ export function CreateVTAView() {
   const [liveSession, setLiveSession] = useState<SetupSession | null>(null)
   const [copiedVta, setCopiedVta] = useState(false)
 
+  // Stage 1 setup-log streaming state
+  const [setupStreamStarted, setSetupStreamStarted] = useState(false)
+  const [setupLogsDone, setSetupLogsDone] = useState(false)
+
+  // Stage 2 provisioning-log streaming state
+  const [provStreamStarted, setProvStreamStarted] = useState(false)
+
   function copyVtaDid(did: string) {
     navigator.clipboard.writeText(did).catch(() => {})
     setCopiedVta(true)
@@ -37,35 +44,115 @@ export function CreateVTAView() {
       .catch(() => {})
   }, [])
 
-  // Poll session status every 3 s during Stage 1 so the FQDN appears as soon as DNS is ready
+  // Stage 1: poll status; trigger setup log streaming when vta_setup_running
   useEffect(() => {
     if (stage !== 1 || !sessionId) return
-    api.getSession(sessionId).then(setLiveSession).catch(() => {})
-    const iv = setInterval(() => {
-      api.getSession(sessionId).then(setLiveSession).catch(() => {})
-    }, 3000)
+    const check = (s: SetupSession) => {
+      setLiveSession(s)
+      if (s.status === 'vta_setup_running') setSetupStreamStarted(true)
+    }
+    api.getSession(sessionId).then(check).catch(() => {})
+    const iv = setInterval(() => api.getSession(sessionId).then(check).catch(() => {}), 3000)
     return () => clearInterval(iv)
   }, [stage, sessionId])
 
+  // Stage 1: stream setup logs; 2s timer starts only after 'done' event
+  useEffect(() => {
+    if (!setupStreamStarted || !sessionId) return
+    setLogs([])
+    let hasLog = false
+    let advanceTimer: ReturnType<typeof setTimeout> | null = null
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+    let es: EventSource | null = null
+    let cancelled = false
+
+    const scheduleAdvance = () => { if (!advanceTimer) advanceTimer = setTimeout(() => setSetupLogsDone(true), 2000) }
+
+    const connect = () => {
+      if (cancelled) return
+      es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs?source=setup`, { withCredentials: true })
+      es.onmessage = e => {
+        setLogs(prev => [...prev, e.data])
+        hasLog = true
+      }
+      es.addEventListener('done', () => { es!.close(); scheduleAdvance() })
+      es.onerror = () => {
+        es!.close()
+        if (hasLog) { scheduleAdvance() }
+        else { retryTimer = setTimeout(connect, 4000) }
+      }
+    }
+    connect()
+    return () => {
+      cancelled = true
+      es?.close()
+      if (advanceTimer) clearTimeout(advanceTimer)
+      if (retryTimer) clearTimeout(retryTimer)
+    }
+  }, [setupStreamStarted, sessionId])
+
+  // Stage 1 safety net: advance 60s after setup completes if stream never resolves
+  useEffect(() => {
+    if (!setupStreamStarted || setupLogsDone) return
+    if (liveSession?.status !== 'vta_setup_complete') return
+    const t = setTimeout(() => setSetupLogsDone(true), 60000)
+    return () => clearTimeout(t)
+  }, [setupStreamStarted, setupLogsDone, liveSession?.status])
+
+  // Stage 2: poll status to detect failure
   useEffect(() => {
     if (stage !== 2 || !sessionId) return
-    const es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs`, { withCredentials: true })
+    const check = (s: SetupSession) => {
+      if (s.status === 'failed') setLogs(p => [...p, `ERROR: ${s.error_msg ?? 'Provisioning failed'}`])
+    }
+    const iv = setInterval(() => api.getSession(sessionId).then(check).catch(() => {}), 3000)
+    return () => clearInterval(iv)
+  }, [stage, sessionId])
+
+  // Stage 2: stream import-did logs immediately; advance 2s after 'done' event
+  useEffect(() => {
+    if (stage !== 2 || !sessionId) return
+    setProvStreamStarted(true)
+    let hasLog = false
+    let advanceTimer: ReturnType<typeof setTimeout> | null = null
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+    let es: EventSource | null = null
+    let cancelled = false
+
+    const scheduleAdvance = () => { if (!advanceTimer) advanceTimer = setTimeout(() => setStage(3), 2000) }
+
+    const connect = () => {
+      if (cancelled) return
+      es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs?source=import-did`, { withCredentials: true })
+      es.onmessage = e => {
+        setLogs(prev => [...prev, e.data])
+        hasLog = true
+      }
+      es.addEventListener('done', () => { es!.close(); scheduleAdvance() })
+      es.onerror = () => {
+        es!.close()
+        if (hasLog) { scheduleAdvance() }
+        else { retryTimer = setTimeout(connect, 4000) }
+      }
+    }
+    connect()
+    return () => {
+      cancelled = true
+      es?.close()
+      if (advanceTimer) clearTimeout(advanceTimer)
+      if (retryTimer) clearTimeout(retryTimer)
+    }
+  }, [stage, sessionId])
+
+  // Stage 3: stream live VTA logs
+  useEffect(() => {
+    if (stage !== 3 || !sessionId) return
+    setLogs([])
+    const es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs?source=vta`, { withCredentials: true })
     es.onmessage = e => setLogs(prev => [...prev, e.data])
-    es.addEventListener('done', () => { es.close() })
+    es.addEventListener('done', () => es.close())
     es.onerror = () => es.close()
     return () => es.close()
-  }, [stage, sessionId])
-
-  useEffect(() => {
-    if (stage !== 2 || !sessionId) return
-    const iv = setInterval(async () => {
-      try {
-        const s = await api.getSession(sessionId)
-        if (['running', 'complete'].includes(s.status)) { clearInterval(iv); setStage(3) }
-        if (s.status === 'failed') { clearInterval(iv); setLogs(p => [...p, `ERROR: ${s.error_msg ?? 'Setup failed'}`]) }
-      } catch {}
-    }, 3000)
-    return () => clearInterval(iv)
   }, [stage, sessionId])
 
   useEffect(() => {
@@ -110,6 +197,7 @@ export function CreateVTAView() {
     if (stage === 3) return 6
     if (stage === 2) return 4
     if (stage === 0) return 0
+    if (setupLogsDone) return 3
     if (!liveSession) return 1
     switch (liveSession.status) {
       case 'dns_provisioned': return 1
@@ -118,6 +206,13 @@ export function CreateVTAView() {
       default: return 1
     }
   })()
+
+  const showingSetupLogs = stage === 1 && setupStreamStarted && !setupLogsDone
+  // Only use status as fallback when we never entered the log-streaming phase
+  const showDIDForm = stage === 1 && (
+    setupLogsDone ||
+    (!setupStreamStarted && liveSession?.status === 'vta_setup_complete')
+  )
 
   return (
     <section className="p-content" style={{ maxWidth: 840 }}>
@@ -135,13 +230,14 @@ export function CreateVTAView() {
           <div className="stepper">
             {(['Create session', 'DNS provisioned', 'Setup running', 'Setup complete', 'Provisioning', 'Running'] as const).map((label, i) => {
               const s = i < currentStep ? 'done' : i === currentStep ? 'active' : ''
+              const spinning = i === currentStep && (stage === 2 || showingSetupLogs)
               return (
                 <div key={i} className={`step ${s}`}>
                   <div className="bar" />
                   <div className="node">
                     {i < currentStep ? (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M20 6 9 17l-5-5"/></svg>
-                    ) : i === currentStep && stage === 2 ? (
+                    ) : spinning ? (
                       <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                     ) : i + 1}
                   </div>
@@ -190,7 +286,7 @@ export function CreateVTAView() {
         </div>
       )}
 
-      {/* Stage 1 — wait for vta_setup_complete, then accept admin DID */}
+      {/* Stage 1 */}
       {stage === 1 && sessionId && (
         <>
           {/* Live status bar */}
@@ -217,44 +313,7 @@ export function CreateVTAView() {
             </div>
           </div>
 
-          {liveSession?.status !== 'vta_setup_complete' ? (
-            /* Waiting for VTA setup to finish */
-            <div className="p-card">
-              <div className="card-header with-action">
-                <div>
-                  <h3 className="card-title">VTA setup in progress</h3>
-                  <p className="card-desc">Cipher is preparing the VTA environment. This usually takes a minute.</p>
-                </div>
-                <span className="p-badge badge-warning"><span className="dot pulse-dot"/>waiting</span>
-              </div>
-              <div className="card-content">
-                <div className="p-console">
-                  <div className="console-head">
-                    <div className="dots"><span/><span/><span/></div>
-                    <span className="p-mono">cipher · vta-setup {vtaName}</span>
-                    <span className="grow"/>
-                    <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
-                      <span className="dot pulse-dot"/>polling
-                    </span>
-                  </div>
-                  <div className="console-body" style={{ minHeight: 64 }}>
-                    <div className="ln"><span className="p-muted text-xs">
-                      {liveSession?.status === 'vta_setup_running'
-                        ? 'VTA setup running — waiting for completion…'
-                        : 'DNS provisioned — waiting for VTA setup to start…'}
-                      <span className="caret"/>
-                    </span></div>
-                  </div>
-                </div>
-              </div>
-              <div className="card-footer between">
-                <span className="field-hint" style={{ marginTop: 0 }}>
-                  Once setup completes you will be prompted to enter your admin DID.
-                </span>
-                <button className="btn btn-ghost" onClick={handleDone}>Cancel</button>
-              </div>
-            </div>
-          ) : (
+          {showDIDForm ? (
             /* vta_setup_complete — ready for admin DID */
             <div className="p-card">
               <div className="card-header">
@@ -309,6 +368,80 @@ export function CreateVTAView() {
                 </button>
               </div>
             </div>
+          ) : showingSetupLogs ? (
+            /* Streaming setup logs */
+            <div className="p-card">
+              <div className="card-header with-action">
+                <div>
+                  <h3 className="card-title">VTA setup running</h3>
+                  <p className="card-desc">Streaming setup output for <span className="p-mono">{vtaName}</span>.</p>
+                </div>
+                <span className="p-badge badge-warning"><span className="dot pulse-dot"/>streaming</span>
+              </div>
+              <div className="card-content">
+                <div className="p-console">
+                  <div className="console-head">
+                    <div className="dots"><span/><span/><span/></div>
+                    <span className="p-mono">cipher · vta-setup {vtaName}</span>
+                    <span className="grow"/>
+                    <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
+                      <span className="dot pulse-dot"/>streaming
+                    </span>
+                  </div>
+                  <div className="console-body">
+                    {logs.length === 0 ? (
+                      <div className="ln"><span className="p-muted text-xs">Waiting for output…<span className="caret"/></span></div>
+                    ) : logs.map((line, i) => (
+                      <div key={i} className="ln"><span className="msg">{line}</span></div>
+                    ))}
+                    <div ref={logEndRef} />
+                  </div>
+                </div>
+              </div>
+              <div className="card-footer between">
+                <span className="field-hint" style={{ marginTop: 0 }}>
+                  Once setup completes you will be prompted to enter your admin DID.
+                </span>
+                <button className="btn btn-ghost" onClick={handleDone}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            /* Waiting for setup to start */
+            <div className="p-card">
+              <div className="card-header with-action">
+                <div>
+                  <h3 className="card-title">VTA setup in progress</h3>
+                  <p className="card-desc">Cipher is preparing the VTA environment. This usually takes a minute.</p>
+                </div>
+                <span className="p-badge badge-warning"><span className="dot pulse-dot"/>waiting</span>
+              </div>
+              <div className="card-content">
+                <div className="p-console">
+                  <div className="console-head">
+                    <div className="dots"><span/><span/><span/></div>
+                    <span className="p-mono">cipher · vta-setup {vtaName}</span>
+                    <span className="grow"/>
+                    <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
+                      <span className="dot pulse-dot"/>polling
+                    </span>
+                  </div>
+                  <div className="console-body">
+                    <div className="ln"><span className="p-muted text-xs">
+                      {liveSession?.status === 'vta_setup_running'
+                        ? 'VTA setup running — waiting for output…'
+                        : 'DNS provisioned — waiting for VTA setup to start…'}
+                      <span className="caret"/>
+                    </span></div>
+                  </div>
+                </div>
+              </div>
+              <div className="card-footer between">
+                <span className="field-hint" style={{ marginTop: 0 }}>
+                  Once setup completes you will be prompted to enter your admin DID.
+                </span>
+                <button className="btn btn-ghost" onClick={handleDone}>Cancel</button>
+              </div>
+            </div>
           )}
         </>
       )}
@@ -318,7 +451,7 @@ export function CreateVTAView() {
         <div className="p-card">
           <div className="card-header with-action">
             <div><h3 className="card-title">Provisioning agent</h3><p className="card-desc">Cipher is bringing <span className="p-mono">{vtaName}</span> online.</p></div>
-            <span className="p-badge badge-warning"><span className="dot pulse-dot"/>vta_starting</span>
+            <span className="p-badge badge-warning"><span className="dot pulse-dot"/>{provStreamStarted ? 'streaming' : 'waiting'}</span>
           </div>
           <div className="card-content">
             <div className="p-console">
@@ -327,11 +460,13 @@ export function CreateVTAView() {
                 <span className="p-mono">cipher · provision --follow {vtaName}</span>
                 <span className="grow"/>
                 <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
-                  <span className="dot pulse-dot"/>streaming
+                  <span className="dot pulse-dot"/>{provStreamStarted ? 'streaming' : 'polling'}
                 </span>
               </div>
               <div className="console-body">
-                {logs.length === 0 ? (
+                {!provStreamStarted ? (
+                  <div className="ln"><span className="p-muted text-xs">Waiting for provisioning to start…<span className="caret"/></span></div>
+                ) : logs.length === 0 ? (
                   <div className="ln"><span className="p-muted text-xs">Waiting for output…<span className="caret"/></span></div>
                 ) : logs.map((line, i) => (
                   <div key={i} className="ln"><span className="msg">{line}</span></div>
@@ -366,29 +501,29 @@ export function CreateVTAView() {
               </div>
             </div>
           </div>
-          {logs.length > 0 && (
-            <div className="p-card">
-              <div className="card-content" style={{ padding: 0 }}>
-                <div className="p-console">
-                  <div className="console-head">
-                    <div className="dots"><span/><span/><span/></div>
-                    <span className="p-mono">cipher · provision --follow {vtaName}</span>
-                    <span className="grow"/>
-                    <span className="p-badge badge-success" style={{ height: 18, fontSize: 10 }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} style={{ width: 10, height: 10 }}><path d="M20 6 9 17l-5-5"/></svg>
-                      complete
-                    </span>
-                  </div>
-                  <div className="console-body">
-                    {logs.map((line, i) => (
-                      <div key={i} className="ln"><span className="msg">{line}</span></div>
-                    ))}
-                    <div ref={logEndRef} />
-                  </div>
+          <div className="p-card">
+            <div className="card-content" style={{ padding: 0 }}>
+              <div className="p-console">
+                <div className="console-head">
+                  <div className="dots"><span/><span/><span/></div>
+                  <span className="p-mono">cipher · provision --follow {vtaName}</span>
+                  <span className="grow"/>
+                  <span className="p-badge badge-success" style={{ height: 18, fontSize: 10 }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} style={{ width: 10, height: 10 }}><path d="M20 6 9 17l-5-5"/></svg>
+                    complete
+                  </span>
+                </div>
+                <div className="console-body">
+                  {logs.length === 0 ? (
+                    <div className="ln"><span className="p-muted text-xs">No logs received</span></div>
+                  ) : logs.map((line, i) => (
+                    <div key={i} className="ln"><span className="msg">{line}</span></div>
+                  ))}
+                  <div ref={logEndRef} />
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </>
       )}
     </section>

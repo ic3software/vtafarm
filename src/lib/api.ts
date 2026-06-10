@@ -4,7 +4,7 @@ export const API_BASE: string = _apiUrl
 
 export interface SetupSession {
   id: string
-  status: 'dns_provisioned' | 'vta_setup_running' | 'vta_setup_complete' | 'provisioning' | 'vta_starting' | 'running' | 'complete' | 'failed'
+  status: 'dns_provisioned' | 'vta_setup_running' | 'vta_setup_complete' | 'provisioning' | 'running' | 'failed'
   mode: 'vta_only' | 'full_stack'
   url?: string
   vta_name?: string

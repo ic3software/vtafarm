@@ -1,9 +1,11 @@
+import { useEffect } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { PortalContext } from './Portal'
 import { statusBadge, timeAgo } from './portalUtils'
 
 export function AgentsView() {
   const { sessions, sessionsLoading, loadSessions } = useOutletContext<PortalContext>()
+  useEffect(() => { loadSessions() }, [])
   const navigate = useNavigate()
 
   const active = sessions.filter(s => s.status === 'running').length
