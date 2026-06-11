@@ -36,6 +36,15 @@ export interface AdminRecord {
   updated_at: string
 }
 
+export interface Invitation {
+  id: number
+  token: string
+  admin_id: number
+  expires_at: string
+  used_at: string | null
+  created_at: string
+}
+
 interface ApiError extends Error {
   status: number
 }
@@ -53,7 +62,10 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   })
   if (res.status === 204) return null as T
   const data = await res.json().catch(() => ({ error: res.statusText }))
-  if (!res.ok) throw apiError(data.error ?? 'Request failed', res.status)
+  if (!res.ok) {
+    if (res.status === 401) window.dispatchEvent(new Event('cipher:unauthorized'))
+    throw apiError(data.error ?? 'Request failed', res.status)
+  }
   return data as T
 }
 
@@ -78,6 +90,14 @@ export const api = {
     req<{ message: string }>('PUT', '/api/v1/user/password', { current_password, new_password }),
   resetUserPassword: (id: number, new_password: string) =>
     req<{ message: string }>('PUT', `/api/v1/users/${id}/password`, { new_password }),
+
+  createInvitation: () =>
+    req<{ id: number; token: string; expires_at: string }>('POST', '/api/v1/invitations'),
+  listInvitations: () => req<Invitation[]>('GET', '/api/v1/invitations'),
+  validateInvitation: (token: string) =>
+    req<{ valid: boolean; expires_at: string }>('GET', `/api/v1/invitations/${token}`),
+  registerViaInvitation: (token: string, email: string, password: string) =>
+    req<{ id: number; unique_id: string; email: string }>('POST', `/api/v1/invitations/${token}/register`, { email, password }),
 
   listImages: () => req<Array<{ tag: string; image: string }>>('GET', '/api/v1/setup/images'),
   listSessions: () => req<SetupSession[]>('GET', '/api/v1/setup'),

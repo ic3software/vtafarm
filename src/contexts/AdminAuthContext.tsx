@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import { api, type UserInfo } from '@/lib/api'
 
 interface AdminAuthCtx {
@@ -30,6 +30,15 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     await api.adminLogout().catch(() => {})
     setAdmin(null)
     try { localStorage.removeItem(SESSION_KEY) } catch {}
+  }, [])
+
+  useEffect(() => {
+    const handler = () => {
+      setAdmin(null)
+      try { localStorage.removeItem(SESSION_KEY) } catch {}
+    }
+    window.addEventListener('cipher:unauthorized', handler)
+    return () => window.removeEventListener('cipher:unauthorized', handler)
   }, [])
 
   return (

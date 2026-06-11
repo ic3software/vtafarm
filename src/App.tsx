@@ -17,7 +17,9 @@ import { SettingsView } from '@/pages/portal/SettingsView'
 import { AdminPanel } from '@/pages/admin/AdminPanel'
 import { AdminsView } from '@/pages/admin/AdminsView'
 import { UsersView } from '@/pages/admin/UsersView'
+import { InvitationsView } from '@/pages/admin/InvitationsView'
 import { SecurityView } from '@/pages/admin/SecurityView'
+import { Register } from '@/pages/Register'
 import { UserAuthProvider } from '@/contexts/UserAuthContext'
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 
@@ -46,6 +48,7 @@ export default function App() {
           <Route path="/preview" element={<MobilePreview />} />
 
           <Route path="/login" element={<UserLogin />} />
+          <Route path="/register/:token" element={<Register />} />
           <Route path="/portal" element={<Portal />}>
             <Route index element={<AgentsView />} />
             <Route path="create" element={<CreateVTAView />} />
@@ -59,6 +62,7 @@ export default function App() {
             <Route element={<AdminPanel />}>
               <Route index element={<AdminsView />} />
               <Route path="users" element={<UsersView />} />
+              <Route path="invitations" element={<InvitationsView />} />
               <Route path="settings" element={<SecurityView />} />
             </Route>
           </Route>

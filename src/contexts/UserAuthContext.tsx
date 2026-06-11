@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import { api, type UserInfo } from '@/lib/api'
 
 interface UserAuthCtx {
@@ -32,6 +32,15 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
     await api.userLogout().catch(() => {})
     setUser(null)
     try { localStorage.removeItem(SESSION_KEY) } catch {}
+  }, [])
+
+  useEffect(() => {
+    const handler = () => {
+      setUser(null)
+      try { localStorage.removeItem(SESSION_KEY) } catch {}
+    }
+    window.addEventListener('cipher:unauthorized', handler)
+    return () => window.removeEventListener('cipher:unauthorized', handler)
   }, [])
 
   return (
