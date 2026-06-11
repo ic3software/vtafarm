@@ -4,28 +4,31 @@ import { api, type UserInfo } from '@/lib/api'
 interface UserAuthCtx {
   user: UserInfo | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  setUserSession: (user: UserInfo) => void
 }
 
 const UserAuthContext = createContext<UserAuthCtx | null>(null)
 const SESSION_KEY = 'cipher-user'
 
 function readSession(): UserInfo | null {
-  try { return JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null') }
-  catch { return null }
+  try {
+    const data = JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null')
+    if (!data || typeof data.unique_id !== 'string') {
+      localStorage.removeItem(SESSION_KEY)
+      return null
+    }
+    return data
+  } catch { return null }
 }
 
 export function UserAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(readSession)
-  // Auth state comes from localStorage synchronously — no API call needed on mount.
-  // loading is kept in the interface for consumers but is always false.
   const loading = false
 
-  const login = useCallback(async (email: string, password: string) => {
-    const data = await api.userLogin(email, password)
-    setUser(data.user)
-    try { localStorage.setItem(SESSION_KEY, JSON.stringify(data.user)) } catch {}
+  const setUserSession = useCallback((u: UserInfo) => {
+    setUser(u)
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(u)) } catch {}
   }, [])
 
   const logout = useCallback(async () => {
@@ -44,7 +47,7 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <UserAuthContext.Provider value={{ user, loading, login, logout }}>
+    <UserAuthContext.Provider value={{ user, loading, logout, setUserSession }}>
       {children}
     </UserAuthContext.Provider>
   )

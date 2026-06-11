@@ -20,6 +20,7 @@ import { UsersView } from '@/pages/admin/UsersView'
 import { InvitationsView } from '@/pages/admin/InvitationsView'
 import { SecurityView } from '@/pages/admin/SecurityView'
 import { Register } from '@/pages/Register'
+import { AdminEnroll } from '@/pages/AdminEnroll'
 import { UserAuthProvider } from '@/contexts/UserAuthContext'
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 
@@ -59,6 +60,7 @@ export default function App() {
           {/* AdminAuthProvider scoped to /admin/* only */}
           <Route path="/admin" element={<AdminAuthProvider><Outlet /></AdminAuthProvider>}>
             <Route path="login" element={<AdminLogin />} />
+            <Route path="enroll/:token" element={<AdminEnroll />} />
             <Route element={<AdminPanel />}>
               <Route index element={<AdminsView />} />
               <Route path="users" element={<UsersView />} />

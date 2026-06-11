@@ -3,12 +3,12 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { startRegistration } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
-import { useUserAuth } from '@/contexts/UserAuthContext'
+import { useAdminAuth } from '@/contexts/AdminAuthContext'
 
-export function Register() {
+export function AdminEnroll() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
-  const { user, setUserSession } = useUserAuth()
+  const { admin, setAdminSession } = useAdminAuth()
 
   const [validating, setValidating] = useState(true)
   const [tokenError, setTokenError] = useState('')
@@ -18,44 +18,42 @@ export function Register() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!token) { setTokenError('Invalid invitation link.'); setValidating(false); return }
-    api.validateInvitation(token)
+    if (!token) { setTokenError('Invalid enrollment link.'); setValidating(false); return }
+    api.validateEnrollToken(token)
       .then(res => setExpiresAt(res.expires_at))
       .catch(err => {
         const status = (err as { status?: number }).status
-        if (status === 410) setTokenError('This invitation has already been used or has expired.')
-        else if (status === 404) setTokenError('Invitation not found.')
-        else setTokenError('Unable to validate this invitation link.')
+        if (status === 410) setTokenError('This enrollment link has already been used or has expired.')
+        else if (status === 404) setTokenError('Enrollment link not found.')
+        else setTokenError('Unable to validate this enrollment link.')
       })
       .finally(() => setValidating(false))
   }, [token])
 
-  if (user) return <Navigate to="/portal" replace />
+  if (admin) return <Navigate to="/admin" replace />
 
-  async function handleRegister() {
+  async function handleEnroll() {
     if (!token) return
     setError('')
     setLoading(true)
     try {
-      // registerViaInvitation sets the cipher_user cookie — don't update React state yet
-      // or the `if (user) return <Navigate>` guard will unmount this component
+      // enrollAdmin sets the cipher_admin cookie — don't update React state yet
+      // or the `if (admin) return <Navigate>` guard will unmount this component
       // before passkey registration finishes.
-      const registered = await api.registerViaInvitation(token)
+      const enrolled = await api.enrollAdmin(token)
 
-      const options = await api.passkeyRegisterBegin()
+      const options = await api.adminPasskeyRegisterBegin()
       const credential = await startRegistration({ optionsJSON: options.publicKey as never })
-      await api.passkeyRegisterComplete('My Passkey', credential)
+      await api.adminPasskeyRegisterComplete('Admin Passkey', credential)
 
       // Only set session after passkey is saved on the server
-      setUserSession({ id: registered.id, unique_id: registered.unique_id, role: 'user' })
-      navigate('/portal')
+      setAdminSession({ id: enrolled.id, unique_id: enrolled.unique_id, role: 'admin' })
+      navigate('/admin')
     } catch (err) {
       if ((err as { name?: string }).name === 'NotAllowedError') {
         setError('Passkey registration was cancelled. Please try again.')
-      } else if ((err as { status?: number }).status === 410) {
-        setTokenError('This invitation has already been used or has expired.')
       } else {
-        setError(err instanceof Error ? err.message : 'Registration failed.')
+        setError(err instanceof Error ? err.message : 'Enrollment failed.')
       }
     } finally {
       setLoading(false)
@@ -70,24 +68,50 @@ export function Register() {
   return (
     <div className="portal-root">
       <div className="p-auth">
+        {/* Aside */}
+        <div className="auth-aside">
+          <div className="grid-bg" />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <span className="p-badge badge-default" style={{ background: 'hsl(252 100% 65% / .2)', color: '#c6b8ff', borderColor: 'hsl(252 100% 75% / .3)' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 13, height: 13 }}>
+                <path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z" />
+              </svg>
+              Admin console
+            </span>
+          </div>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
+              The keys to the <em style={{ fontStyle: 'italic', color: '#c6b8ff' }}>trust layer.</em>
+            </p>
+            <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
+              Set up your admin passkey to gain access to the Cipher control plane.
+            </p>
+          </div>
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+            <span>Role-scoped</span><span>Audit-logged</span><span>MFA enforced</span>
+          </div>
+        </div>
+
+        {/* Form panel */}
         <div className="auth-panel">
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
               <span className="sidebar-mark" />
               <span>Cipher</span>
+              <span className="admin-pill">Admin</span>
             </a>
 
             {validating ? (
               <>
                 <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 8px' }}>
-                  Verifying invitation…
+                  Verifying link…
                 </h1>
                 <p className="p-muted" style={{ margin: 0, fontSize: 14 }}>Please wait.</p>
               </>
             ) : tokenError ? (
               <>
                 <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 8px' }}>
-                  Invalid invitation
+                  Invalid enrollment link
                 </h1>
                 <p style={{ margin: '0 0 24px', fontSize: 14, color: 'hsl(var(--destructive))' }}>{tokenError}</p>
                 <a href="/" className="btn btn-default btn-block" style={{ textDecoration: 'none', textAlign: 'center' }}>
@@ -97,10 +121,10 @@ export function Register() {
             ) : (
               <>
                 <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 6px' }}>
-                  Create your account
+                  Set up your admin account
                 </h1>
                 <p className="p-muted" style={{ margin: '0 0 28px', fontSize: 14 }}>
-                  You've been invited to join Cipher Portal.
+                  You've been invited as an administrator.
                   {expiresAt && <> This link expires <strong>{fmtExpiry(expiresAt)}</strong>.</>}
                   {' '}Your device will prompt you to register a passkey.
                 </p>
@@ -108,7 +132,7 @@ export function Register() {
                 <button
                   className="btn btn-default btn-lg btn-block"
                   type="button"
-                  onClick={handleRegister}
+                  onClick={handleEnroll}
                   disabled={loading}
                   style={{ gap: 10 }}
                 >
@@ -124,31 +148,10 @@ export function Register() {
                 )}
 
                 <p className="p-muted text-xs mt-24" style={{ textAlign: 'center' }}>
-                  Already have an account?{' '}
-                  <a href="/login" style={{ color: 'hsl(var(--primary))' }}>Sign in</a>
+                  MFA required · all actions are audit-logged
                 </p>
               </>
             )}
-          </div>
-        </div>
-
-        <div className="auth-aside">
-          <div className="grid-bg" />
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <span className="p-badge badge-default" style={{ background: 'hsl(252 100% 65% / .2)', color: '#c6b8ff', borderColor: 'hsl(252 100% 75% / .3)' }}>
-              <span className="dot pulse-dot" />Portal v1.0
-            </span>
-          </div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              Identity that <em style={{ fontStyle: 'italic', color: '#c6b8ff' }}>proves itself.</em>
-            </p>
-            <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
-              Provision a Verifiable Trust Agent, mint a DID, and issue credentials — all from one quiet console.
-            </p>
-          </div>
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
-            <span>256-bit keys</span><span>W3C DID</span><span>Zero leakage</span>
           </div>
         </div>
       </div>

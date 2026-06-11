@@ -17,23 +17,29 @@ export interface SetupSession {
 
 export interface UserInfo {
   id: number
-  email: string
+  unique_id: string
   role: 'user' | 'admin'
 }
 
 export interface User {
   id: number
   unique_id: string
-  email: string
   created_at: string
   updated_at: string
 }
 
 export interface AdminRecord {
   id: number
-  email: string
+  unique_id: string
   created_at: string
   updated_at: string
+}
+
+export interface PasskeyRecord {
+  id: number
+  name: string
+  created_at: string
+  last_used_at: string | null
 }
 
 export interface Invitation {
@@ -70,35 +76,60 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
 }
 
 export const api = {
-  userLogin: (email: string, password: string) =>
-    req<{ token: string; user: UserInfo }>('POST', '/api/v1/auth/user/login', { email, password }),
+  // ── Auth — User ──────────────────────────────────────────────────────────────
+  userPasskeyLoginBegin: () =>
+    req<{ session_id: string; publicKey: unknown }>('POST', '/api/v1/auth/user/passkey/begin'),
+  userPasskeyLoginComplete: (sessionId: string, credential: unknown) =>
+    req<{ token: string; user: UserInfo }>('POST', `/api/v1/auth/user/passkey/complete?session_id=${encodeURIComponent(sessionId)}`, credential),
   userLogout: () => req<null>('POST', '/api/v1/auth/user/logout'),
 
-  adminLogin: (email: string, password: string) =>
-    req<{ token: string; user: UserInfo }>('POST', '/api/v1/auth/admin/login', { email, password }),
+  // ── Auth — Admin ─────────────────────────────────────────────────────────────
+  adminPasskeyLoginBegin: () =>
+    req<{ session_id: string; publicKey: unknown }>('POST', '/api/v1/auth/admin/passkey/begin'),
+  adminPasskeyLoginComplete: (sessionId: string, credential: unknown) =>
+    req<{ token: string; user: UserInfo }>('POST', `/api/v1/auth/admin/passkey/complete?session_id=${encodeURIComponent(sessionId)}`, credential),
   adminLogout: () => req<null>('POST', '/api/v1/auth/admin/logout'),
 
-  listAdmins: () => req<AdminRecord[]>('GET', '/api/v1/admins'),
-  createAdmin: (email: string, password: string) =>
-    req<{ id: number; email: string }>('POST', '/api/v1/admins', { email, password }),
-  listUsers: () => req<User[]>('GET', '/api/v1/users'),
-  createUser: (email: string, password: string) =>
-    req<{ id: number; unique_id: string; email: string }>('POST', '/api/v1/users', { email, password }),
-  changeAdminPassword: (current_password: string, new_password: string) =>
-    req<{ message: string }>('PUT', '/api/v1/admin/password', { current_password, new_password }),
-  changeUserPassword: (current_password: string, new_password: string) =>
-    req<{ message: string }>('PUT', '/api/v1/user/password', { current_password, new_password }),
-  resetUserPassword: (id: number, new_password: string) =>
-    req<{ message: string }>('PUT', `/api/v1/users/${id}/password`, { new_password }),
+  // ── Admin enrollment ─────────────────────────────────────────────────────────
+  validateEnrollToken: (token: string) =>
+    req<{ valid: boolean; expires_at: string }>('GET', `/api/v1/admin/enroll/${token}`),
+  enrollAdmin: (token: string) =>
+    req<{ id: number; unique_id: string; token: string }>('POST', `/api/v1/admin/enroll/${token}`),
 
+  // ── Admin passkeys ───────────────────────────────────────────────────────────
+  adminPasskeyRegisterBegin: () =>
+    req<{ publicKey: unknown }>('POST', '/api/v1/admin/passkeys/register/begin'),
+  adminPasskeyRegisterComplete: (name: string, credential: unknown) =>
+    req<{ id: number; name: string }>('POST', `/api/v1/admin/passkeys/register/complete?name=${encodeURIComponent(name)}`, credential),
+  listAdminPasskeys: () => req<PasskeyRecord[]>('GET', '/api/v1/admin/passkeys'),
+  deleteAdminPasskey: (id: number) => req<null>('DELETE', `/api/v1/admin/passkeys/${id}`),
+
+  // ── Admin management ─────────────────────────────────────────────────────────
+  listAdmins: () => req<AdminRecord[]>('GET', '/api/v1/admins'),
+  createAdminEnrollmentToken: () =>
+    req<{ enrollment_token: string; enrollment_expires: string }>('POST', '/api/v1/admins'),
+
+  // ── User management ──────────────────────────────────────────────────────────
+  listUsers: () => req<User[]>('GET', '/api/v1/users'),
+
+  // ── Invitations ──────────────────────────────────────────────────────────────
   createInvitation: () =>
     req<{ id: number; token: string; expires_at: string }>('POST', '/api/v1/invitations'),
   listInvitations: () => req<Invitation[]>('GET', '/api/v1/invitations'),
   validateInvitation: (token: string) =>
     req<{ valid: boolean; expires_at: string }>('GET', `/api/v1/invitations/${token}`),
-  registerViaInvitation: (token: string, email: string, password: string) =>
-    req<{ id: number; unique_id: string; email: string }>('POST', `/api/v1/invitations/${token}/register`, { email, password }),
+  registerViaInvitation: (token: string) =>
+    req<{ id: number; unique_id: string; token: string }>('POST', `/api/v1/invitations/${token}/register`),
 
+  // ── User passkeys ────────────────────────────────────────────────────────────
+  passkeyRegisterBegin: () =>
+    req<{ publicKey: unknown }>('POST', '/api/v1/user/passkeys/register/begin'),
+  passkeyRegisterComplete: (name: string, credential: unknown) =>
+    req<{ id: number; name: string }>('POST', `/api/v1/user/passkeys/register/complete?name=${encodeURIComponent(name)}`, credential),
+  listPasskeys: () => req<PasskeyRecord[]>('GET', '/api/v1/user/passkeys'),
+  deletePasskey: (id: number) => req<null>('DELETE', `/api/v1/user/passkeys/${id}`),
+
+  // ── Setup sessions ───────────────────────────────────────────────────────────
   listImages: () => req<Array<{ tag: string; image: string }>>('GET', '/api/v1/setup/images'),
   listSessions: () => req<SetupSession[]>('GET', '/api/v1/setup'),
   createSession: (data: {

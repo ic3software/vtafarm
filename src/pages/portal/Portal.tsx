@@ -10,7 +10,7 @@ export interface PortalContext {
   sessions: SetupSession[]
   sessionsLoading: boolean
   loadSessions: () => void
-  email: string
+  uniqueId: string
 }
 
 export function Portal() {
@@ -110,9 +110,9 @@ export function Portal() {
                 </div>
               </div>
               <div className="user-chip" onClick={e => { e.stopPropagation(); setUserMenuOpen(v => !v) }}>
-                <span className="p-avatar">{initials(user.email)}</span>
+                <span className="p-avatar">{initials(user.unique_id)}</span>
                 <div className="meta grow">
-                  <div className="n">{user.email}</div>
+                  <div className="n" style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{user.unique_id}</div>
                   <div className="e">User account</div>
                 </div>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 15, height: 15, color: 'hsl(var(--muted-foreground))' }}><path d="m18 15-6-6-6 6"/></svg>
@@ -140,7 +140,7 @@ export function Portal() {
             </button>
           </header>
 
-          <Outlet context={{ sessions, sessionsLoading, loadSessions, email: user.email } satisfies PortalContext} />
+          <Outlet context={{ sessions, sessionsLoading, loadSessions, uniqueId: user.unique_id } satisfies PortalContext} />
         </div>
       </div>
     </div>

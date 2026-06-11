@@ -26,9 +26,8 @@ export function statusBadge(status: SetupSession['status']) {
   )
 }
 
-export function initials(email: string) {
-  const parts = email.split('@')[0].split(/[._-]/)
-  return parts.slice(0, 2).map(p => p[0]?.toUpperCase()).join('') || '?'
+export function initials(uniqueId: string) {
+  return uniqueId.slice(0, 2).toUpperCase() || '??'
 }
 
 export function timeAgo(iso: string) {

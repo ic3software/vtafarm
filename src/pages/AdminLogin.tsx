@@ -1,28 +1,34 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
+import { startAuthentication } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
+import { api } from '@/lib/api'
 import { useAdminAuth } from '@/contexts/AdminAuthContext'
 
 export function AdminLogin() {
-  const { login, admin } = useAdminAuth()
+  const { admin, setAdminSession } = useAdminAuth()
   const navigate = useNavigate()
 
-  if (admin) return <Navigate to="/admin" replace />
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPass, setShowPass] = useState(false)
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
+  if (admin) return <Navigate to="/admin" replace />
+
+  async function handlePasskeyLogin() {
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
+      const { session_id, publicKey } = await api.adminPasskeyLoginBegin()
+      const assertion = await startAuthentication({ optionsJSON: publicKey as never })
+      const data = await api.adminPasskeyLoginComplete(session_id, assertion)
+      setAdminSession(data.user)
       navigate('/admin')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      if ((err as { name?: string }).name === 'NotAllowedError') {
+        // user cancelled — silent
+      } else {
+        setError(err instanceof Error ? err.message : 'Authentication failed.')
+      }
     } finally {
       setLoading(false)
     }
@@ -66,47 +72,27 @@ export function AdminLogin() {
             <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 6px' }}>
               Operator sign-in
             </h1>
-            <p className="p-muted" style={{ margin: '0 0 28px', fontSize: 14 }}>
+            <p className="p-muted" style={{ margin: '0 0 32px', fontSize: 14 }}>
               Administrative access to the Cipher control plane.
             </p>
 
-            <form onSubmit={handleSubmit} className="p-col gap-16">
-              <div>
-                <label className="p-label" htmlFor="lg-email">Email</label>
-                <div className="input-group">
-                  <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-10 5L2 7" />
-                  </svg>
-                  <input className="p-input" id="lg-email" type="email" placeholder="admin@cipher.net"
-                    value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
-                </div>
-              </div>
-              <div>
-                <label className="p-label" htmlFor="lg-pass">Password</label>
-                <div className="input-group">
-                  <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                  <input className="p-input" id="lg-pass" type={showPass ? 'text' : 'password'}
-                    placeholder="••••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
-                  <button className="ig-suffix" type="button" onClick={() => setShowPass(v => !v)}>
-                    {showPass ? 'hide' : 'show'}
-                  </button>
-                </div>
-              </div>
+            <button
+              className="btn btn-default btn-lg btn-block"
+              type="button"
+              onClick={handlePasskeyLogin}
+              disabled={loading}
+              style={{ gap: 10 }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 18, height: 18, flexShrink: 0 }}>
+                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+              </svg>
+              {loading ? 'Waiting for device…' : 'Sign in with Passkey'}
+              {!loading && <span className="arrow">→</span>}
+            </button>
 
-              {error && (
-                <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
-              )}
-
-              <button className="btn btn-default btn-lg btn-block mt-8" type="submit" disabled={loading}>
-                {loading ? 'Signing in…' : <>Sign in <span className="arrow">→</span></>}
-              </button>
-            </form>
-
-            <p className="p-muted text-xs mt-24" style={{ textAlign: 'center' }}>
-              MFA required · all actions are audit-logged
-            </p>
+            {error && (
+              <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
+            )}
           </div>
         </div>
       </div>
