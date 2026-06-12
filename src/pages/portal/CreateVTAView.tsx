@@ -12,7 +12,7 @@ export function CreateVTAView() {
 
   const [stage, setStage] = useState<Stage>(0)
   const [vtaName, setVtaName] = useState('personal-vta')
-  const [images, setImages] = useState<Array<{ tag: string; image: string }>>([])
+  const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedImage, setSelectedImage] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
@@ -40,7 +40,11 @@ export function CreateVTAView() {
 
   useEffect(() => {
     api.listImages()
-      .then(imgs => { setImages(imgs); setSelectedImage(imgs[0]?.image ?? '') })
+      .then(imgs => {
+        setImages(imgs)
+        const latestImg = imgs.find(i => i.latest) ?? imgs[0]
+        setSelectedImage(latestImg?.image ?? '')
+      })
       .catch(() => {})
   }, [])
 
@@ -269,7 +273,11 @@ export function CreateVTAView() {
               <label className="p-label" htmlFor="cv-image">VTA Image <span className="req">*</span></label>
               {images.length > 0 ? (
                 <select className="p-select p-mono" id="cv-image" value={selectedImage} onChange={e => setSelectedImage(e.target.value)}>
-                  {images.map(img => <option key={img.image} value={img.image}>{img.tag}</option>)}
+                  {images.map(img => (
+                    <option key={img.image} value={img.image}>
+                      {img.tag}{img.latest ? ' (latest)' : ''}
+                    </option>
+                  ))}
                 </select>
               ) : (
                 <input className="p-input p-mono" placeholder="Loading images…" disabled />

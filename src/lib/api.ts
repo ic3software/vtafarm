@@ -130,7 +130,7 @@ export const api = {
   deletePasskey: (id: number) => req<null>('DELETE', `/api/v1/user/passkeys/${id}`),
 
   // ── Setup sessions ───────────────────────────────────────────────────────────
-  listImages: () => req<Array<{ tag: string; image: string }>>('GET', '/api/v1/setup/images'),
+  listImages: () => req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', '/api/v1/setup/images'),
   listSessions: () => req<SetupSession[]>('GET', '/api/v1/setup'),
   createSession: (data: {
     mode: 'vta_only' | 'full_stack'
