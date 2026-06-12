@@ -1,11 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
-import { NavBar } from '@/components/home/NavBar'
-import { HeroSection } from '@/components/home/HeroSection'
-import { HowItWorks } from '@/components/home/HowItWorks'
-import { FeaturesSection } from '@/components/home/FeaturesSection'
-import { BenefitsSection } from '@/components/home/BenefitsSection'
-import { CtaSection } from '@/components/home/CtaSection'
-import { FooterSection } from '@/components/home/FooterSection'
 import { MobilePreview } from '@/pages/MobilePreview'
 import { UserLogin } from '@/pages/UserLogin'
 import { AdminLogin } from '@/pages/AdminLogin'
@@ -26,17 +19,36 @@ import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 
 function HomePage() {
   return (
-    <>
-      <NavBar />
-      <main>
-        <HeroSection />
-        <HowItWorks />
-        <FeaturesSection />
-        <BenefitsSection />
-        <CtaSection />
-      </main>
-      <FooterSection />
-    </>
+    <main className="flex min-h-dvh items-center justify-center">
+      <div className="section-wrap flex flex-col items-center text-center">
+        <h1
+          className="font-serif font-normal leading-[1.05] tracking-[-0.02em]"
+          style={{ fontSize: 'clamp(48px, 7vw, 96px)' }}
+        >
+          VTA Farm
+        </h1>
+        <p className="mt-5 max-w-[42ch] text-xl leading-[1.5]" style={{ color: 'var(--vtafarm-ink-2)' }}>
+          A demo hosting service for Verifiable Trust Agents
+        </p>
+        <div className="mt-9 flex flex-wrap justify-center gap-3">
+          <a
+            href="/portal"
+            className="btn-ink group flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
+          >
+            Open Portal
+            <span className="inline-block transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true">→</span>
+          </a>
+          <a
+            href="https://github.com/OpenVTC/wiki"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-ghost-light flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
+          >
+            Docs
+          </a>
+        </div>
+      </div>
+    </main>
   )
 }
 
