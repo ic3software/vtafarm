@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FormEvent } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { api, type AdminRecord } from '@/lib/api'
 import type { AdminContext } from './AdminPanel'
@@ -9,16 +9,19 @@ function fmt(iso: string) {
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: browserTz })
 }
 
+function enrollUrl(token: string) {
+  return `${window.location.origin}/admin/enroll/${token}`
+}
+
 export function AdminsView() {
-  const { email: selfEmail } = useOutletContext<AdminContext>()
+  const { uniqueId: selfUniqueId } = useOutletContext<AdminContext>()
   const [admins, setAdmins] = useState<AdminRecord[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [showCreate, setShowCreate] = useState(false)
-  const [newEmail, setNewEmail] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [createError, setCreateError] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [newToken, setNewToken] = useState<{ token: string; expires: string } | null>(null)
+  const [copiedToken, setCopiedToken] = useState(false)
+  const [genError, setGenError] = useState('')
 
   const loadAdmins = useCallback(() => {
     setLoading(true)
@@ -27,19 +30,23 @@ export function AdminsView() {
 
   useEffect(() => { loadAdmins() }, [loadAdmins])
 
-  async function handleCreateAdmin(e: FormEvent) {
-    e.preventDefault()
-    setCreateError(''); setCreating(true)
+  async function handleGenerateToken() {
+    setGenError('')
+    setGenerating(true)
     try {
-      await api.createAdmin(newEmail, newPassword)
-      setNewEmail(''); setNewPassword('')
-      setShowCreate(false)
-      loadAdmins()
+      const result = await api.createAdminEnrollmentToken()
+      setNewToken({ token: result.enrollment_token, expires: result.enrollment_expires })
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Failed to create admin')
+      setGenError(err instanceof Error ? err.message : 'Failed to generate enrollment link')
     } finally {
-      setCreating(false)
+      setGenerating(false)
     }
+  }
+
+  async function copyEnrollUrl(token: string) {
+    await navigator.clipboard.writeText(enrollUrl(token))
+    setCopiedToken(true)
+    setTimeout(() => setCopiedToken(false), 2000)
   }
 
   return (
@@ -49,18 +56,22 @@ export function AdminsView() {
           <h1>Administrators</h1>
           <p className="sub">Accounts with admin access to the control plane.</p>
         </div>
-        <button className="btn btn-default" onClick={() => setShowCreate(true)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
-          Create admin
+        <button className="btn btn-default" onClick={handleGenerateToken} disabled={generating}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          {generating ? 'Generating…' : 'Generate enrollment link'}
         </button>
       </div>
+
+      {genError && (
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'hsl(var(--destructive))' }}>{genError}</p>
+      )}
 
       <div className="table-wrap">
         <table className="p-table">
           <thead>
             <tr>
               <th>ID</th>
-              <th>Email</th>
+              <th>Unique ID</th>
               <th>Created</th>
               <th>Updated</th>
             </tr>
@@ -72,12 +83,18 @@ export function AdminsView() {
                   Loading…
                 </td>
               </tr>
+            ) : admins.length === 0 ? (
+              <tr>
+                <td colSpan={4} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                  No administrators yet.
+                </td>
+              </tr>
             ) : admins.map(a => (
               <tr key={a.id}>
                 <td><span className="p-mono" style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{a.id}</span></td>
                 <td>
-                  {a.email}
-                  {a.email === selfEmail && <span className="admin-pill" style={{ marginLeft: 6 }}>you</span>}
+                  <span className="p-mono" style={{ fontSize: 12 }}>{a.unique_id}</span>
+                  {a.unique_id === selfUniqueId && <span className="admin-pill" style={{ marginLeft: 6 }}>you</span>}
                 </td>
                 <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(a.created_at)}</td>
                 <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(a.updated_at)}</td>
@@ -87,33 +104,37 @@ export function AdminsView() {
         </table>
       </div>
 
-      {showCreate && (
+      {newToken && (
         <div className="p-overlay">
           <div className="p-dialog">
             <div className="dialog-header">
-              <h3 className="dialog-title">Create an admin</h3>
-              <p className="dialog-desc">The new admin can sign in at <span className="p-mono">/admin/login</span>.</p>
+              <h3 className="dialog-title">Enrollment link created</h3>
+              <p className="dialog-desc">
+                Share this link with the new admin. It expires on <strong>{fmt(newToken.expires)}</strong> and can only be used once.
+              </p>
             </div>
-            <form onSubmit={handleCreateAdmin}>
-              <div className="dialog-body">
-                <div>
-                  <label className="p-label">Email <span className="req">*</span></label>
-                  <div className="input-group">
-                    <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-                    <input className="p-input" type="email" placeholder="admin@example.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} required autoFocus />
-                  </div>
+            <div className="dialog-body">
+              <div>
+                <label className="p-label">Enrollment URL</label>
+                <div className="input-group">
+                  <input
+                    className="p-input p-mono"
+                    style={{ fontSize: 12 }}
+                    readOnly
+                    value={enrollUrl(newToken.token)}
+                    onFocus={e => e.target.select()}
+                  />
+                  <button className="ig-suffix" type="button" onClick={() => copyEnrollUrl(newToken.token)}>
+                    {copiedToken ? 'Copied!' : 'Copy'}
+                  </button>
                 </div>
-                <div>
-                  <label className="p-label">Password <span className="req">*</span></label>
-                  <input className="p-input" type="password" placeholder="min. 8 characters" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8} />
-                </div>
-                {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
               </div>
-              <div className="dialog-footer">
-                <button className="btn btn-ghost" type="button" onClick={() => { setShowCreate(false); setCreateError('') }}>Cancel</button>
-                <button className="btn btn-default" type="submit" disabled={creating}>{creating ? 'Creating…' : 'Create admin'}</button>
-              </div>
-            </form>
+            </div>
+            <div className="dialog-footer">
+              <button className="btn btn-default" type="button" onClick={() => { setNewToken(null); setCopiedToken(false) }}>
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,30 +1,64 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, useCallback, type FormEvent } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { api } from '@/lib/api'
+import { startRegistration } from '@simplewebauthn/browser'
+import { api, type PasskeyRecord } from '@/lib/api'
 import { initials } from '../portal/portalUtils'
 import type { AdminContext } from './AdminPanel'
 
-export function SecurityView() {
-  const { email } = useOutletContext<AdminContext>()
-  const [current, setCurrent] = useState('')
-  const [newPw, setNewPw] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState('')
-  const [err, setErr] = useState('')
+const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'
+function fmt(iso: string) {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: browserTz })
+}
 
-  async function handleSubmit(e: FormEvent) {
+export function SecurityView() {
+  const { uniqueId } = useOutletContext<AdminContext>()
+
+  const [passkeys, setPasskeys] = useState<PasskeyRecord[]>([])
+  const [loadingPasskeys, setLoadingPasskeys] = useState(true)
+  const [showAdd, setShowAdd] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState('')
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+
+  const loadPasskeys = useCallback(() => {
+    setLoadingPasskeys(true)
+    api.listAdminPasskeys().then(setPasskeys).catch(() => {}).finally(() => setLoadingPasskeys(false))
+  }, [])
+
+  useEffect(() => { loadPasskeys() }, [loadPasskeys])
+
+  async function handleAdd(e: FormEvent) {
     e.preventDefault()
-    if (newPw !== confirm) { setErr('Passwords do not match'); return }
-    setSaving(true); setErr(''); setMsg('')
+    setAddError('')
+    setAdding(true)
     try {
-      await api.changeAdminPassword(current, newPw)
-      setMsg('Password updated. Sign in again on other sessions.')
-      setCurrent(''); setNewPw(''); setConfirm('')
-    } catch (error) {
-      setErr(error instanceof Error ? error.message : 'Failed to update password')
+      const options = await api.adminPasskeyRegisterBegin()
+      const credential = await startRegistration({ optionsJSON: options.publicKey as never })
+      await api.adminPasskeyRegisterComplete(newName.trim() || 'Admin Passkey', credential)
+      setShowAdd(false)
+      setNewName('')
+      loadPasskeys()
+    } catch (err) {
+      if ((err as { name?: string }).name === 'NotAllowedError') {
+        setAddError('Registration was cancelled.')
+      } else {
+        setAddError(err instanceof Error ? err.message : 'Failed to register passkey')
+      }
     } finally {
-      setSaving(false)
+      setAdding(false)
+    }
+  }
+
+  async function handleDelete(id: number) {
+    setDeletingId(id)
+    try {
+      await api.deleteAdminPasskey(id)
+      setPasskeys(prev => prev.filter(p => p.id !== id))
+    } catch {
+      // silently fail
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -32,47 +66,101 @@ export function SecurityView() {
     <section className="p-content" style={{ maxWidth: 680 }}>
       <div className="page-head"><div><h1>Security</h1><p className="sub">Manage your operator credentials.</p></div></div>
 
+      {/* Profile */}
       <div className="p-card" style={{ marginBottom: 20 }}>
         <div className="card-header"><h3 className="card-title">Profile</h3></div>
         <div className="card-content p-row gap-16 center">
           <span className="p-avatar" style={{ width: 52, height: 52, fontSize: 18, background: 'hsl(var(--primary))', color: '#fff' }}>
-            {initials(email)}
+            {initials(uniqueId)}
           </span>
           <div className="p-col">
-            <span className="fw-600">{email}</span>
+            <span className="fw-600 p-mono" style={{ fontSize: 13 }}>{uniqueId}</span>
             <span className="p-muted text-sm">Admin account</span>
           </div>
         </div>
       </div>
 
+      {/* Passkeys */}
       <div className="p-card">
-        <div className="card-header"><h3 className="card-title">Change your password</h3><p className="card-desc">Operator passwords must be at least 8 characters.</p></div>
-        <form onSubmit={handleSubmit}>
-          <div className="card-content p-col gap-16">
-            <div>
-              <label className="p-label">Current password</label>
-              <div className="input-group">
-                <input className="p-input" type="password" value={current} onChange={e => setCurrent(e.target.value)} required />
+        <div className="card-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div>
+            <h3 className="card-title">Passkeys</h3>
+            <p className="card-desc">Sign in with Face ID, Touch ID, or a hardware key.</p>
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{ flexShrink: 0, marginTop: 2 }} onClick={() => { setShowAdd(true); setAddError('') }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}><path d="M5 12h14M12 5v14"/></svg>
+            Add
+          </button>
+        </div>
+        <div className="card-content" style={{ padding: 0 }}>
+          {loadingPasskeys ? (
+            <p style={{ padding: '16px 20px', margin: 0, fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Loading…</p>
+          ) : passkeys.length === 0 ? (
+            <p style={{ padding: '16px 20px', margin: 0, fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>No passkeys registered yet.</p>
+          ) : passkeys.map((pk, i) => (
+            <div key={pk.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px',
+              borderTop: i > 0 ? '1px solid hsl(var(--border))' : undefined,
+            }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'hsl(var(--muted))', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 16, height: 16, color: 'hsl(var(--muted-foreground))' }}>
+                  <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                </svg>
               </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 500, fontSize: 14 }}>{pk.name}</div>
+                <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>
+                  Added {fmt(pk.created_at)}
+                  {pk.last_used_at ? ` · Last used ${fmt(pk.last_used_at)}` : ' · Never used'}
+                </div>
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ color: 'hsl(var(--destructive))', flexShrink: 0 }}
+                onClick={() => handleDelete(pk.id)}
+                disabled={deletingId === pk.id || passkeys.length === 1}
+                title={passkeys.length === 1 ? 'Cannot remove your only passkey' : undefined}
+              >
+                {deletingId === pk.id ? 'Removing…' : 'Remove'}
+              </button>
             </div>
-            <div className="p-grid-2">
-              <div><label className="p-label">New password</label><input className="p-input" type="password" value={newPw} onChange={e => setNewPw(e.target.value)} required minLength={8} /></div>
-              <div><label className="p-label">Confirm new password</label><input className="p-input" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required /></div>
-            </div>
-            {err && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{err}</p>}
-            {msg && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--success))' }}>{msg}</p>}
-            <div className="p-alert alert-info">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-              <p className="alert-desc">Changing your password signs out all other operator sessions.</p>
-            </div>
-          </div>
-          <div className="card-footer" style={{ justifyContent: 'flex-end' }}>
-            <button className="btn btn-default" type="submit" disabled={saving}>
-              {saving ? 'Updating…' : 'Update password'}
-            </button>
-          </div>
-        </form>
+          ))}
+        </div>
       </div>
+
+      {showAdd && (
+        <div className="p-overlay">
+          <div className="p-dialog">
+            <div className="dialog-header">
+              <h3 className="dialog-title">Add a passkey</h3>
+              <p className="dialog-desc">Give this passkey a name so you can identify it later (e.g. "MacBook Touch ID").</p>
+            </div>
+            <form onSubmit={handleAdd}>
+              <div className="dialog-body">
+                <div>
+                  <label className="p-label">Passkey name</label>
+                  <input
+                    className="p-input"
+                    type="text"
+                    placeholder="MacBook Touch ID"
+                    value={newName}
+                    onChange={e => setNewName(e.target.value)}
+                    maxLength={64}
+                    autoFocus
+                  />
+                </div>
+                {addError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{addError}</p>}
+              </div>
+              <div className="dialog-footer">
+                <button className="btn btn-ghost" type="button" onClick={() => { setShowAdd(false); setAddError('') }}>Cancel</button>
+                <button className="btn btn-default" type="submit" disabled={adding}>
+                  {adding ? 'Waiting for device…' : 'Continue'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
