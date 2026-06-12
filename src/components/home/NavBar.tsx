@@ -4,7 +4,7 @@ const NAV_LINKS = [
   { label: 'How it works', href: '#how' },
   { label: 'Features', href: '#features' },
   { label: 'Why VTA Farm', href: '#benefits' },
-  { label: 'Docs', href: 'https://github.com/OpenVTC/wiki', external: true },
+  { label: 'Docs', href: 'https://github.com/OpenVTC/vti-setup/blob/main/developer/01-personal-vta.md', external: true },
 ]
 
 function BrandMark() {
