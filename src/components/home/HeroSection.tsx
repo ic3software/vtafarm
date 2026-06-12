@@ -59,7 +59,7 @@ function IdentityCard() {
       className="id-card relative ml-auto w-full max-w-[460px] overflow-hidden rounded-[22px] p-7 text-white"
       style={{
         aspectRatio: '1 / 1.05',
-        background: 'var(--cipher-bg-dark)',
+        background: 'var(--vtafarm-bg-dark)',
         boxShadow:
           '0 1px 0 rgba(255,255,255,0.04) inset, 0 30px 60px -30px rgba(20,18,40,0.45), 0 8px 24px -12px rgba(0,0,0,0.25)',
         isolation: 'isolate',
@@ -87,7 +87,7 @@ function IdentityCard() {
 
       {/* Top row */}
       <div className="flex items-start justify-between font-mono text-[11px] uppercase tracking-[0.12em] text-white/60">
-        <span>CIPHER · VTA</span>
+        <span>VTAFARM · VTA</span>
         <span className="flex items-center gap-2 text-white/85">
           <span className="h-[7px] w-[7px] flex-none rounded-full animate-pulse-dot" style={{ background: '#34d399' }} />
           Live · Attested
@@ -159,7 +159,7 @@ const logoStyle: React.CSSProperties = {
   fontSize: 22,
   fontStyle: 'italic',
   letterSpacing: '-0.01em',
-  color: 'var(--cipher-ink-2)',
+  color: 'var(--vtafarm-ink-2)',
   opacity: 0.7,
   cursor: 'default',
   transition: 'opacity 200ms',
@@ -169,9 +169,9 @@ function TrustBand() {
   return (
     <div
       className="trust-band flex flex-wrap items-center justify-between gap-10 py-7"
-      style={{ borderTop: '1px solid var(--cipher-line)', borderBottom: '1px solid var(--cipher-line)' }}
+      style={{ borderTop: '1px solid var(--vtafarm-line)', borderBottom: '1px solid var(--vtafarm-line)' }}
     >
-      <span className="font-mono text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--cipher-ink-3)' }}>
+      <span className="font-mono text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--vtafarm-ink-3)' }}>
         Trusted by communities at
       </span>
       <div className="flex flex-wrap items-center gap-10">
@@ -217,7 +217,7 @@ export function HeroSection() {
               </span>
               <span className="line-mask">
                 <span className="line-inner">
-                  <em className="hero-em" style={{ fontStyle: 'italic', color: 'var(--cipher-accent)' }}>
+                  <em className="hero-em" style={{ fontStyle: 'italic', color: 'var(--vtafarm-accent)' }}>
                     proves itself.
                   </em>
                 </span>
@@ -226,9 +226,9 @@ export function HeroSection() {
 
             <p
               className="hero-sub hero-el mb-9 max-w-[46ch] text-xl leading-[1.5]"
-              style={{ color: 'var(--cipher-ink-2)' }}
+              style={{ color: 'var(--vtafarm-ink-2)' }}
             >
-              Cipher is the trust layer for the open internet. Mint cryptographic identities, issue
+              VTA Farm is the trust layer for the open internet. Mint cryptographic identities, issue
               verifiable credentials, and prove who you are — without surrendering a single byte you
               didn't choose to share.
             </p>
@@ -252,7 +252,7 @@ export function HeroSection() {
             {/* Stats */}
             <div
               className="hero-meta hero-el mt-14 flex flex-wrap gap-7 pt-7"
-              style={{ borderTop: '1px solid var(--cipher-line)' }}
+              style={{ borderTop: '1px solid var(--vtafarm-line)' }}
             >
               {[
                 { num: '256-bit', lbl: 'Sovereign keys' },
@@ -261,7 +261,7 @@ export function HeroSection() {
               ].map(({ num, lbl }) => (
                 <div key={lbl} className="flex flex-col gap-1">
                   <div className="font-serif text-[30px] leading-none tracking-[-0.02em]">{num}</div>
-                  <div className="font-mono text-[10.5px] uppercase tracking-[0.14em]" style={{ color: 'var(--cipher-ink-3)' }}>
+                  <div className="font-mono text-[10.5px] uppercase tracking-[0.14em]" style={{ color: 'var(--vtafarm-ink-3)' }}>
                     {lbl}
                   </div>
                 </div>

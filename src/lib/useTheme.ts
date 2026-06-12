@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-const THEME_KEY = 'cipher-theme'
+const THEME_KEY = 'vtafarm-theme'
 
 export function useTheme() {
   const [dark, setDark] = useState(() => {

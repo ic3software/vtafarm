@@ -1,6 +1,6 @@
-# CipherPortal — Frontend
+# VTA Farm — Frontend
 
-React 19 + Vite 8 + TypeScript 6 frontend for the CipherPortal identity platform.
+React 19 + Vite 8 + TypeScript 6 frontend for the VTA Farm identity platform.
 
 ## Prerequisites
 

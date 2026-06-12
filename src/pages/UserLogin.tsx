@@ -41,7 +41,7 @@ export function UserLogin() {
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
               <span className="sidebar-mark" />
-              <span>Cipher</span>
+              <span>VTA Farm</span>
             </a>
             <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 6px' }}>
               Welcome back
@@ -69,7 +69,7 @@ export function UserLogin() {
             )}
 
             <p className="p-muted text-xs mt-24" style={{ textAlign: 'center' }}>
-              Protected by Cipher · <span className="p-mono">did:cipher:network</span>
+              Protected by VTA Farm · <span className="p-mono">did:vtafarm:network</span>
             </p>
           </div>
         </div>

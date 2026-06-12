@@ -1,4 +1,4 @@
-name: cipherportal
+name: vtafarm
 replicaCount: 1
 
 image:

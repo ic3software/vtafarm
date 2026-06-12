@@ -33,7 +33,7 @@ echo "Installing Helm..."
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 # ── Deploy ────────────────────────────────────────────────────────────────────
-echo "Deploying cipherportal..."
+echo "Deploying vtafarm..."
 make deploy \
   DOCKER_USERNAME="$DOCKER_USERNAME" \
   INGRESS_HOST="$INGRESS_HOST"

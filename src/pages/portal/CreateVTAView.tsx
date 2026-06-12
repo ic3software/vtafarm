@@ -219,7 +219,7 @@ export function CreateVTAView() {
       <div className="page-head">
         <div>
           <h1>Create a Verifiable Trust Agent</h1>
-          <p className="sub">Configure your VTA session — Cipher provisions the agent online.</p>
+          <p className="sub">Configure your VTA session — VTA Farm provisions the agent online.</p>
         </div>
         <button className="btn btn-outline" onClick={handleDone}>Cancel</button>
       </div>
@@ -382,7 +382,7 @@ export function CreateVTAView() {
                 <div className="p-console">
                   <div className="console-head">
                     <div className="dots"><span/><span/><span/></div>
-                    <span className="p-mono">cipher · vta-setup {vtaName}</span>
+                    <span className="p-mono">vtafarm · vta-setup {vtaName}</span>
                     <span className="grow"/>
                     <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
                       <span className="dot pulse-dot"/>streaming
@@ -411,7 +411,7 @@ export function CreateVTAView() {
               <div className="card-header with-action">
                 <div>
                   <h3 className="card-title">VTA setup in progress</h3>
-                  <p className="card-desc">Cipher is preparing the VTA environment. This usually takes a minute.</p>
+                  <p className="card-desc">VTA Farm is preparing the VTA environment. This usually takes a minute.</p>
                 </div>
                 <span className="p-badge badge-warning"><span className="dot pulse-dot"/>waiting</span>
               </div>
@@ -419,7 +419,7 @@ export function CreateVTAView() {
                 <div className="p-console">
                   <div className="console-head">
                     <div className="dots"><span/><span/><span/></div>
-                    <span className="p-mono">cipher · vta-setup {vtaName}</span>
+                    <span className="p-mono">vtafarm · vta-setup {vtaName}</span>
                     <span className="grow"/>
                     <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
                       <span className="dot pulse-dot"/>polling
@@ -450,14 +450,14 @@ export function CreateVTAView() {
       {stage === 2 && (
         <div className="p-card">
           <div className="card-header with-action">
-            <div><h3 className="card-title">Provisioning agent</h3><p className="card-desc">Cipher is bringing <span className="p-mono">{vtaName}</span> online.</p></div>
+            <div><h3 className="card-title">Provisioning agent</h3><p className="card-desc">VTA Farm is bringing <span className="p-mono">{vtaName}</span> online.</p></div>
             <span className="p-badge badge-warning"><span className="dot pulse-dot"/>{provStreamStarted ? 'streaming' : 'waiting'}</span>
           </div>
           <div className="card-content">
             <div className="p-console">
               <div className="console-head">
                 <div className="dots"><span/><span/><span/></div>
-                <span className="p-mono">cipher · provision --follow {vtaName}</span>
+                <span className="p-mono">vtafarm · provision --follow {vtaName}</span>
                 <span className="grow"/>
                 <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
                   <span className="dot pulse-dot"/>{provStreamStarted ? 'streaming' : 'polling'}
@@ -506,7 +506,7 @@ export function CreateVTAView() {
               <div className="p-console">
                 <div className="console-head">
                   <div className="dots"><span/><span/><span/></div>
-                  <span className="p-mono">cipher · provision --follow {vtaName}</span>
+                  <span className="p-mono">vtafarm · provision --follow {vtaName}</span>
                   <span className="grow"/>
                   <span className="p-badge badge-success" style={{ height: 18, fontSize: 10 }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} style={{ width: 10, height: 10 }}><path d="M20 6 9 17l-5-5"/></svg>

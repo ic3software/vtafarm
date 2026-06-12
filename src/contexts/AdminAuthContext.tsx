@@ -9,7 +9,7 @@ interface AdminAuthCtx {
 }
 
 const AdminAuthContext = createContext<AdminAuthCtx | null>(null)
-const SESSION_KEY = 'cipher-admin'
+const SESSION_KEY = 'vtafarm-admin'
 
 function readSession(): UserInfo | null {
   try {
@@ -42,8 +42,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       setAdmin(null)
       try { localStorage.removeItem(SESSION_KEY) } catch {}
     }
-    window.addEventListener('cipher:unauthorized', handler)
-    return () => window.removeEventListener('cipher:unauthorized', handler)
+    window.addEventListener('vtafarm:unauthorized', handler)
+    return () => window.removeEventListener('vtafarm:unauthorized', handler)
   }, [])
 
   return (

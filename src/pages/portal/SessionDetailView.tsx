@@ -267,7 +267,7 @@ export function SessionDetailView() {
         <div className="p-console">
           <div className="console-head">
             <div className="dots"><span/><span/><span/></div>
-            <span className="p-mono">cipher · provision --follow {name}</span>
+            <span className="p-mono">vtafarm · provision --follow {name}</span>
             <span className="grow"/>
             {logs.length > 0 && session.status !== 'running' && session.status !== 'failed' && (
               <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>

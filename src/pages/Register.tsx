@@ -37,7 +37,7 @@ export function Register() {
     setError('')
     setLoading(true)
     try {
-      // registerViaInvitation sets the cipher_user cookie — don't update React state yet
+      // registerViaInvitation sets the vtafarm_user cookie — don't update React state yet
       // or the `if (user) return <Navigate>` guard will unmount this component
       // before passkey registration finishes.
       const registered = await api.registerViaInvitation(token)
@@ -74,7 +74,7 @@ export function Register() {
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
               <span className="sidebar-mark" />
-              <span>Cipher</span>
+              <span>VTA Farm</span>
             </a>
 
             {validating ? (
@@ -100,7 +100,7 @@ export function Register() {
                   Create your account
                 </h1>
                 <p className="p-muted" style={{ margin: '0 0 28px', fontSize: 14 }}>
-                  You've been invited to join Cipher Portal.
+                  You've been invited to join VTA Farm.
                   {expiresAt && <> This link expires <strong>{fmtExpiry(expiresAt)}</strong>.</>}
                   {' '}Your device will prompt you to register a passkey.
                 </p>

@@ -2,7 +2,7 @@ const STEPS = [
   {
     num: '01 / Provision',
     title: 'Spin up an Agent.',
-    desc: 'Open the Cipher portal, name your VTA, and pick a region. Keys are sealed inside a hardware enclave from the very first instant.',
+    desc: 'Open the VTA Farm portal, name your VTA, and pick a region. Keys are sealed inside a hardware enclave from the very first instant.',
     next: '01 → 02',
     svg: (
       <svg viewBox="0 0 200 96" fill="none" className="h-full w-full">
@@ -17,7 +17,7 @@ const STEPS = [
   {
     num: '02 / Mint',
     title: 'Mint your identity.',
-    desc: 'Cipher generates your decentralized identifier (DID), signs it cryptographically, and publishes only the parts the world should see.',
+    desc: 'VTA Farm generates your decentralized identifier (DID), signs it cryptographically, and publishes only the parts the world should see.',
     next: '02 → 03',
     svg: (
       <svg viewBox="0 0 200 96" fill="none" className="h-full w-full">
@@ -65,7 +65,7 @@ export function HowItWorks() {
       <div
         className="how-panel text-white"
         style={{
-          background: 'var(--cipher-bg-dark)',
+          background: 'var(--vtafarm-bg-dark)',
           padding: 'clamp(72px, 10vh, 110px) clamp(28px, 5vw, 72px)',
         }}
       >
@@ -86,7 +86,7 @@ export function HowItWorks() {
             </h2>
           </div>
           <p className="text-[19px] leading-[1.55] text-white/70" style={{ maxWidth: '56ch' }}>
-            Provision your Verifiable Trust Agent from our portal in under a minute. Cipher generates
+            Provision your Verifiable Trust Agent from our portal in under a minute. VTA Farm generates
             the keys, mints the DIDs, and hands you a tamper-evident identity you fully control — no
             servers to run, no cryptography to learn.
           </p>
@@ -101,9 +101,9 @@ export function HowItWorks() {
             <li
               key={step.num}
               className="group flex flex-col gap-4 p-9 transition-colors duration-200"
-              style={{ background: 'var(--cipher-bg-dark)' }}
+              style={{ background: 'var(--vtafarm-bg-dark)' }}
               onMouseOver={e => ((e.currentTarget as HTMLElement).style.background = '#1a1a1a')}
-              onMouseOut={e => ((e.currentTarget as HTMLElement).style.background = 'var(--cipher-bg-dark)')}
+              onMouseOut={e => ((e.currentTarget as HTMLElement).style.background = 'var(--vtafarm-bg-dark)')}
             >
               <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/50">{step.num}</span>
               <div

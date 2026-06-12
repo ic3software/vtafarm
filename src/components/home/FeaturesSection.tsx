@@ -2,7 +2,7 @@ const FEATURES = [
   {
     tag: 'TEE · BIP-32',
     title: 'Sealed key custody.',
-    desc: "Your private keys never leave a hardware enclave. Not even Cipher can read them. Attestation receipts prove it on every operation.",
+    desc: "Your private keys never leave a hardware enclave. Not even VTA Farm can read them. Attestation receipts prove it on every operation.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-5 w-5">
         <path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" strokeLinejoin="round" />
@@ -85,11 +85,11 @@ export function FeaturesSection() {
               style={{ fontSize: 'clamp(40px, 5.2vw, 72px)', maxWidth: '18ch' }}
             >
               A complete{' '}
-              <em style={{ fontStyle: 'italic', color: 'var(--cipher-accent)' }}>trust</em> stack,
+              <em style={{ fontStyle: 'italic', color: 'var(--vtafarm-accent)' }}>trust</em> stack,
               distilled.
             </h2>
           </div>
-          <p className="text-[19px] leading-[1.55]" style={{ color: 'var(--cipher-ink-2)', maxWidth: '56ch' }}>
+          <p className="text-[19px] leading-[1.55]" style={{ color: 'var(--vtafarm-ink-2)', maxWidth: '56ch' }}>
             Every primitive you need to build on verifiable identity — keys, credentials, policies,
             audit — in one quietly powerful platform. Use what you need, ignore the rest.
           </p>
@@ -98,29 +98,29 @@ export function FeaturesSection() {
         {/* Grid */}
         <div
           className="overflow-hidden rounded-[18px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-          style={{ gap: '1px', background: 'var(--cipher-line)', border: '1px solid var(--cipher-line)' }}
+          style={{ gap: '1px', background: 'var(--vtafarm-line)', border: '1px solid var(--vtafarm-line)' }}
         >
           {FEATURES.map((feat) => (
             <div
               key={feat.title}
               className="group flex min-h-[280px] flex-col gap-3.5 p-8 transition-colors duration-200"
-              style={{ background: 'var(--cipher-bg-elev)' }}
+              style={{ background: 'var(--vtafarm-bg-elev)' }}
               onMouseOver={e => ((e.currentTarget as HTMLElement).style.background = '#fdfcf9')}
-              onMouseOut={e => ((e.currentTarget as HTMLElement).style.background = 'var(--cipher-bg-elev)')}
+              onMouseOut={e => ((e.currentTarget as HTMLElement).style.background = 'var(--vtafarm-bg-elev)')}
             >
               <div
                 className="mb-1 grid h-10 w-10 place-items-center rounded-[10px] transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105"
-                style={{ background: 'var(--cipher-accent-soft)', color: 'var(--cipher-accent)' }}
+                style={{ background: 'var(--vtafarm-accent-soft)', color: 'var(--vtafarm-accent)' }}
               >
                 {feat.icon}
               </div>
               <h3 className="m-0 font-serif text-[28px] font-normal leading-[1.15] tracking-[-0.01em]">
                 {feat.title}
               </h3>
-              <p className="m-0 text-[15px] leading-[1.55]" style={{ color: 'var(--cipher-ink-2)' }}>
+              <p className="m-0 text-[15px] leading-[1.55]" style={{ color: 'var(--vtafarm-ink-2)' }}>
                 {feat.desc}
               </p>
-              <span className="mt-auto font-mono text-[10.5px] uppercase tracking-[0.14em]" style={{ color: 'var(--cipher-ink-3)' }}>
+              <span className="mt-auto font-mono text-[10.5px] uppercase tracking-[0.14em]" style={{ color: 'var(--vtafarm-ink-3)' }}>
                 {feat.tag}
               </span>
             </div>

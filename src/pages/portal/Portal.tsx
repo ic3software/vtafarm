@@ -83,7 +83,7 @@ export function Portal() {
           <div className="sidebar-head">
             <a className="sidebar-brand" href="/portal">
               <span className="sidebar-mark"/>
-              <span>Cipher</span>
+              <span>VTA Farm</span>
             </a>
           </div>
           <div className="sidebar-section">
