@@ -69,7 +69,7 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   if (res.status === 204) return null as T
   const data = await res.json().catch(() => ({ error: res.statusText }))
   if (!res.ok) {
-    if (res.status === 401) window.dispatchEvent(new Event('cipher:unauthorized'))
+    if (res.status === 401) window.dispatchEvent(new Event('vtafarm:unauthorized'))
     throw apiError(data.error ?? 'Request failed', res.status)
   }
   return data as T

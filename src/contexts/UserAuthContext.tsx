@@ -9,7 +9,7 @@ interface UserAuthCtx {
 }
 
 const UserAuthContext = createContext<UserAuthCtx | null>(null)
-const SESSION_KEY = 'cipher-user'
+const SESSION_KEY = 'vtafarm-user'
 
 function readSession(): UserInfo | null {
   try {
@@ -42,8 +42,8 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       try { localStorage.removeItem(SESSION_KEY) } catch {}
     }
-    window.addEventListener('cipher:unauthorized', handler)
-    return () => window.removeEventListener('cipher:unauthorized', handler)
+    window.addEventListener('vtafarm:unauthorized', handler)
+    return () => window.removeEventListener('vtafarm:unauthorized', handler)
   }, [])
 
   return (

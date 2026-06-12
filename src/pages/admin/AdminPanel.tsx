@@ -60,7 +60,7 @@ export function AdminPanel() {
           <div className="sidebar-head">
             <a className="sidebar-brand" href="/admin">
               <span className="sidebar-mark"/>
-              <span>Cipher</span>
+              <span>VTA Farm</span>
               <span className="admin-pill">Admin</span>
             </a>
           </div>

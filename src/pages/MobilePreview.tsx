@@ -118,7 +118,7 @@ export function MobilePreview() {
         {/* Brand */}
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontWeight: 600, fontSize: 15 }}>
           <BrandMark />
-          Cipher
+          VTA Farm
           <span
             style={{
               fontFamily: "'IBM Plex Mono', monospace",

@@ -23,7 +23,7 @@ export function UsersView() {
       <div className="page-head">
         <div>
           <h1>Users</h1>
-          <p className="sub">People with access to the Cipher portal. Invite new users via the Invitations panel.</p>
+          <p className="sub">People with access to the VTA Farm portal. Invite new users via the Invitations panel.</p>
         </div>
       </div>
 

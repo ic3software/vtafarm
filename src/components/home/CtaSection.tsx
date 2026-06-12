@@ -5,8 +5,8 @@ export function CtaSection() {
         <div
           className="relative grid items-center gap-12 overflow-hidden rounded-[24px] lg:grid-cols-[1.4fr_1fr]"
           style={{
-            background: 'var(--cipher-bg-elev)',
-            border: '1px solid var(--cipher-line)',
+            background: 'var(--vtafarm-bg-elev)',
+            border: '1px solid var(--vtafarm-line)',
             padding: 'clamp(48px, 7vw, 80px)',
           }}
         >
@@ -26,9 +26,9 @@ export function CtaSection() {
               style={{ fontSize: 'clamp(40px, 5vw, 64px)' }}
             >
               Your next identity is{' '}
-              <em style={{ fontStyle: 'italic', color: 'var(--cipher-accent)' }}>yours.</em>
+              <em style={{ fontStyle: 'italic', color: 'var(--vtafarm-accent)' }}>yours.</em>
             </h2>
-            <p className="text-[17px] leading-[1.55]" style={{ color: 'var(--cipher-ink-2)', maxWidth: '46ch' }}>
+            <p className="text-[17px] leading-[1.55]" style={{ color: 'var(--vtafarm-ink-2)', maxWidth: '46ch' }}>
               Open the portal, name your agent, claim a DID. We'll handle the cryptography; you
               handle the proof.
             </p>
@@ -48,7 +48,7 @@ export function CtaSection() {
             >
               See it in action
             </a>
-            <p className="text-center font-mono text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--cipher-ink-3)' }}>
+            <p className="text-center font-mono text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--vtafarm-ink-3)' }}>
               Set up in 2 minutes
             </p>
           </div>

@@ -37,7 +37,7 @@ export function AdminEnroll() {
     setError('')
     setLoading(true)
     try {
-      // enrollAdmin sets the cipher_admin cookie — don't update React state yet
+      // enrollAdmin sets the vtafarm_admin cookie — don't update React state yet
       // or the `if (admin) return <Navigate>` guard will unmount this component
       // before passkey registration finishes.
       const enrolled = await api.enrollAdmin(token)
@@ -84,7 +84,7 @@ export function AdminEnroll() {
               The keys to the <em style={{ fontStyle: 'italic', color: '#c6b8ff' }}>trust layer.</em>
             </p>
             <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
-              Set up your admin passkey to gain access to the Cipher control plane.
+              Set up your admin passkey to gain access to the VTA Farm control plane.
             </p>
           </div>
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
@@ -97,7 +97,7 @@ export function AdminEnroll() {
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
               <span className="sidebar-mark" />
-              <span>Cipher</span>
+              <span>VTA Farm</span>
               <span className="admin-pill">Admin</span>
             </a>
 

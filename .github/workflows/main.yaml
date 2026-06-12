@@ -22,7 +22,7 @@ jobs:
         run: make image-push
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          API_URL: https://cp-api.ic3.dev
+          API_URL: https://vtafarm-api.firstperson.dev
 
   deploy:
     name: 🚀 Deploy
@@ -33,7 +33,7 @@ jobs:
       SERVER_IP:        ${{ secrets.PRODUCTION_SERVER_IP }}
       KUBECONFIG_PATH:  ${{ secrets.KUBECONFIG_PATH }}
       DOCKER_USERNAME:  ${{ secrets.DOCKER_USERNAME }}
-      INGRESS_HOST:     cipher.ic3.dev
+      INGRESS_HOST:     vtafarm.firstperson.dev
     steps:
       - uses: actions/checkout@v6
 

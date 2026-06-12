@@ -1,5 +1,5 @@
 # ─── Image & deploy variables ─────────────────────────────────────────────────
-NAME            ?= cipherportal
+NAME            ?= vtafarm
 DOCKER_USERNAME ?=
 IMAGE           ?= $(DOCKER_USERNAME)/$(NAME)
 TAG             ?= $(shell git rev-parse --short HEAD)
@@ -22,7 +22,7 @@ image-push: image-build
 
 # ─── Kubernetes (Helm) ────────────────────────────────────────────────────────
 deploy:
-	helm upgrade $(NAME) ./helm/cipherportal \
+	helm upgrade $(NAME) ./helm/vtafarm \
 	  --set image.repository=$(IMAGE) \
 	  --set image.tag=$(TAG) \
 	  --set ingress.host=$(INGRESS_HOST) \

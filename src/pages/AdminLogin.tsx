@@ -53,7 +53,7 @@ export function AdminLogin() {
               The keys to the <em style={{ fontStyle: 'italic', color: '#c6b8ff' }}>trust layer.</em>
             </p>
             <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
-              Provision operators, manage credentials, and steward the people who run Cipher.
+              Provision operators, manage credentials, and steward the people who run VTA Farm.
             </p>
           </div>
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
@@ -66,14 +66,14 @@ export function AdminLogin() {
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
               <span className="sidebar-mark" />
-              <span>Cipher</span>
+              <span>VTA Farm</span>
               <span className="admin-pill">Admin</span>
             </a>
             <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 6px' }}>
               Operator sign-in
             </h1>
             <p className="p-muted" style={{ margin: '0 0 32px', fontSize: 14 }}>
-              Administrative access to the Cipher control plane.
+              Administrative access to the VTA Farm control plane.
             </p>
 
             <button
