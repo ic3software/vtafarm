@@ -39,7 +39,7 @@ function HomePage() {
             <span className="inline-block transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true">→</span>
           </a>
           <a
-            href="https://github.com/OpenVTC/wiki"
+            href="https://github.com/OpenVTC/vti-setup/blob/main/developer/01-personal-vta.md"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-ghost-light flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"

@@ -23,7 +23,7 @@ const LINKS = [
   {
     heading: 'Developers',
     items: [
-      { label: 'Docs', href: 'https://github.com/OpenVTC/wiki', external: true },
+      { label: 'Docs', href: 'https://github.com/OpenVTC/vti-setup/blob/main/developer/01-personal-vta.md', external: true },
       { label: 'GitHub', href: 'https://github.com/OpenVTC/verifiable-trust-infrastructure', external: true },
     ],
   },
