@@ -134,8 +134,22 @@
 
 .portal-root .p-select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2020/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 10px center; padding-right: 34px; cursor: pointer;
+}
+
+/* shadcn Select — match p-input appearance exactly */
+.portal-root [data-slot="select-trigger"] {
+  width: 100%; height: 38px; padding: 0 12px;
+  font-family: var(--mono); font-size: 12.5px;
+  color: hsl(var(--foreground)); background: hsl(var(--card));
+  border: 1px solid hsl(var(--input)); border-radius: calc(var(--radius) - 2px);
+  transition: border-color .15s, box-shadow .15s;
+  box-shadow: none;
+}
+.portal-root [data-slot="select-trigger"]:focus,
+.portal-root [data-slot="select-trigger"][data-state="open"] {
+  outline: none; border-color: hsl(var(--ring)); box-shadow: 0 0 0 3px hsl(var(--ring) / 0.18);
 }
 
 .portal-root .input-group { position: relative; }

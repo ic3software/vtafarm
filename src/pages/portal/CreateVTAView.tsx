@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import { statusBadge } from './portalUtils'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type Stage = 0 | 1 | 2 | 3
 
@@ -272,13 +273,18 @@ export function CreateVTAView() {
             <div>
               <label className="p-label" htmlFor="cv-image">VTA Image <span className="req">*</span></label>
               {images.length > 0 ? (
-                <select className="p-select p-mono" id="cv-image" value={selectedImage} onChange={e => setSelectedImage(e.target.value)}>
-                  {images.map(img => (
-                    <option key={img.image} value={img.image}>
-                      {img.tag}{img.latest ? ' (latest)' : ''}
-                    </option>
-                  ))}
-                </select>
+                <Select value={selectedImage} onValueChange={setSelectedImage}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {images.map(img => (
+                      <SelectItem key={img.image} value={img.image} className="p-mono">
+                        {img.tag}{img.latest ? ' [latest]' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
                 <input className="p-input p-mono" placeholder="Loading images…" disabled />
               )}
