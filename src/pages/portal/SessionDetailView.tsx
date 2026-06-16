@@ -51,9 +51,12 @@ export function SessionDetailView() {
     if (!session) return ''
     if (session.status === 'running') return 'done'
     if (stepStatus === null) return 'done'
+    if (session.status === 'failed') {
+      // 'failed' is not in ORDER so we can't know the exact step — mark last step as failed, rest done
+      return stepStatus === 'running' ? 'failed' : 'done'
+    }
     const cur = ORDER.indexOf(session.status)
     const idx = ORDER.indexOf(stepStatus)
-    if (session.status === 'failed') return idx <= cur ? 'failed' : ''
     if (idx < cur) return 'done'
     if (idx === cur) return 'active'
     return ''
@@ -162,6 +165,20 @@ export function SessionDetailView() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Failure banner */}
+      {session.status === 'failed' && (
+        <div className="p-alert alert-destructive" style={{ marginBottom: 20 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6 6 18M6 6l12 12"/></svg>
+          <div className="grow">
+            <p className="alert-title">Setup failed</p>
+            <p className="alert-desc">{session.error_msg ?? 'An error occurred during setup.'} Delete this agent and create a new one to try again.</p>
+          </div>
+          <button className="btn btn-destructive btn-sm" style={{ flexShrink: 0 }} onClick={() => setShowDeleteConfirm(true)}>
+            Delete agent
+          </button>
         </div>
       )}
 

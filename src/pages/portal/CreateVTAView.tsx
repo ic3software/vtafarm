@@ -25,6 +25,8 @@ export function CreateVTAView() {
   const logEndRef = useRef<HTMLDivElement>(null)
   const [liveSession, setLiveSession] = useState<SetupSession | null>(null)
   const [copiedVta, setCopiedVta] = useState(false)
+  const [setupFailed, setSetupFailed] = useState(false)
+  const [failedMsg, setFailedMsg] = useState('')
 
   // Stage 1 setup-log streaming state
   const [setupStreamStarted, setSetupStreamStarted] = useState(false)
@@ -51,15 +53,20 @@ export function CreateVTAView() {
 
   // Stage 1: poll status; trigger setup log streaming when vta_setup_running
   useEffect(() => {
-    if (stage !== 1 || !sessionId) return
+    if (stage !== 1 || !sessionId || setupFailed) return
     const check = (s: SetupSession) => {
+      if (s.status === 'failed') {
+        setSetupFailed(true)
+        setFailedMsg(s.error_msg ?? 'Setup failed')
+        return
+      }
       setLiveSession(s)
       if (s.status === 'vta_setup_running') setSetupStreamStarted(true)
     }
     api.getSession(sessionId).then(check).catch(() => {})
     const iv = setInterval(() => api.getSession(sessionId).then(check).catch(() => {}), 3000)
     return () => clearInterval(iv)
-  }, [stage, sessionId])
+  }, [stage, sessionId, setupFailed])
 
   // Stage 1: stream setup logs; 2s timer starts only after 'done' event
   useEffect(() => {
@@ -106,13 +113,16 @@ export function CreateVTAView() {
 
   // Stage 2: poll status to detect failure
   useEffect(() => {
-    if (stage !== 2 || !sessionId) return
+    if (stage !== 2 || !sessionId || setupFailed) return
     const check = (s: SetupSession) => {
-      if (s.status === 'failed') setLogs(p => [...p, `ERROR: ${s.error_msg ?? 'Provisioning failed'}`])
+      if (s.status === 'failed') {
+        setSetupFailed(true)
+        setFailedMsg(s.error_msg ?? 'Provisioning failed')
+      }
     }
     const iv = setInterval(() => api.getSession(sessionId).then(check).catch(() => {}), 3000)
     return () => clearInterval(iv)
-  }, [stage, sessionId])
+  }, [stage, sessionId, setupFailed])
 
   // Stage 2: stream import-did logs immediately; advance 2s after 'done' event
   useEffect(() => {
@@ -235,13 +245,16 @@ export function CreateVTAView() {
           <div className="stepper">
             {(['Create session', 'DNS provisioned', 'Setup running', 'Setup complete', 'Provisioning', 'Running'] as const).map((label, i) => {
               const s = i < currentStep ? 'done' : i === currentStep ? 'active' : ''
-              const spinning = i === currentStep && (stage === 2 || showingSetupLogs)
+              const isFailed = setupFailed && i === currentStep
+              const spinning = !setupFailed && i === currentStep && (stage === 2 || showingSetupLogs)
               return (
-                <div key={i} className={`step ${s}`}>
+                <div key={i} className={`step ${isFailed ? 'failed' : s}`}>
                   <div className="bar" />
                   <div className="node">
                     {i < currentStep ? (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M20 6 9 17l-5-5"/></svg>
+                    ) : isFailed ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6 6 18M6 6l12 12"/></svg>
                     ) : spinning ? (
                       <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                     ) : i + 1}
@@ -300,8 +313,34 @@ export function CreateVTAView() {
         </div>
       )}
 
+      {/* Failure state */}
+      {setupFailed && (
+        <>
+          <div className="p-alert alert-destructive" style={{ marginBottom: 16 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6 6 18M6 6l12 12"/></svg>
+            <div className="grow">
+              <p className="alert-title">Setup failed</p>
+              <p className="alert-desc">{failedMsg || 'An error occurred. Please delete this agent and try again.'}</p>
+            </div>
+          </div>
+          <div className="p-card">
+            <div className="card-footer between">
+              <span className="field-hint" style={{ marginTop: 0 }}>Delete this agent to release resources, then create a new one.</span>
+              <div className="p-row gap-12">
+                <button className="btn btn-ghost" onClick={handleDone}>Back to Agents</button>
+                {sessionId && (
+                  <button className="btn btn-destructive" onClick={() => navigate(`/portal/session/${sessionId}`)}>
+                    Delete agent <span className="arrow">→</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Stage 1 */}
-      {stage === 1 && sessionId && (
+      {!setupFailed && stage === 1 && sessionId && (
         <>
           {/* Live status bar */}
           <div className="p-card" style={{ marginBottom: 16 }}>
@@ -461,7 +500,7 @@ export function CreateVTAView() {
       )}
 
       {/* Stage 2 */}
-      {stage === 2 && (
+      {!setupFailed && stage === 2 && (
         <div className="p-card">
           <div className="card-header with-action">
             <div><h3 className="card-title">Provisioning agent</h3><p className="card-desc">VTA Farm is bringing <span className="p-mono">{vtaName}</span> online.</p></div>
@@ -493,7 +532,7 @@ export function CreateVTAView() {
       )}
 
       {/* Stage 3 */}
-      {stage === 3 && (
+      {!setupFailed && stage === 3 && (
         <>
           <div className="p-alert alert-success" style={{ marginBottom: 16 }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg>
