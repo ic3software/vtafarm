@@ -103,10 +103,8 @@ export function FeaturesSection() {
           {FEATURES.map((feat) => (
             <div
               key={feat.title}
-              className="group flex min-h-[280px] flex-col gap-3.5 p-8 transition-colors duration-200"
+              className="feat-cell group flex min-h-[280px] flex-col gap-3.5 p-8"
               style={{ background: 'var(--vtafarm-bg-elev)' }}
-              onMouseOver={e => ((e.currentTarget as HTMLElement).style.background = '#fdfcf9')}
-              onMouseOut={e => ((e.currentTarget as HTMLElement).style.background = 'var(--vtafarm-bg-elev)')}
             >
               <div
                 className="mb-1 grid h-10 w-10 place-items-center rounded-[10px] transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105"

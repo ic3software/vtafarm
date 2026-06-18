@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
+import { useTheme } from '@/lib/useTheme'
 import { MobilePreview } from '@/pages/MobilePreview'
 import { UserLogin } from '@/pages/UserLogin'
 import { AdminLogin } from '@/pages/AdminLogin'
@@ -53,6 +54,7 @@ function HomePage() {
 }
 
 export default function App() {
+  useTheme()
   return (
     <BrowserRouter>
       <UserAuthProvider>

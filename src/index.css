@@ -57,6 +57,49 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html.dark {
+  /* ── VTA Farm dark palette ── */
+  --vtafarm-bg: #0a0a0a;
+  --vtafarm-bg-elev: #121212;
+  --vtafarm-ink: #f5f5f2;
+  --vtafarm-ink-2: #b5b3ae;
+  --vtafarm-ink-3: #787570;
+  --vtafarm-ink-4: #524f4a;
+  --vtafarm-line: #3a3632;
+  --vtafarm-line-2: #2a2825;
+  --vtafarm-accent-soft: hsl(252 40% 18%);
+
+  /* ── shadcn tokens (dark) ── */
+  --background: #0a0a0a;
+  --foreground: #f5f5f2;
+  --card: #121212;
+  --card-foreground: #f5f5f2;
+  --popover: #141414;
+  --popover-foreground: #f5f5f2;
+  --primary: hsl(252 100% 71%);
+  --primary-foreground: #0f0f0f;
+  --secondary: #212121;
+  --secondary-foreground: #ebebeb;
+  --muted: #1e1e1e;
+  --muted-foreground: #999999;
+  --accent: hsl(252 40% 18%);
+  --accent-foreground: hsl(252 100% 86%);
+  --destructive: oklch(0.55 0.22 27.325);
+  --border: #292929;
+  --input: #2e2e2e;
+  --ring: hsl(252 100% 71%);
+  --sidebar: #0a0a0a;
+  --sidebar-foreground: #f5f5f2;
+  --sidebar-primary: hsl(252 100% 71%);
+  --sidebar-primary-foreground: #0f0f0f;
+  --sidebar-accent: hsl(252 40% 18%);
+  --sidebar-accent-foreground: #f5f5f2;
+  --sidebar-border: #292929;
+  --sidebar-ring: hsl(252 100% 71%);
+
+  color-scheme: dark;
+}
+
 #root { min-height: 100svh; }
 body { margin: 0; overflow-x: hidden; }
 html { scroll-behavior: smooth; scroll-padding-top: 64px; }
@@ -311,5 +354,31 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
     border-radius: 999px;
     background: var(--vtafarm-accent);
     flex-shrink: 0;
+  }
+
+  /* Feature card hover — CSS-driven so it respects dark mode */
+  .feat-cell {
+    transition: background 200ms;
+  }
+  .feat-cell:hover {
+    background: color-mix(in srgb, var(--vtafarm-bg-elev) 60%, var(--vtafarm-ink) 6%) !important;
+  }
+
+  /* Dark mode overrides for home nav / buttons */
+  html.dark .nav-link:hover {
+    background: rgba(255,255,255,0.05);
+  }
+  html.dark .btn-ink {
+    color: var(--vtafarm-bg);
+  }
+  html.dark .btn-ink:hover {
+    color: #fff;
+  }
+  html.dark .btn-ghost-light {
+    border-color: rgba(255,255,255,0.18);
+  }
+  html.dark .btn-ghost-light:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.35);
   }
 }

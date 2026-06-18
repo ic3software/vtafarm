@@ -13,7 +13,7 @@ function ArtVault() {
       </span>
       <div
         className="absolute inset-9 overflow-hidden rounded-[14px]"
-        style={{ border: '1px solid var(--vtafarm-line)', background: 'linear-gradient(180deg, #fff, #f4f1e9)' }}
+        style={{ border: '1px solid var(--vtafarm-line)', background: 'linear-gradient(180deg, var(--vtafarm-bg-elev), color-mix(in srgb, var(--vtafarm-bg-elev) 80%, var(--vtafarm-accent) 8%))' }}
       >
         <div className="flex h-full w-full items-center justify-center">
           {/* Outer dashed spinning ring */}
@@ -113,7 +113,7 @@ function ArtNetwork() {
         {[
           [60, 50], [260, 60], [70, 200], [250, 180], [60, 130], [260, 130],
         ].map(([cx, cy]) => (
-          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="9" fill="#fff" stroke="var(--vtafarm-ink)" strokeWidth="1.2" />
+          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="9" style={{ fill: 'var(--vtafarm-bg-elev)' }} stroke="var(--vtafarm-ink)" strokeWidth="1.2" />
         ))}
         <text fontFamily="var(--font-mono)" fontSize="9.5" letterSpacing="0.1em" textAnchor="middle" fill="var(--vtafarm-ink-3)" style={{ textTransform: 'uppercase' }}>
           <tspan x="160" y="148">VTA</tspan>
