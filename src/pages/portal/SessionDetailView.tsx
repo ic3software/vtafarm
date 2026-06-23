@@ -321,13 +321,6 @@ export function SessionDetailView() {
               )}
             </div>
           </div>
-          {session.error_msg && (
-            <div className="p-alert alert-destructive">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
-              <div className="grow"><p className="alert-title">Error</p><p className="alert-desc">{session.error_msg}</p></div>
-            </div>
-          )}
-
           {/* Danger Zone */}
           <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
             <div className="card-header">
