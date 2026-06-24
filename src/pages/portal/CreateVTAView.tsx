@@ -124,7 +124,7 @@ export function CreateVTAView() {
     return () => clearInterval(iv)
   }, [stage, sessionId, setupFailed])
 
-  // Stage 2: stream import-did logs immediately; advance 2s after 'done' event
+  // Stage 2: stream provision logs immediately; advance 2s after 'done' event
   useEffect(() => {
     if (stage !== 2 || !sessionId) return
     setProvStreamStarted(true)
@@ -138,7 +138,7 @@ export function CreateVTAView() {
 
     const connect = () => {
       if (cancelled) return
-      es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs?source=import-did`, { withCredentials: true })
+      es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs?source=provision`, { withCredentials: true })
       es.onmessage = e => {
         setLogs(prev => [...prev, e.data])
         hasLog = true
