@@ -416,7 +416,7 @@ export function CreateVTAView() {
               </div>
               <div className="card-footer between">
                 <button className="btn btn-ghost" onClick={handleDone}>Cancel</button>
-                <button className="btn btn-default" onClick={handleProvision} disabled={provisioning || !adminDid.trim()}>
+                <button className="btn btn-default" onClick={handleProvision} disabled={provisioning || !adminDid.trim() || !liveSession?.vta_did}>
                   {provisioning ? 'Provisioning…' : <>Provision agent <span className="arrow">→</span></>}
                 </button>
               </div>
