@@ -189,11 +189,16 @@ export function CreateVTAView() {
   }
 
   async function handleProvision() {
-    if (!adminDid.trim()) { setProvisionError('Enter the admin DID from pnm'); return }
+    const trimmed = adminDid.trim()
+    if (!trimmed) { setProvisionError('Enter the admin DID from pnm'); return }
+    if (!/^did:key:z[1-9A-HJ-NP-Za-km-z]+$/.test(trimmed)) {
+      setProvisionError('Invalid did:key — make sure you copied only the did:key value (e.g. did:key:z6Mk…) with no surrounding text, labels, quotes, or whitespace.')
+      return
+    }
     if (!sessionId) return
     setProvisionError(''); setProvisioning(true)
     try {
-      await api.provisionAdmin(sessionId, adminDid.trim())
+      await api.provisionAdmin(sessionId, trimmed)
       setLogs([])
       setStage(2)
     } catch (err) {
