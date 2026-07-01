@@ -270,7 +270,7 @@ export function CreateVTAView() {
   )
 
   return (
-    <section className="p-content" style={{ maxWidth: 840 }}>
+    <section className="p-content">
       <div className="page-head">
         <div>
           <h1>Create a Verifiable Trust Agent</h1>

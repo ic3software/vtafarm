@@ -3,7 +3,7 @@ import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
 import { statusBadge, FULL_STACK_PHASES, phaseIndex } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, CollectedDidsCard, EndpointConfigRows, AdminKeysCard } from './FullStackOutputs'
+import { DidsEnrollAlert, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow } from './FullStackOutputs'
 import type { PortalContext } from './Portal'
 
 const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
@@ -339,7 +339,7 @@ export function SessionDetailView() {
               <hr className="p-sep"/>
               <div className="p-row between"><span className="p-muted text-sm">Created</span><span className="text-sm">{new Date(session.created_at).toLocaleString()}</span></div>
               {!isFullStack && session.url && (
-                <><hr className="p-sep"/><div className="p-row between"><span className="p-muted text-sm">URL</span><a href={`${session.url}/health`} target="_blank" rel="noopener" className="p-mono text-xs" style={{ color: 'hsl(var(--primary))' }}>{session.url}/health</a></div></>
+                <><hr className="p-sep"/><ConfigLinkRow label="URL" href={`${session.url}/health`} value={`${session.url}/health`} /></>
               )}
               {!isFullStack && session.mediator_did && (
                 <><hr className="p-sep"/><div className="p-row between center"><span className="p-muted text-sm">Mediator</span><span className="p-mono text-xs">{session.mediator_did.slice(-12)}</span></div></>

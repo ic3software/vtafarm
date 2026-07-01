@@ -142,9 +142,10 @@ export function DidsEnrollAlert({ session }: { session: SetupSession }) {
 }
 
 // Collected DIDs — shown at the top of the completed/running page, below DidsEnrollAlert.
+// Admin DIDs (mediator/did-hosting) live in AdminKeysCard instead, alongside their keys.
 export function CollectedDidsCard({ collected }: { collected?: SetupSessionCollected }) {
   const { copiedKey, copy } = useCopyState()
-  if (!collected || !(collected.vta_did || collected.mediator_did || collected.did_hosting_did || collected.mediator_admin_did || collected.did_hosting_admin_did)) {
+  if (!collected || !(collected.vta_did || collected.mediator_did || collected.did_hosting_did)) {
     return null
   }
   return (
@@ -160,13 +161,27 @@ export function CollectedDidsCard({ collected }: { collected?: SetupSessionColle
         {collected.did_hosting_did && (
           <Row label="DID hosting daemon DID" value={collected.did_hosting_did} copyKey="did-daemon" copiedKey={copiedKey} onCopy={copy} />
         )}
-        {collected.mediator_admin_did && (
-          <Row label="Mediator admin DID" value={collected.mediator_admin_did} copyKey="did-mediator-admin" copiedKey={copiedKey} onCopy={copy} />
-        )}
-        {collected.did_hosting_admin_did && (
-          <Row label="DID hosting admin DID" value={collected.did_hosting_admin_did} copyKey="did-hosting-admin" copiedKey={copiedKey} onCopy={copy} />
-        )}
       </div>
+    </div>
+  )
+}
+
+// Right-aligned label/value row for the Configuration card — wraps long URLs
+// (right-aligned on every line) instead of overflowing the card like a bare
+// flex row does.
+export function ConfigLinkRow({ label, href, value }: { label: string; href: string; value: string }) {
+  return (
+    <div className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
+      <span className="p-muted text-sm" style={{ flexShrink: 0 }}>{label}</span>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener"
+        className="p-mono text-xs"
+        style={{ color: 'hsl(var(--primary))', textAlign: 'right', overflowWrap: 'anywhere', minWidth: 0 }}
+      >
+        {value}
+      </a>
     </div>
   )
 }
@@ -178,31 +193,40 @@ export function EndpointConfigRows({ urls }: { urls?: SetupSessionUrls }) {
   return (
     <>
       <hr className="p-sep"/>
-      <div className="p-row between"><span className="p-muted text-sm">VTA</span><a href={urls.vta} target="_blank" rel="noopener" className="p-mono text-xs" style={{ color: 'hsl(var(--primary))' }}>{urls.vta}</a></div>
+      <ConfigLinkRow label="VTA" href={urls.vta} value={urls.vta} />
       <hr className="p-sep"/>
-      <div className="p-row between"><span className="p-muted text-sm">Mediator</span><a href={urls.mediator} target="_blank" rel="noopener" className="p-mono text-xs" style={{ color: 'hsl(var(--primary))' }}>{urls.mediator}</a></div>
+      <ConfigLinkRow label="Mediator" href={urls.mediator} value={urls.mediator} />
       <hr className="p-sep"/>
-      <div className="p-row between"><span className="p-muted text-sm">DID Hosting</span><a href={urls.dids} target="_blank" rel="noopener" className="p-mono text-xs" style={{ color: 'hsl(var(--primary))' }}>{urls.dids}</a></div>
+      <ConfigLinkRow label="DID Hosting" href={urls.dids} value={urls.dids} />
     </>
   )
 }
 
-// Reveal-once admin private keys — not actually cleared server-side after first
-// view, so this is a hide-by-default toggle rather than a one-shot modal.
+// Admin DIDs + reveal-once private keys — not actually cleared server-side
+// after first view, so keys are a hide-by-default toggle rather than a
+// one-shot modal.
 export function AdminKeysCard({ session }: { session: SetupSession }) {
   const { copiedKey, copy } = useCopyState()
-  const hasKeys = !!(session.mediator_admin_key || session.webvh_admin_key)
-  if (!hasKeys) return null
+  const { mediator_admin_did, did_hosting_admin_did } = session.collected ?? {}
+  const hasContent = !!(mediator_admin_did || did_hosting_admin_did || session.mediator_admin_key || session.webvh_admin_key)
+  if (!hasContent) return null
   return (
     <div className="p-card" style={{ borderColor: 'hsl(var(--warning)/.4)' }}>
       <div className="card-header">
-        <h3 className="card-title">Admin private keys</h3>
+        <h3 className="card-title">Admin DIDs &amp; private keys</h3>
         <p className="card-desc">
-          Save these somewhere safe (e.g. a password manager) for offline backup. They stay visible
-          here until you delete this agent, so remove them from view once you've saved them.
+          Mediator and DID hosting admin identities, plus the private keys backing them — shown
+          once for offline backup (e.g. a password manager). They stay visible here until you
+          delete this agent, so remove the keys from view once you've saved them.
         </p>
       </div>
       <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+        {mediator_admin_did && (
+          <Row label="Mediator admin DID" value={mediator_admin_did} copyKey="did-mediator-admin" copiedKey={copiedKey} onCopy={copy} />
+        )}
+        {did_hosting_admin_did && (
+          <Row label="DID hosting admin DID" value={did_hosting_admin_did} copyKey="did-hosting-admin" copiedKey={copiedKey} onCopy={copy} />
+        )}
         {session.mediator_admin_key && (
           <SecretRow label="Mediator admin key" value={session.mediator_admin_key} hint="Multibase private key for the mediator admin DID." copyKey="key-mediator" copiedKey={copiedKey} onCopy={copy} />
         )}
