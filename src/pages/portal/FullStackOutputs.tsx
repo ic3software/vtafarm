@@ -193,9 +193,9 @@ export function EndpointConfigRows({ urls }: { urls?: SetupSessionUrls }) {
   return (
     <>
       <hr className="p-sep"/>
-      <ConfigLinkRow label="VTA" href={urls.vta} value={urls.vta} />
+      <ConfigLinkRow label="VTA" href={`${urls.vta}/health`} value={`${urls.vta}/health`} />
       <hr className="p-sep"/>
-      <ConfigLinkRow label="Mediator" href={urls.mediator} value={urls.mediator} />
+      <ConfigLinkRow label="Mediator" href={`${urls.mediator}/mediator/v1/healthchecker`} value={`${urls.mediator}/mediator/v1/healthchecker`} />
       <hr className="p-sep"/>
       <ConfigLinkRow label="DID Hosting" href={urls.dids} value={urls.dids} />
     </>

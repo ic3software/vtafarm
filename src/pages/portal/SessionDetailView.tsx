@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
-import { statusBadge, FULL_STACK_PHASES, phaseIndex } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow } from './FullStackOutputs'
 import type { PortalContext } from './Portal'
@@ -99,16 +99,22 @@ export function SessionDetailView() {
   }, [logs])
 
   async function handleProvision() {
-    if (!adminDid.trim()) { setProvisionError('Enter the admin DID from pnm'); return }
+    const trimmed = adminDid.trim()
+    if (!trimmed) { setProvisionError('Enter the admin DID from pnm'); return }
+    if (!isValidAdminDid(trimmed)) {
+      setProvisionError('Invalid did:key — make sure you copied only the did:key value (e.g. did:key:z6Mk…) with no surrounding text, labels, quotes, or whitespace.')
+      return
+    }
     setProvisionError('')
     setProvisioning(true)
     try {
-      await api.provisionAdmin(sessionId, adminDid.trim())
-      setAdminDid('')
-      // Session status will update via the polling interval above
+      await api.provisionAdmin(sessionId, trimmed)
+      // Leave `provisioning` true — this card unmounts once the polling loop
+      // above picks up the status change, so there's no "done" state to
+      // reset to, and resetting early would let the button look clickable
+      // again during the gap before that happens.
     } catch (err) {
       setProvisionError(err instanceof Error ? err.message : 'Provisioning failed')
-    } finally {
       setProvisioning(false)
     }
   }
@@ -130,9 +136,11 @@ export function SessionDetailView() {
   if (!session) return <section className="p-content"><p className="p-muted">Session not found.</p></section>
 
   const isFullStack = session.mode === 'full_stack'
-  const primaryUrl = isFullStack ? session.urls?.vta : session.url
   const vtaDid = isFullStack ? session.collected?.vta_did : session.vta_did
   const isAwaitingAdmin = isFullStack ? session.status === 'awaiting_admin_did' : session.status === 'vta_setup_complete'
+  const adminDidStep = (isFullStack
+    ? phaseIndex(FULL_STACK_PHASES, 'awaiting_admin_did')
+    : phaseIndex(VTA_ONLY_PHASES, 'vta_setup_complete')) + 1
   const fsPhaseIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, session.status))
   const fsFailed = session.status === 'failed'
   const isFullStackCompleted = isFullStack && session.status === 'running'
@@ -151,9 +159,6 @@ export function SessionDetailView() {
             <h1 className="p-mono" style={{ fontFamily: 'var(--mono)', fontSize: 22, whiteSpace: 'nowrap', marginBottom: 0 }}>{name}</h1>
             {statusBadge(session.status)}
           </div>
-          {primaryUrl && (
-            <p className="sub p-mono" style={{ marginTop: 4 }}>{primaryUrl}</p>
-          )}
         </div>
       </div>
 
@@ -228,7 +233,7 @@ export function SessionDetailView() {
         <div className="p-card" style={{ marginBottom: 20, borderColor: 'hsl(var(--primary)/.35)' }}>
           <div className="card-header with-action">
             <div>
-              <h3 className="card-title">Step 2 — Connect locally &amp; provision</h3>
+              <h3 className="card-title">Step {adminDidStep} — Connect locally &amp; provision</h3>
               <p className="card-desc">
                 Run <span className="p-mono">pnm setup</span> locally and paste the admin DID it outputs.
               </p>
@@ -275,6 +280,7 @@ export function SessionDetailView() {
                   value={adminDid}
                   onChange={e => setAdminDid(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleProvision()}
+                  disabled={provisioning}
                   autoFocus
                 />
               </div>
@@ -291,7 +297,9 @@ export function SessionDetailView() {
               onClick={handleProvision}
               disabled={provisioning || !adminDid.trim()}
             >
-              {provisioning ? 'Provisioning…' : <>Provision agent <span className="arrow">→</span></>}
+              {provisioning
+                ? <><svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Provisioning…</>
+                : <>Provision agent <span className="arrow">→</span></>}
             </button>
           </div>
         </div>
@@ -339,7 +347,7 @@ export function SessionDetailView() {
               <hr className="p-sep"/>
               <div className="p-row between"><span className="p-muted text-sm">Created</span><span className="text-sm">{new Date(session.created_at).toLocaleString()}</span></div>
               {!isFullStack && session.url && (
-                <><hr className="p-sep"/><ConfigLinkRow label="URL" href={`${session.url}/health`} value={`${session.url}/health`} /></>
+                <><hr className="p-sep"/><ConfigLinkRow label="VTA" href={`${session.url}/health`} value={`${session.url}/health`} /></>
               )}
               {!isFullStack && session.mediator_did && (
                 <><hr className="p-sep"/><div className="p-row between center"><span className="p-muted text-sm">Mediator</span><span className="p-mono text-xs">{session.mediator_did.slice(-12)}</span></div></>
