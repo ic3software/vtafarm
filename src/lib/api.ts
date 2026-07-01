@@ -62,6 +62,7 @@ export interface UserInfo {
 export interface User {
   id: number
   unique_id: string
+  beta_access: boolean
   created_at: string
   updated_at: string
 }
@@ -143,17 +144,19 @@ export const api = {
   deleteAdminPasskey: (id: number) => req<null>('DELETE', `/api/v1/admin/passkeys/${id}`),
 
   // ── Admin management ─────────────────────────────────────────────────────────
-  listAdmins: () => req<AdminRecord[]>('GET', '/api/v1/admins'),
+  listAdmins: () => req<AdminRecord[]>('GET', '/api/v1/admin/admins'),
   createAdminEnrollmentToken: () =>
-    req<{ enrollment_token: string; enrollment_expires: string }>('POST', '/api/v1/admins'),
+    req<{ enrollment_token: string; enrollment_expires: string }>('POST', '/api/v1/admin/admins'),
 
   // ── User management ──────────────────────────────────────────────────────────
-  listUsers: () => req<User[]>('GET', '/api/v1/users'),
+  listUsers: () => req<User[]>('GET', '/api/v1/admin/users'),
+  setUserBetaAccess: (id: string, betaAccess: boolean) =>
+    req<{ id: string; beta_access: boolean }>('PUT', `/api/v1/admin/users/${id}/beta-access`, { beta_access: betaAccess }),
 
   // ── Invitations ──────────────────────────────────────────────────────────────
   createInvitation: () =>
-    req<{ id: number; token: string; expires_at: string }>('POST', '/api/v1/invitations'),
-  listInvitations: () => req<Invitation[]>('GET', '/api/v1/invitations'),
+    req<{ id: number; token: string; expires_at: string }>('POST', '/api/v1/admin/invitations'),
+  listInvitations: () => req<Invitation[]>('GET', '/api/v1/admin/invitations'),
   validateInvitation: (token: string) =>
     req<{ valid: boolean; expires_at: string }>('GET', `/api/v1/invitations/${token}`),
   registerViaInvitation: (token: string) =>
@@ -166,6 +169,7 @@ export const api = {
     req<{ id: number; name: string }>('POST', `/api/v1/user/passkeys/register/complete?name=${encodeURIComponent(name)}`, credential),
   listPasskeys: () => req<PasskeyRecord[]>('GET', '/api/v1/user/passkeys'),
   deletePasskey: (id: number) => req<null>('DELETE', `/api/v1/user/passkeys/${id}`),
+  getMe: () => req<{ id: string; beta_access: boolean; created_at: string }>('GET', '/api/v1/user/me'),
 
   // ── Setup sessions ───────────────────────────────────────────────────────────
   listImages: (component: 'vta' | 'mediator' | 'dids' = 'vta') =>

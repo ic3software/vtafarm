@@ -16,6 +16,7 @@ export function CreateVTAView() {
 
   const [stage, setStage] = useState<Stage>(0)
   const [mode, setMode] = useState<Mode>('vta_only')
+  const [betaAccess, setBetaAccess] = useState(false)
   const [vtaName, setVtaName] = useState('personal-vta')
   const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedImage, setSelectedImage] = useState('')
@@ -57,6 +58,12 @@ export function CreateVTAView() {
         setSelectedImage(latestImg?.image ?? '')
       })
       .catch(() => {})
+  }, [])
+
+  // full_stack requires beta_access — fetched fresh from the DB since the
+  // login session/JWT doesn't carry it (an admin can flip it at any time).
+  useEffect(() => {
+    api.getMe().then(me => setBetaAccess(me.beta_access)).catch(() => {})
   }, [])
 
   // Lazily fetch mediator/dids images the first time full_stack is selected.
@@ -321,10 +328,14 @@ export function CreateVTAView() {
           <div className="card-content p-col gap-16">
             <div>
               <div className="p-label">Mode <span className="req">*</span></div>
-              <div className="p-tabs">
-                <button type="button" className="p-tab" data-active={mode === 'vta_only'} onClick={() => setMode('vta_only')}>VTA Only</button>
-                <button type="button" className="p-tab" data-active={mode === 'full_stack'} onClick={() => setMode('full_stack')}>Full Stack</button>
-              </div>
+              {betaAccess ? (
+                <div className="p-tabs">
+                  <button type="button" className="p-tab" data-active={mode === 'vta_only'} onClick={() => setMode('vta_only')}>VTA Only</button>
+                  <button type="button" className="p-tab" data-active={mode === 'full_stack'} onClick={() => setMode('full_stack')}>Full Stack</button>
+                </div>
+              ) : (
+                <span className="p-badge badge-secondary">VTA Only</span>
+              )}
               <div className="field-hint">
                 {mode === 'vta_only'
                   ? 'Deploys just the VTA, pointed at a shared external mediator and DID hosting service.'
