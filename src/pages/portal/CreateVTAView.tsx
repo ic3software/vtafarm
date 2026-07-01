@@ -2,19 +2,27 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
-import { statusBadge } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES } from './portalUtils'
+import { PhaseStepper } from './PhaseStepper'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { FullStackCreateProgress } from './FullStackCreateProgress'
 
 type Stage = 0 | 1 | 2 | 3
+type Mode = 'vta_only' | 'full_stack'
 
 export function CreateVTAView() {
   const { loadSessions } = useOutletContext<PortalContext>()
   const navigate = useNavigate()
 
   const [stage, setStage] = useState<Stage>(0)
+  const [mode, setMode] = useState<Mode>('vta_only')
   const [vtaName, setVtaName] = useState('personal-vta')
   const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedImage, setSelectedImage] = useState('')
+  const [mediatorImages, setMediatorImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
+  const [selectedMediatorImage, setSelectedMediatorImage] = useState('')
+  const [didsImages, setDidsImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
+  const [selectedDidsImage, setSelectedDidsImage] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -42,7 +50,7 @@ export function CreateVTAView() {
   }
 
   useEffect(() => {
-    api.listImages()
+    api.listImages('vta')
       .then(imgs => {
         setImages(imgs)
         const latestImg = imgs.find(i => i.latest) ?? imgs[0]
@@ -50,6 +58,25 @@ export function CreateVTAView() {
       })
       .catch(() => {})
   }, [])
+
+  // Lazily fetch mediator/dids images the first time full_stack is selected.
+  useEffect(() => {
+    if (mode !== 'full_stack' || mediatorImages.length > 0) return
+    api.listImages('mediator')
+      .then(imgs => {
+        setMediatorImages(imgs)
+        const latestImg = imgs.find(i => i.latest) ?? imgs[0]
+        setSelectedMediatorImage(latestImg?.image ?? '')
+      })
+      .catch(() => {})
+    api.listImages('dids')
+      .then(imgs => {
+        setDidsImages(imgs)
+        const latestImg = imgs.find(i => i.latest) ?? imgs[0]
+        setSelectedDidsImage(latestImg?.image ?? '')
+      })
+      .catch(() => {})
+  }, [mode, mediatorImages.length])
 
   // Stage 1: poll status; trigger setup log streaming when vta_setup_running
   useEffect(() => {
@@ -175,10 +202,18 @@ export function CreateVTAView() {
   }, [logs])
 
   async function handleCreate() {
-    if (!selectedImage) { setCreateError('Select an image'); return }
+    if (!selectedImage) { setCreateError('Select a VTA image'); return }
+    if (mode === 'full_stack' && (!selectedMediatorImage || !selectedDidsImage)) {
+      setCreateError('Select a mediator and DID hosting image'); return
+    }
     setCreateError(''); setCreating(true)
     try {
-      const r = await api.createSession({ mode: 'vta_only', vta_image: selectedImage, vta_name: vtaName })
+      const r = await api.createSession({
+        mode,
+        vta_image: selectedImage,
+        vta_name: vtaName,
+        ...(mode === 'full_stack' ? { mediator_image: selectedMediatorImage, dids_image: selectedDidsImage } : {}),
+      })
       setSessionId(r.id)
       setStage(1)
     } catch (err) {
@@ -244,7 +279,8 @@ export function CreateVTAView() {
         <button className="btn btn-outline" onClick={handleDone}>Cancel</button>
       </div>
 
-      {/* Stepper */}
+      {/* Stepper — full_stack renders its own live one inside FullStackCreateProgress once a session exists */}
+      {mode === 'vta_only' ? (
       <div className="p-card" style={{ marginBottom: 20 }}>
         <div className="card-content" style={{ padding: '26px 28px 22px' }}>
           <div className="stepper">
@@ -271,15 +307,30 @@ export function CreateVTAView() {
           </div>
         </div>
       </div>
+      ) : stage === 0 && (
+        <PhaseStepper phases={FULL_STACK_PHASES} currentIndex={0} spinning={false} />
+      )}
 
       {/* Stage 0 */}
       {stage === 0 && (
         <div className="p-card">
           <div className="card-header">
             <h3 className="card-title">Create a session</h3>
-            <p className="card-desc">Name your agent and select a VTA image.</p>
+            <p className="card-desc">Name your agent, choose a mode, and select the images to provision.</p>
           </div>
           <div className="card-content p-col gap-16">
+            <div>
+              <div className="p-label">Mode <span className="req">*</span></div>
+              <div className="p-tabs">
+                <button type="button" className="p-tab" data-active={mode === 'vta_only'} onClick={() => setMode('vta_only')}>VTA Only</button>
+                <button type="button" className="p-tab" data-active={mode === 'full_stack'} onClick={() => setMode('full_stack')}>Full Stack</button>
+              </div>
+              <div className="field-hint">
+                {mode === 'vta_only'
+                  ? 'Deploys just the VTA, pointed at a shared external mediator and DID hosting service.'
+                  : 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon just for you.'}
+              </div>
+            </div>
             <div>
               <label className="p-label" htmlFor="cv-name">Agent name <span className="req">*</span></label>
               <div className="input-group">
@@ -307,10 +358,54 @@ export function CreateVTAView() {
                 <input className="p-input p-mono" placeholder="Loading images…" disabled />
               )}
             </div>
+            {mode === 'full_stack' && (
+              <>
+                <div>
+                  <label className="p-label" htmlFor="cv-mediator-image">Mediator Image <span className="req">*</span></label>
+                  {mediatorImages.length > 0 ? (
+                    <Select value={selectedMediatorImage} onValueChange={setSelectedMediatorImage}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mediatorImages.map(img => (
+                          <SelectItem key={img.image} value={img.image} className="p-mono">
+                            {img.tag}{img.latest ? ' [latest]' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <input className="p-input p-mono" placeholder="Loading images…" disabled />
+                  )}
+                </div>
+                <div>
+                  <label className="p-label" htmlFor="cv-dids-image">DID Hosting Image <span className="req">*</span></label>
+                  {didsImages.length > 0 ? (
+                    <Select value={selectedDidsImage} onValueChange={setSelectedDidsImage}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {didsImages.map(img => (
+                          <SelectItem key={img.image} value={img.image} className="p-mono">
+                            {img.tag}{img.latest ? ' [latest]' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <input className="p-input p-mono" placeholder="Loading images…" disabled />
+                  )}
+                </div>
+              </>
+            )}
             {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
           </div>
           <div className="card-footer between">
-            <span className="field-hint" style={{ marginTop: 0 }}>A DNS record is created immediately after session creation.</span>
+            <span className="field-hint" style={{ marginTop: 0 }}>
+              {mode === 'full_stack' ? '3 DNS records are created immediately after session creation.' : 'A DNS record is created immediately after session creation.'}
+            </span>
             <button className="btn btn-default" onClick={handleCreate} disabled={creating}>
               {creating ? 'Creating…' : <>Create session <span className="arrow">→</span></>}
             </button>
@@ -318,8 +413,13 @@ export function CreateVTAView() {
         </div>
       )}
 
-      {/* Failure state */}
-      {setupFailed && (
+      {/* full_stack progress — owns everything after session creation for this mode */}
+      {mode === 'full_stack' && stage === 1 && sessionId && (
+        <FullStackCreateProgress sessionId={sessionId} vtaName={vtaName} />
+      )}
+
+      {/* Failure state (vta_only) */}
+      {mode === 'vta_only' && setupFailed && (
         <>
           <div className="p-alert alert-destructive" style={{ marginBottom: 16 }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -344,8 +444,8 @@ export function CreateVTAView() {
         </>
       )}
 
-      {/* Stage 1 */}
-      {!setupFailed && stage === 1 && sessionId && (
+      {/* Stage 1 (vta_only) */}
+      {mode === 'vta_only' && !setupFailed && stage === 1 && sessionId && (
         <>
           {/* Live status bar */}
           <div className="p-card" style={{ marginBottom: 16 }}>
@@ -504,8 +604,8 @@ export function CreateVTAView() {
         </>
       )}
 
-      {/* Stage 2 */}
-      {!setupFailed && stage === 2 && (
+      {/* Stage 2 (vta_only) */}
+      {mode === 'vta_only' && !setupFailed && stage === 2 && (
         <div className="p-card">
           <div className="card-header with-action">
             <div><h3 className="card-title">Provisioning agent</h3><p className="card-desc">VTA Farm is bringing <span className="p-mono">{vtaName}</span> online.</p></div>
@@ -536,8 +636,8 @@ export function CreateVTAView() {
         </div>
       )}
 
-      {/* Stage 3 */}
-      {!setupFailed && stage === 3 && (
+      {/* Stage 3 (vta_only) */}
+      {mode === 'vta_only' && !setupFailed && stage === 3 && (
         <>
           <div className="p-alert alert-success" style={{ marginBottom: 16 }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg>

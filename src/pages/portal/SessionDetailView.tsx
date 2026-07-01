@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
-import { statusBadge } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, phaseIndex } from './portalUtils'
+import { PhaseStepper } from './PhaseStepper'
+import { DidsEnrollAlert, CollectedDidsCard, EndpointConfigRows, AdminKeysCard } from './FullStackOutputs'
 import type { PortalContext } from './Portal'
 
 const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
@@ -23,7 +25,7 @@ export function SessionDetailView() {
   const [session, setSession] = useState<SetupSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [logs, setLogs] = useState<string[]>([])
-  const logEndRef = useRef<HTMLDivElement>(null)
+  const consoleBodyRef = useRef<HTMLDivElement>(null)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
@@ -80,7 +82,8 @@ export function SessionDetailView() {
 
   useEffect(() => {
     if (!session) return
-    if (session.status === 'dns_provisioned' || session.status === 'vta_setup_complete') return
+    const skip = ['dns_provisioned', 'vta_setup_complete', 'dns_provision', 'awaiting_admin_did']
+    if (skip.includes(session.status)) return
     const es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs`, { withCredentials: true })
     es.onmessage = e => setLogs(prev => [...prev, e.data])
     es.addEventListener('done', () => es.close())
@@ -88,8 +91,10 @@ export function SessionDetailView() {
     return () => es.close()
   }, [sessionId, session?.status])
 
+  // Scroll only within the console body — not the whole page — as new lines arrive.
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = consoleBodyRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [logs])
 
   async function handleProvision() {
@@ -123,6 +128,14 @@ export function SessionDetailView() {
   if (loading) return <section className="p-content"><p className="p-muted">Loading…</p></section>
   if (!session) return <section className="p-content"><p className="p-muted">Session not found.</p></section>
 
+  const isFullStack = session.mode === 'full_stack'
+  const primaryUrl = isFullStack ? session.urls?.vta : session.url
+  const vtaDid = isFullStack ? session.collected?.vta_did : session.vta_did
+  const isAwaitingAdmin = isFullStack ? session.status === 'awaiting_admin_did' : session.status === 'vta_setup_complete'
+  const fsPhaseIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, session.status))
+  const fsFailed = session.status === 'failed'
+  const isFullStackCompleted = isFullStack && session.status === 'running'
+
   return (
     <section className="p-content">
       <div className="page-head">
@@ -137,14 +150,14 @@ export function SessionDetailView() {
             <h1 className="p-mono" style={{ fontFamily: 'var(--mono)', fontSize: 22, whiteSpace: 'nowrap', marginBottom: 0 }}>{name}</h1>
             {statusBadge(session.status)}
           </div>
-          {session.url && (
-            <p className="sub p-mono" style={{ marginTop: 4 }}>{session.url}</p>
+          {primaryUrl && (
+            <p className="sub p-mono" style={{ marginTop: 4 }}>{primaryUrl}</p>
           )}
         </div>
       </div>
 
-      {/* DID block */}
-      {session.vta_did && (
+      {/* DID block (vta_only — full_stack's DIDs live in the Endpoints/DIDs cards below) */}
+      {!isFullStack && session.vta_did && (
         <div className="p-card" style={{ marginBottom: 20 }}>
           <div className="card-content" style={{ padding: '16px 20px' }}>
             <div className="p-row between center" style={{ gap: 12 }}>
@@ -183,30 +196,34 @@ export function SessionDetailView() {
       )}
 
       {/* Stepper */}
-      <div className="p-card" style={{ marginBottom: 20 }}>
-        <div className="card-content" style={{ padding: '28px 28px 24px' }}>
-          <div className="stepper">
-            {STATUS_STEPS.map(step => (
-              <div key={step.sub} className={`step ${stepClass(step.status)}`}>
-                <div className="bar"/>
-                <div className="node">
-                  {stepClass(step.status) === 'done' ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M20 6 9 17l-5-5"/></svg>
-                  ) : stepClass(step.status) === 'active' ? (
-                    <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                  ) : stepClass(step.status) === 'failed' ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6 6 18M6 6l12 12"/></svg>
-                  ) : (STATUS_STEPS.findIndex(s => s.sub === step.sub) + 1)}
+      {isFullStack ? (
+        <PhaseStepper phases={FULL_STACK_PHASES} currentIndex={fsPhaseIndex} failed={fsFailed} />
+      ) : (
+        <div className="p-card" style={{ marginBottom: 20 }}>
+          <div className="card-content" style={{ padding: '28px 28px 24px' }}>
+            <div className="stepper">
+              {STATUS_STEPS.map(step => (
+                <div key={step.sub} className={`step ${stepClass(step.status)}`}>
+                  <div className="bar"/>
+                  <div className="node">
+                    {stepClass(step.status) === 'done' ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M20 6 9 17l-5-5"/></svg>
+                    ) : stepClass(step.status) === 'active' ? (
+                      <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                    ) : stepClass(step.status) === 'failed' ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    ) : (STATUS_STEPS.findIndex(s => s.sub === step.sub) + 1)}
+                  </div>
+                  <div className="s-label">{step.label}</div>
                 </div>
-                <div className="s-label">{step.label}</div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Full-width action card — shown when VTA setup is done and admin DID is needed */}
-      {session.status === 'vta_setup_complete' && (
+      {isAwaitingAdmin && (
         <div className="p-card" style={{ marginBottom: 20, borderColor: 'hsl(var(--primary)/.35)' }}>
           <div className="card-header with-action">
             <div>
@@ -220,7 +237,7 @@ export function SessionDetailView() {
             </span>
           </div>
           <div className="card-content p-col gap-16">
-            {session.vta_did && (
+            {vtaDid && (
               <div className="p-card" style={{ background: 'hsl(var(--muted)/.4)', border: 'none' }}>
                 <div className="card-content" style={{ padding: '12px 16px' }}>
                   <div className="p-row between center" style={{ gap: 12 }}>
@@ -229,13 +246,13 @@ export function SessionDetailView() {
                         VTA DID
                       </span>
                       <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>
-                        {session.vta_did}
+                        {vtaDid}
                       </p>
                     </div>
                     <button
                       className="btn btn-outline btn-sm"
                       style={{ flexShrink: 0, gap: 6 }}
-                      onClick={() => copyVtaDid(session.vta_did!)}
+                      onClick={() => copyVtaDid(vtaDid)}
                     >
                       {copiedVta
                         ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M20 6 9 17l-5-5"/></svg>
@@ -279,6 +296,14 @@ export function SessionDetailView() {
         </div>
       )}
 
+      {/* Enrollment link + collected DIDs — top of page, only once the stack is fully running */}
+      {isFullStackCompleted && (
+        <>
+          <DidsEnrollAlert session={session} />
+          <CollectedDidsCard collected={session.collected} />
+        </>
+      )}
+
       <div className="p-grid-2" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'start' }}>
         {/* Log console */}
         <div className="p-console">
@@ -292,15 +317,14 @@ export function SessionDetailView() {
               </span>
             )}
           </div>
-          <div className="console-body" style={{ minHeight: 120 }}>
+          <div className="console-body" style={{ minHeight: 120 }} ref={consoleBodyRef}>
             {logs.length === 0 ? (
               <div className="ln"><span className="p-muted text-xs">
-                {session.status === 'vta_setup_complete' ? 'Waiting for admin DID provisioning…' : 'No logs yet.'}
+                {isAwaitingAdmin ? 'Waiting for admin DID provisioning…' : 'No logs yet.'}
               </span></div>
             ) : logs.map((line, i) => (
               <div key={i} className="ln"><span className="msg">{line}</span></div>
             ))}
-            <div ref={logEndRef} />
           </div>
         </div>
 
@@ -313,14 +337,16 @@ export function SessionDetailView() {
               <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">{session.mode}</span></div>
               <hr className="p-sep"/>
               <div className="p-row between"><span className="p-muted text-sm">Created</span><span className="text-sm">{new Date(session.created_at).toLocaleString()}</span></div>
-              {session.url && (
+              {!isFullStack && session.url && (
                 <><hr className="p-sep"/><div className="p-row between"><span className="p-muted text-sm">URL</span><a href={`${session.url}/health`} target="_blank" rel="noopener" className="p-mono text-xs" style={{ color: 'hsl(var(--primary))' }}>{session.url}/health</a></div></>
               )}
-              {session.mediator_did && (
+              {!isFullStack && session.mediator_did && (
                 <><hr className="p-sep"/><div className="p-row between center"><span className="p-muted text-sm">Mediator</span><span className="p-mono text-xs">{session.mediator_did.slice(-12)}</span></div></>
               )}
+              {isFullStackCompleted && <EndpointConfigRows urls={session.urls} />}
             </div>
           </div>
+          {isFullStackCompleted && <AdminKeysCard session={session} />}
           {/* Danger Zone */}
           <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
             <div className="card-header">

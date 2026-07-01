@@ -2,14 +2,51 @@ const _apiUrl = import.meta.env.VITE_API_URL
 if (!_apiUrl) throw new Error('VITE_API_URL is not set. Create a .env file with VITE_API_URL=<backend URL>.')
 export const API_BASE: string = _apiUrl
 
-export interface SetupSession {
-  id: string
-  status: 'dns_provisioned' | 'vta_setup_running' | 'vta_setup_complete' | 'provisioning' | 'running' | 'failed'
-  mode: 'vta_only' | 'full_stack'
-  url?: string
-  vta_name?: string
+export type SetupStatus =
+  // vta_only
+  | 'dns_provisioned' | 'vta_setup_running' | 'vta_setup_complete' | 'provisioning' | 'running'
+  // full_stack
+  | 'dns_provision' | 'env_provision' | 'k8s_provision' | 'step_vta_setup'
+  | 'step_mediator_p1' | 'step_mediator_reprov' | 'step_mediator_p2'
+  | 'step_dids_p1' | 'step_dids_provision' | 'step_dids_p2' | 'step_dids_invite'
+  | 'step_dids_load_did' | 'deploy_dids' | 'deploy_mediator'
+  | 'awaiting_admin_did' | 'step_import_admin_did' | 'deploy_vta'
+  // shared
+  | 'failed'
+
+export interface SetupSessionUrls {
+  vta: string
+  mediator: string
+  dids: string
+}
+
+export interface SetupSessionCollected {
   vta_did?: string
   mediator_did?: string
+  did_hosting_did?: string
+  mediator_admin_did?: string
+  did_hosting_admin_did?: string
+}
+
+export interface SetupSessionActionRequired {
+  dids_admin_enroll_url?: string
+  reveal_keys_once?: boolean
+}
+
+export interface SetupSession {
+  id: string
+  status: SetupStatus
+  mode: 'vta_only' | 'full_stack'
+  url?: string
+  urls?: SetupSessionUrls
+  vta_name?: string
+  vta_image?: string
+  vta_did?: string
+  mediator_did?: string
+  collected?: SetupSessionCollected
+  action_required?: SetupSessionActionRequired
+  mediator_admin_key?: string
+  webvh_admin_key?: string
   error_msg?: string
   created_at: string
   updated_at?: string
@@ -130,17 +167,23 @@ export const api = {
   deletePasskey: (id: number) => req<null>('DELETE', `/api/v1/user/passkeys/${id}`),
 
   // ── Setup sessions ───────────────────────────────────────────────────────────
-  listImages: () => req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', '/api/v1/setup/images'),
+  listImages: (component: 'vta' | 'mediator' | 'dids' = 'vta') =>
+    req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/setup/images?component=${component}`),
   listSessions: () => req<SetupSession[]>('GET', '/api/v1/setup'),
   createSession: (data: {
     mode: 'vta_only' | 'full_stack'
     vta_image: string
     vta_name?: string
+    admin_did?: string
     portable?: boolean
     pre_rotation_count?: number
-  }) => req<{ id: string; url: string; status: string }>('POST', '/api/v1/setup', data),
+    mediator_image?: string
+    dids_image?: string
+  }) => req<{ id: string; status: string; url?: string; urls?: SetupSessionUrls }>('POST', '/api/v1/setup', data),
   getSession: (id: string) => req<SetupSession>('GET', `/api/v1/setup/${id}`),
   deleteSession: (id: string) => req<null>('DELETE', `/api/v1/setup/${id}`),
   provisionAdmin: (id: string, admin_did: string) =>
     req<{ status: string }>('POST', `/api/v1/setup/${id}/admin`, { admin_did }),
+  reissueDidsEnroll: (id: string) =>
+    req<{ dids_admin_enroll_url: string }>('POST', `/api/v1/setup/${id}/dids/reissue-enroll`),
 }
