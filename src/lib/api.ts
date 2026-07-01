@@ -45,6 +45,7 @@ export interface SetupSession {
   mediator_did?: string
   collected?: SetupSessionCollected
   action_required?: SetupSessionActionRequired
+  dids_enroll_used?: boolean
   mediator_admin_key?: string
   webvh_admin_key?: string
   error_msg?: string
@@ -186,4 +187,6 @@ export const api = {
     req<{ status: string }>('POST', `/api/v1/setup/${id}/admin`, { admin_did }),
   reissueDidsEnroll: (id: string) =>
     req<{ dids_admin_enroll_url: string }>('POST', `/api/v1/setup/${id}/dids/reissue-enroll`),
+  ackDidsEnroll: (id: string) =>
+    req<{ dids_enroll_used: boolean }>('POST', `/api/v1/setup/${id}/dids/enroll-ack`),
 }

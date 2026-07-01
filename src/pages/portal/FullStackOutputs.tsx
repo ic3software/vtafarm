@@ -85,10 +85,17 @@ function SecretRow({
 // Single-use DID-hosting admin enrollment link — shown at the top of the completed/running page.
 export function DidsEnrollAlert({ session }: { session: SetupSession }) {
   const [enrollUrl, setEnrollUrl] = useState(session.action_required?.dids_admin_enroll_url ?? '')
+  const [used, setUsed] = useState(session.dids_enroll_used ?? false)
   const [reissuing, setReissuing] = useState(false)
   const [reissueError, setReissueError] = useState('')
+  const [justReissued, setJustReissued] = useState(false)
 
-  if (!enrollUrl) return null
+  if (!enrollUrl && !used) return null
+
+  function handleOpen() {
+    setUsed(true)
+    api.ackDidsEnroll(session.id).catch(() => {})
+  }
 
   async function handleReissue() {
     setReissuing(true)
@@ -96,6 +103,8 @@ export function DidsEnrollAlert({ session }: { session: SetupSession }) {
     try {
       const r = await api.reissueDidsEnroll(session.id)
       setEnrollUrl(r.dids_admin_enroll_url)
+      setUsed(false)
+      setJustReissued(true)
     } catch (err) {
       setReissueError(err instanceof Error ? err.message : 'Failed to reissue enrollment link')
     } finally {
@@ -109,12 +118,21 @@ export function DidsEnrollAlert({ session }: { session: SetupSession }) {
       <div className="grow">
         <p className="alert-title">DID hosting admin enrollment</p>
         <p className="alert-desc">
-          Visit this single-use link to register a passkey for the DID hosting admin panel.
+          {used
+            ? 'This single-use link has already been opened. Reissue a new one to register a passkey for the DID hosting admin panel.'
+            : 'Visit this single-use link to register a passkey for the DID hosting admin panel.'}
+          {justReissued && (
+            <span style={{ display: 'block', marginTop: 4 }}>
+              Reissuing restarts the DID hosting service — wait 10 seconds before opening the new link.
+            </span>
+          )}
           {reissueError && <span style={{ color: 'hsl(var(--destructive))', display: 'block', marginTop: 4 }}>{reissueError}</span>}
         </p>
       </div>
       <div className="p-row gap-8" style={{ flexShrink: 0 }}>
-        <a className="btn btn-outline btn-sm" href={enrollUrl} target="_blank" rel="noopener">Open enrollment →</a>
+        {!used && (
+          <a className="btn btn-outline btn-sm" href={enrollUrl} target="_blank" rel="noopener" onClick={handleOpen}>Open enrollment →</a>
+        )}
         <button className="btn btn-ghost btn-sm" onClick={handleReissue} disabled={reissuing}>
           {reissuing ? 'Reissuing…' : 'Reissue link'}
         </button>
