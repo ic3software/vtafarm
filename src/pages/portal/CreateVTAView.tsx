@@ -284,7 +284,7 @@ export function CreateVTAView() {
       <div className="p-card" style={{ marginBottom: 20 }}>
         <div className="card-content" style={{ padding: '26px 28px 22px' }}>
           <div className="stepper">
-            {(['Create session', 'DNS provisioned', 'Setup running', 'Setup complete', 'Provisioning', 'Running'] as const).map((label, i) => {
+            {(['Create session', 'DNS & environment', 'VTA setup', 'Admin DID', 'Deploy VTA', 'Running'] as const).map((label, i) => {
               const s = i < currentStep ? 'done' : i === currentStep ? 'active' : ''
               const isFailed = setupFailed && i === currentStep
               const spinning = !setupFailed && i === currentStep && (stage === 2 || showingSetupLogs)

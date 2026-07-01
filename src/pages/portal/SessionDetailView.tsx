@@ -7,13 +7,14 @@ import { DidsEnrollAlert, CollectedDidsCard, EndpointConfigRows, AdminKeysCard }
 import type { PortalContext } from './Portal'
 
 const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
-  { label: 'Create session',   sub: 'created',            status: null },
-  { label: 'DNS provisioned',  sub: 'dns_provisioned',    status: 'dns_provisioned' },
-  { label: 'Setup running',    sub: 'vta_setup_running',  status: 'vta_setup_running' },
-  { label: 'Setup complete',   sub: 'vta_setup_complete', status: 'vta_setup_complete' },
-  { label: 'Provisioning',     sub: 'provisioning',       status: 'provisioning' },
-  { label: 'Running',          sub: 'running',            status: 'running' },
+  { label: 'Create session',     sub: 'created',            status: null },
+  { label: 'DNS & environment',  sub: 'dns_provisioned',    status: 'dns_provisioned' },
+  { label: 'VTA setup',          sub: 'vta_setup_running',  status: 'vta_setup_running' },
+  { label: 'Admin DID',          sub: 'vta_setup_complete', status: 'vta_setup_complete' },
+  { label: 'Deploy VTA',         sub: 'provisioning',       status: 'provisioning' },
+  { label: 'Running',            sub: 'running',            status: 'running' },
 ]
+
 const ORDER = STATUS_STEPS.map(s => s.status)
 
 export function SessionDetailView() {

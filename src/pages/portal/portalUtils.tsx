@@ -74,12 +74,12 @@ export interface Phase {
 }
 
 export const VTA_ONLY_PHASES: Phase[] = [
-  { key: 'create',         label: 'Create session',   statuses: [] },
-  { key: 'dns',             label: 'DNS provisioned',  statuses: ['dns_provisioned'] },
-  { key: 'setup_running',   label: 'Setup running',    statuses: ['vta_setup_running'] },
-  { key: 'setup_complete',  label: 'Setup complete',   statuses: ['vta_setup_complete'] },
-  { key: 'provisioning',    label: 'Provisioning',     statuses: ['provisioning'] },
-  { key: 'running',         label: 'Running',          statuses: ['running'] },
+  { key: 'create',    label: 'Create session',   statuses: [] },
+  { key: 'dns_env',   label: 'DNS & environment', statuses: ['dns_provisioned'] },
+  { key: 'vta_setup', label: 'VTA setup',        statuses: ['vta_setup_running'] },
+  { key: 'admin_did', label: 'Admin DID',        statuses: ['vta_setup_complete'] },
+  { key: 'deploy_vta', label: 'Deploy VTA',      statuses: ['provisioning'] },
+  { key: 'running',   label: 'Running',          statuses: ['running'] },
 ]
 
 export const FULL_STACK_PHASES: Phase[] = [
