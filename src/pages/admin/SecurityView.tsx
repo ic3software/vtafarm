@@ -63,7 +63,7 @@ export function SecurityView() {
   }
 
   return (
-    <section className="p-content" style={{ maxWidth: 680 }}>
+    <section className="p-content">
       <div className="page-head"><div><h1>Security</h1><p className="sub">Manage your operator credentials.</p></div></div>
 
       {/* Profile */}

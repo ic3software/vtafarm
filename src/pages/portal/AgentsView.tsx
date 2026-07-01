@@ -75,7 +75,7 @@ export function AgentsView() {
                       </div>
                     </div>
                   </td>
-                  <td className="p-mono text-xs p-muted">{s.url ?? '—'}</td>
+                  <td className="p-mono text-xs p-muted">{(s.mode === 'full_stack' ? s.urls?.vta : s.url) ?? '—'}</td>
                   <td>{statusBadge(s.status)}</td>
                   <td className="p-muted text-xs">{timeAgo(s.created_at)}</td>
                   <td className="col-actions">
