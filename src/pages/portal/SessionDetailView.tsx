@@ -162,31 +162,6 @@ export function SessionDetailView() {
         </div>
       </div>
 
-      {/* DID block (vta_only — full_stack's DIDs live in the Endpoints/DIDs cards below) */}
-      {!isFullStack && session.vta_did && (
-        <div className="p-card" style={{ marginBottom: 20 }}>
-          <div className="card-content" style={{ padding: '16px 20px' }}>
-            <div className="p-row between center" style={{ gap: 12 }}>
-              <div className="p-col" style={{ minWidth: 0 }}>
-                <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>DID</span>
-                <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 13, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>{session.vta_did}</p>
-              </div>
-              <button
-                className="btn btn-outline btn-sm"
-                style={{ flexShrink: 0, gap: 6 }}
-                onClick={() => copyDid(session.vta_did!)}
-              >
-                {copied
-                  ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M20 6 9 17l-5-5"/></svg>
-                  : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                }
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Failure banner */}
       {session.status === 'failed' && (
         <div className="p-alert alert-destructive" style={{ marginBottom: 20 }}>
@@ -223,6 +198,31 @@ export function SessionDetailView() {
                   <div className="s-label">{step.label}</div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DID block (vta_only — full_stack's DIDs live in the Endpoints/DIDs cards below) */}
+      {!isFullStack && session.vta_did && (
+        <div className="p-card" style={{ marginBottom: 20 }}>
+          <div className="card-content" style={{ padding: '16px 20px' }}>
+            <div className="p-row between center" style={{ gap: 12 }}>
+              <div className="p-col" style={{ minWidth: 0 }}>
+                <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>DID</span>
+                <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 13, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>{session.vta_did}</p>
+              </div>
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ flexShrink: 0, gap: 6 }}
+                onClick={() => copyDid(session.vta_did!)}
+              >
+                {copied
+                  ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M20 6 9 17l-5-5"/></svg>
+                  : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                }
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
             </div>
           </div>
         </div>
