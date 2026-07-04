@@ -9,8 +9,8 @@ export type SetupStatus =
   | 'dns_provision' | 'env_provision' | 'k8s_provision' | 'step_vta_setup'
   | 'step_mediator_p1' | 'step_mediator_reprov' | 'step_mediator_p2'
   | 'step_dids_p1' | 'step_dids_provision' | 'step_dids_p2' | 'step_dids_invite'
-  | 'step_dids_load_did' | 'deploy_dids' | 'deploy_mediator'
-  | 'awaiting_admin_did' | 'step_import_admin_did' | 'deploy_vta'
+  | 'step_dids_load_did' | 'step_dids_grant_vta' | 'deploy_dids' | 'deploy_mediator'
+  | 'step_vta_register_dids' | 'awaiting_admin_did' | 'step_import_admin_did' | 'deploy_vta'
   // shared
   | 'failed'
 
