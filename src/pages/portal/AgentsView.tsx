@@ -9,6 +9,7 @@ export function AgentsView() {
   const navigate = useNavigate()
 
   const active = sessions.filter(s => s.status === 'running').length
+  const failed = sessions.filter(s => s.status === 'failed').length
   const provisioning = sessions.filter(s => !['running', 'failed'].includes(s.status)).length
 
   return (
@@ -30,10 +31,11 @@ export function AgentsView() {
         </div>
       </div>
 
-      <div className="p-grid-2" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 24 }}>
+      <div className="p-grid-2" style={{ gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 24 }}>
+        <div className="p-stat"><div className="k">Total</div><div className="v">{sessions.length}</div></div>
         <div className="p-stat"><div className="k">Active agents</div><div className="v">{active}</div></div>
         <div className="p-stat"><div className="k">Provisioning</div><div className="v">{provisioning}{provisioning > 0 && <small> · in progress</small>}</div></div>
-        <div className="p-stat"><div className="k">Total</div><div className="v">{sessions.length}</div></div>
+        <div className="p-stat"><div className="k">Failed</div><div className="v">{failed}</div></div>
       </div>
 
       {sessionsLoading ? (
