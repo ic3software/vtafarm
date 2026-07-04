@@ -3,7 +3,7 @@ import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
 import { statusBadge, FULL_STACK_PHASES, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow } from './FullStackOutputs'
 import type { PortalContext } from './Portal'
 
 const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
@@ -30,7 +30,6 @@ export function SessionDetailView() {
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
-  const [copied, setCopied] = useState(false)
   const [copiedVta, setCopiedVta] = useState(false)
 
   // Provision form (shown when status === 'vta_setup_complete')
@@ -38,11 +37,7 @@ export function SessionDetailView() {
   const [provisioning, setProvisioning] = useState(false)
   const [provisionError, setProvisionError] = useState('')
 
-  function copyDid(did: string) {
-    navigator.clipboard.writeText(did).catch(() => {})
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const didsEnroll = useDidsEnroll(session)
 
   function copyVtaDid(did: string) {
     navigator.clipboard.writeText(did).catch(() => {})
@@ -205,27 +200,7 @@ export function SessionDetailView() {
 
       {/* DID block (vta_only — full_stack's DIDs live in the Endpoints/DIDs cards below) */}
       {!isFullStack && session.vta_did && (
-        <div className="p-card" style={{ marginBottom: 20 }}>
-          <div className="card-content" style={{ padding: '16px 20px' }}>
-            <div className="p-row between center" style={{ gap: 12 }}>
-              <div className="p-col" style={{ minWidth: 0 }}>
-                <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>DID</span>
-                <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 13, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>{session.vta_did}</p>
-              </div>
-              <button
-                className="btn btn-outline btn-sm"
-                style={{ flexShrink: 0, gap: 6 }}
-                onClick={() => copyDid(session.vta_did!)}
-              >
-                {copied
-                  ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M20 6 9 17l-5-5"/></svg>
-                  : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                }
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <CollectedDidsCard collected={{ vta_did: session.vta_did }} />
       )}
 
       {/* Full-width action card — shown when VTA setup is done and admin DID is needed */}
@@ -308,7 +283,7 @@ export function SessionDetailView() {
       {/* Enrollment link + collected DIDs — top of page, only once the stack is fully running */}
       {isFullStackCompleted && (
         <>
-          <DidsEnrollAlert session={session} />
+          <DidsEnrollAlert {...didsEnroll} />
           <CollectedDidsCard collected={session.collected} />
         </>
       )}
@@ -353,6 +328,7 @@ export function SessionDetailView() {
                 <><hr className="p-sep"/><div className="p-row between center"><span className="p-muted text-sm">Mediator</span><span className="p-mono text-xs">{session.mediator_did.slice(-12)}</span></div></>
               )}
               {isFullStackCompleted && <EndpointConfigRows urls={session.urls} />}
+              {isFullStackCompleted && <DidsEnrollConfigRow {...didsEnroll} />}
             </div>
           </div>
           {isFullStackCompleted && <AdminKeysCard session={session} />}

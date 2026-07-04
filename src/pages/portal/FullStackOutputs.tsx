@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { api, type SetupSession, type SetupSessionUrls, type SetupSessionCollected } from '@/lib/api'
 import { useCopyState } from './portalUtils'
 
@@ -82,22 +82,35 @@ function SecretRow({
   )
 }
 
-// Single-use DID-hosting admin enrollment link — shown at the top of the completed/running page.
-export function DidsEnrollAlert({ session }: { session: SetupSession }) {
-  const [enrollUrl, setEnrollUrl] = useState(session.action_required?.dids_admin_enroll_url ?? '')
-  const [used, setUsed] = useState(session.dids_enroll_used ?? false)
+// Shared state for the single-use DID-hosting admin enrollment link, split
+// across two render sites: DidsEnrollAlert (top banner, actionable state
+// only) and DidsEnrollConfigRow (Configuration card, reissue once used).
+export function useDidsEnroll(session: SetupSession | null) {
+  const [enrollUrl, setEnrollUrl] = useState('')
+  const [used, setUsed] = useState(false)
   const [reissuing, setReissuing] = useState(false)
   const [reissueError, setReissueError] = useState('')
   const [justReissued, setJustReissued] = useState(false)
 
-  if (!enrollUrl && !used) return null
+  // Seed once from the session that first arrives (this hook is called from
+  // the very first render, before the session has loaded) — afterwards
+  // handleOpen/handleReissue own these values locally.
+  const seeded = useRef(false)
+  useEffect(() => {
+    if (!session || seeded.current) return
+    seeded.current = true
+    setEnrollUrl(session.action_required?.dids_admin_enroll_url ?? '')
+    setUsed(session.dids_enroll_used ?? false)
+  }, [session])
 
   function handleOpen() {
+    if (!session) return
     setUsed(true)
     api.ackDidsEnroll(session.id).catch(() => {})
   }
 
   async function handleReissue() {
+    if (!session) return
     setReissuing(true)
     setReissueError('')
     try {
@@ -112,32 +125,63 @@ export function DidsEnrollAlert({ session }: { session: SetupSession }) {
     }
   }
 
+  return { enrollUrl, used, reissuing, reissueError, justReissued, handleOpen, handleReissue }
+}
+
+export type DidsEnrollState = ReturnType<typeof useDidsEnroll>
+
+// Single-use DID-hosting admin enrollment link — shown at the top of the
+// completed/running page, only while there's still something to do (an
+// unopened link). Once opened, this disappears; reissuing a new one lives in
+// the Configuration card instead (see DidsEnrollConfigRow).
+export function DidsEnrollAlert({ enrollUrl, used, justReissued, handleOpen }: DidsEnrollState) {
+  if (!enrollUrl || used) return null
+
   return (
     <div className="p-alert alert-warning" style={{ marginBottom: 16 }}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
       <div className="grow">
         <p className="alert-title">DID hosting admin enrollment</p>
         <p className="alert-desc">
-          {used
-            ? 'This single-use link has already been opened. Reissue a new one to register a passkey for the DID hosting admin panel.'
-            : 'Visit this single-use link to register a passkey for the DID hosting admin panel.'}
+          Visit this single-use link to register a passkey for the DID hosting admin panel.
           {justReissued && (
             <span style={{ display: 'block', marginTop: 4 }}>
               Reissuing restarts the DID hosting service — wait 10 seconds before opening the new link.
             </span>
           )}
-          {reissueError && <span style={{ color: 'hsl(var(--destructive))', display: 'block', marginTop: 4 }}>{reissueError}</span>}
         </p>
       </div>
       <div className="p-row gap-8" style={{ flexShrink: 0 }}>
-        {!used && (
-          <a className="btn btn-outline btn-sm" href={enrollUrl} target="_blank" rel="noopener" onClick={handleOpen}>Open enrollment →</a>
-        )}
-        <button className="btn btn-ghost btn-sm" onClick={handleReissue} disabled={reissuing}>
+        <a className="btn btn-outline btn-sm" href={enrollUrl} target="_blank" rel="noopener" onClick={handleOpen}>Open enrollment →</a>
+      </div>
+    </div>
+  )
+}
+
+// Reissue control for the DID-hosting admin enrollment link — lives in the
+// Configuration card, and only appears once the original link has been
+// opened (before that, the top banner's "Open enrollment" is the action).
+export function DidsEnrollConfigRow({ used, reissuing, reissueError, justReissued, handleReissue }: DidsEnrollState) {
+  if (!used) return null
+
+  return (
+    <>
+      <hr className="p-sep"/>
+      <div className="p-row between center" style={{ gap: 12 }}>
+        <div className="p-col" style={{ minWidth: 0 }}>
+          <span className="p-muted text-sm">DID hosting enrollment</span>
+          <span className="field-hint" style={{ marginTop: 4 }}>
+            {justReissued
+              ? 'Reissuing restarts the DID hosting service — wait 10 seconds before opening the new link.'
+              : 'Link already opened. Reissue a new one to register a passkey.'}
+          </span>
+          {reissueError && <span style={{ color: 'hsl(var(--destructive))', display: 'block', marginTop: 4 }} className="field-hint">{reissueError}</span>}
+        </div>
+        <button className="btn btn-outline btn-sm" style={{ flexShrink: 0 }} onClick={handleReissue} disabled={reissuing}>
           {reissuing ? 'Reissuing…' : 'Reissue link'}
         </button>
       </div>
-    </div>
+    </>
   )
 }
 

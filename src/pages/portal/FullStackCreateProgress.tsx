@@ -4,7 +4,7 @@ import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import { statusBadge, FULL_STACK_PHASES, phaseIndex, isValidAdminDid } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, CollectedDidsCard, EndpointConfigRows, AdminKeysCard } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, CollectedDidsCard, EndpointConfigRows, AdminKeysCard } from './FullStackOutputs'
 
 export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: string; vtaName: string }) {
   const { loadSessions } = useOutletContext<PortalContext>()
@@ -18,6 +18,8 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
   const [provisioning, setProvisioning] = useState(false)
   const [provisionError, setProvisionError] = useState('')
   const [copiedVta, setCopiedVta] = useState(false)
+
+  const didsEnroll = useDidsEnroll(session)
 
   function copyVtaDid(did: string) {
     navigator.clipboard.writeText(did).catch(() => {})
@@ -196,7 +198,7 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
             </div>
           </div>
 
-          {session && <DidsEnrollAlert session={session} />}
+          <DidsEnrollAlert {...didsEnroll} />
           <CollectedDidsCard collected={session?.collected} />
 
           <div className="p-card" style={{ marginBottom: 16 }}>
@@ -204,6 +206,7 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
             <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
               <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">full_stack</span></div>
               <EndpointConfigRows urls={session?.urls} />
+              <DidsEnrollConfigRow {...didsEnroll} />
             </div>
           </div>
 
