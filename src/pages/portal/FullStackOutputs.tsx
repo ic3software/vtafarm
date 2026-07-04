@@ -197,7 +197,7 @@ export function CollectedDidsCard({ collected }: { collected?: SetupSessionColle
       <div className="card-header"><h3 className="card-title">Collected DIDs</h3></div>
       <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
         {collected.vta_did && (
-          <Row label="VTA DID" value={collected.vta_did} hint="Feed this to `pnm setup continue --vta-did`." copyKey="did-vta" copiedKey={copiedKey} onCopy={copy} />
+          <Row label="VTA DID" value={collected.vta_did} copyKey="did-vta" copiedKey={copiedKey} onCopy={copy} />
         )}
         {collected.mediator_did && (
           <Row label="Mediator DID" value={collected.mediator_did} copyKey="did-mediator" copiedKey={copiedKey} onCopy={copy} />
@@ -257,7 +257,7 @@ export function AdminKeysCard({ session }: { session: SetupSession }) {
   return (
     <div className="p-card" style={{ borderColor: 'hsl(var(--warning)/.4)' }}>
       <div className="card-header">
-        <h3 className="card-title">Admin DIDs &amp; private keys</h3>
+        <h3 className="card-title">Admin DIDs &amp; Private Keys</h3>
         <p className="card-desc">
           Mediator and DID hosting admin identities, plus the private keys backing them — shown
           once for offline backup (e.g. a password manager). They stay visible here until you
