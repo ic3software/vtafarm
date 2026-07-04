@@ -9,7 +9,7 @@ export function PhaseStepper({ phases, currentIndex, failed, spinning: spinningE
           {phases.map((phase, i) => {
             const state = failed
               ? (i === lastIdx ? 'failed' : 'done')
-              : (i < currentIndex ? 'done' : i === currentIndex ? 'active' : '')
+              : (i < currentIndex ? 'done' : i === currentIndex ? (i === lastIdx ? 'done' : 'active') : '')
             const spinning = state === 'active' && spinningEnabled
             return (
               <div key={phase.key} className={`step ${state}`}>
