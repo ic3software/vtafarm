@@ -11,13 +11,18 @@ export type SetupStatus =
   | 'step_dids_p1' | 'step_dids_provision' | 'step_dids_p2' | 'step_dids_invite'
   | 'step_dids_load_did' | 'deploy_dids' | 'deploy_mediator'
   | 'step_vta_register_dids' | 'awaiting_admin_did' | 'step_import_admin_did' | 'deploy_vta'
+  // full_stack_with_vtc
+  | 'step_vtc_setup_key' | 'step_vtc_acl_grant' | 'step_vtc_setup' | 'deploy_vtc'
   // shared
   | 'failed'
+
+export type SetupMode = 'vta_only' | 'full_stack' | 'full_stack_with_vtc'
 
 export interface SetupSessionUrls {
   vta: string
   mediator: string
   dids: string
+  vtc?: string
 }
 
 export interface SetupSessionCollected {
@@ -26,17 +31,20 @@ export interface SetupSessionCollected {
   did_hosting_did?: string
   mediator_admin_did?: string
   did_hosting_admin_did?: string
+  vtc_did?: string
 }
 
 export interface SetupSessionActionRequired {
   dids_admin_enroll_url?: string
   reveal_keys_once?: boolean
+  install_url?: string
+  claim_code?: string
 }
 
 export interface SetupSession {
   id: string
   status: SetupStatus
-  mode: 'vta_only' | 'full_stack'
+  mode: SetupMode
   url?: string
   urls?: SetupSessionUrls
   vta_name?: string
@@ -46,6 +54,7 @@ export interface SetupSession {
   collected?: SetupSessionCollected
   action_required?: SetupSessionActionRequired
   dids_enroll_used?: boolean
+  vtc_install_used?: boolean
   mediator_admin_key?: string
   webvh_admin_key?: string
   error_msg?: string
@@ -172,11 +181,11 @@ export const api = {
   getMe: () => req<{ id: string; beta_access: boolean; created_at: string }>('GET', '/api/v1/user/me'),
 
   // ── Setup sessions ───────────────────────────────────────────────────────────
-  listImages: (component: 'vta' | 'mediator' | 'dids' = 'vta') =>
+  listImages: (component: 'vta' | 'mediator' | 'dids' | 'vtc' = 'vta') =>
     req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/setup/images?component=${component}`),
   listSessions: () => req<SetupSession[]>('GET', '/api/v1/setup'),
   createSession: (data: {
-    mode: 'vta_only' | 'full_stack'
+    mode: SetupMode
     vta_image: string
     vta_name?: string
     admin_did?: string
@@ -184,6 +193,8 @@ export const api = {
     pre_rotation_count?: number
     mediator_image?: string
     dids_image?: string
+    vtc_image?: string
+    vtc_name?: string
   }) => req<{ id: string; status: string; url?: string; urls?: SetupSessionUrls }>('POST', '/api/v1/setup', data),
   getSession: (id: string) => req<SetupSession>('GET', `/api/v1/setup/${id}`),
   deleteSession: (id: string) => req<null>('DELETE', `/api/v1/setup/${id}`),
@@ -193,4 +204,8 @@ export const api = {
     req<{ dids_admin_enroll_url: string }>('POST', `/api/v1/setup/${id}/dids/reissue-enroll`),
   ackDidsEnroll: (id: string) =>
     req<{ dids_enroll_used: boolean }>('POST', `/api/v1/setup/${id}/dids/enroll-ack`),
+  reissueVtcInstall: (id: string) =>
+    req<{ install_url: string; claim_code: string }>('POST', `/api/v1/setup/${id}/vtc/reissue-install`),
+  ackVtcInstall: (id: string) =>
+    req<{ vtc_install_used: boolean }>('POST', `/api/v1/setup/${id}/vtc/install-ack`),
 }

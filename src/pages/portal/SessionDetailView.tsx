@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
-import { statusBadge, FULL_STACK_PHASES, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid } from './portalUtils'
+import { statusBadge, fullStackPhases, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, VtcInstallAlert, VtcInstallConfigRow, useVtcInstall, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow } from './FullStackOutputs'
 import type { PortalContext } from './Portal'
 
 const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
@@ -38,6 +38,7 @@ export function SessionDetailView() {
   const [provisionError, setProvisionError] = useState('')
 
   const didsEnroll = useDidsEnroll(session)
+  const vtcInstall = useVtcInstall(session?.mode === 'full_stack_with_vtc' ? session : null)
 
   function copyVtaDid(did: string) {
     navigator.clipboard.writeText(did).catch(() => {})
@@ -130,13 +131,15 @@ export function SessionDetailView() {
   if (loading) return <section className="p-content"><p className="p-muted">Loading…</p></section>
   if (!session) return <section className="p-content"><p className="p-muted">Session not found.</p></section>
 
-  const isFullStack = session.mode === 'full_stack'
+  const isFullStack = session.mode !== 'vta_only'
+  const isVtc = session.mode === 'full_stack_with_vtc'
+  const fsPhases = fullStackPhases(session.mode)
   const vtaDid = isFullStack ? session.collected?.vta_did : session.vta_did
   const isAwaitingAdmin = isFullStack ? session.status === 'awaiting_admin_did' : session.status === 'vta_setup_complete'
   const adminDidStep = (isFullStack
-    ? phaseIndex(FULL_STACK_PHASES, 'awaiting_admin_did')
+    ? phaseIndex(fsPhases, 'awaiting_admin_did')
     : phaseIndex(VTA_ONLY_PHASES, 'vta_setup_complete')) + 1
-  const fsPhaseIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, session.status))
+  const fsPhaseIndex = Math.max(0, phaseIndex(fsPhases, session.status))
   const fsFailed = session.status === 'failed'
   const isFullStackCompleted = isFullStack && session.status === 'running'
 
@@ -173,7 +176,7 @@ export function SessionDetailView() {
 
       {/* Stepper */}
       {isFullStack ? (
-        <PhaseStepper phases={FULL_STACK_PHASES} currentIndex={fsPhaseIndex} failed={fsFailed} />
+        <PhaseStepper phases={fsPhases} currentIndex={fsPhaseIndex} failed={fsFailed} />
       ) : (
         <div className="p-card" style={{ marginBottom: 20 }}>
           <div className="card-content" style={{ padding: '28px 28px 24px' }}>
@@ -280,10 +283,11 @@ export function SessionDetailView() {
         </div>
       )}
 
-      {/* Enrollment link + collected DIDs — top of page, only once the stack is fully running */}
+      {/* Enrollment/install links + collected DIDs — top of page, only once the stack is fully running */}
       {isFullStackCompleted && (
         <>
           <DidsEnrollAlert {...didsEnroll} />
+          {isVtc && <VtcInstallAlert {...vtcInstall} />}
           <CollectedDidsCard collected={session.collected} />
         </>
       )}
@@ -329,6 +333,7 @@ export function SessionDetailView() {
               )}
               {isFullStackCompleted && <EndpointConfigRows urls={session.urls} />}
               {isFullStackCompleted && <DidsEnrollConfigRow {...didsEnroll} />}
+              {isFullStackCompleted && isVtc && <VtcInstallConfigRow {...vtcInstall} />}
             </div>
           </div>
           {isFullStackCompleted && <AdminKeysCard session={session} />}

@@ -92,25 +92,27 @@ export function useDidsEnroll(session: SetupSession | null) {
   const [reissueError, setReissueError] = useState('')
   const [justReissued, setJustReissued] = useState(false)
 
-  // Seed once from the session that first arrives (this hook is called from
-  // the very first render, before the session has loaded) — afterwards
-  // handleOpen/handleReissue own these values locally.
-  const seeded = useRef(false)
+  // Follow the polled session until the user acts (open/reissue) — the URL
+  // only shows up mid-pipeline, so a seed-once from the first session that
+  // arrives would miss it in the create-progress flow. After a local action,
+  // handleOpen/handleReissue own these values.
+  const touched = useRef(false)
   useEffect(() => {
-    if (!session || seeded.current) return
-    seeded.current = true
+    if (!session || touched.current) return
     setEnrollUrl(session.action_required?.dids_admin_enroll_url ?? '')
     setUsed(session.dids_enroll_used ?? false)
   }, [session])
 
   function handleOpen() {
     if (!session) return
+    touched.current = true
     setUsed(true)
     api.ackDidsEnroll(session.id).catch(() => {})
   }
 
   async function handleReissue() {
     if (!session) return
+    touched.current = true
     setReissuing(true)
     setReissueError('')
     try {
@@ -185,11 +187,143 @@ export function DidsEnrollConfigRow({ used, reissuing, reissueError, justReissue
   )
 }
 
+// Shared state for the one-shot VTC admin install URL + claim code — the
+// full_stack_with_vtc counterpart of useDidsEnroll, split across the same two
+// render sites (VtcInstallAlert top banner / VtcInstallConfigRow reissue).
+// The setup-minted install token expires after 15 minutes, so reissuing is
+// the expected path, not an edge case.
+export function useVtcInstall(session: SetupSession | null) {
+  const [installUrl, setInstallUrl] = useState('')
+  const [claimCode, setClaimCode] = useState('')
+  const [used, setUsed] = useState(false)
+  const [reissuing, setReissuing] = useState(false)
+  const [reissueError, setReissueError] = useState('')
+  const [justReissued, setJustReissued] = useState(false)
+
+  // Follow the polled session until the user acts — same convention as
+  // useDidsEnroll. The install URL only appears at the very end of the
+  // pipeline (after step_vtc_setup), so seeding once from the first session
+  // would always miss it in the create-progress flow.
+  const touched = useRef(false)
+  useEffect(() => {
+    if (!session || touched.current) return
+    setInstallUrl(session.action_required?.install_url ?? '')
+    setClaimCode(session.action_required?.claim_code ?? '')
+    setUsed(session.vtc_install_used ?? false)
+  }, [session])
+
+  function handleOpen() {
+    if (!session) return
+    touched.current = true
+    setUsed(true)
+    api.ackVtcInstall(session.id).catch(() => {})
+  }
+
+  async function handleReissue() {
+    if (!session) return
+    touched.current = true
+    setReissuing(true)
+    setReissueError('')
+    try {
+      const r = await api.reissueVtcInstall(session.id)
+      setInstallUrl(r.install_url)
+      setClaimCode(r.claim_code)
+      setUsed(false)
+      setJustReissued(true)
+    } catch (err) {
+      setReissueError(err instanceof Error ? err.message : 'Failed to reissue install link')
+    } finally {
+      setReissuing(false)
+    }
+  }
+
+  return { installUrl, claimCode, used, reissuing, reissueError, justReissued, handleOpen, handleReissue }
+}
+
+export type VtcInstallState = ReturnType<typeof useVtcInstall>
+
+// One-shot VTC admin install link + second-channel claim code — shown at the
+// top of the completed/running page while there's still an unopened link.
+// The VTC refuses a claim without both values, so the claim code is shown
+// (copyable) right in the banner. Once opened, reissuing moves to the
+// Configuration card (VtcInstallConfigRow).
+export function VtcInstallAlert({ installUrl, claimCode, used, reissuing, reissueError, justReissued, handleOpen, handleReissue }: VtcInstallState) {
+  const { copiedKey, copy } = useCopyState()
+  if (!installUrl || used) return null
+
+  const copied = copiedKey === 'vtc-claim-code'
+  return (
+    <div className="p-alert alert-warning" style={{ marginBottom: 16 }}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+      <div className="grow">
+        <p className="alert-title">VTC admin install</p>
+        <p className="alert-desc">
+          Visit this one-shot link to claim the VTC admin — you'll be asked for the claim code below.
+          The link expires 15 minutes after it was issued; if it's stale, reissue a fresh one first.
+          {justReissued && (
+            <span style={{ display: 'block', marginTop: 4 }}>
+              Reissuing restarts the VTC service — wait 10 seconds before opening the new link.
+            </span>
+          )}
+          {reissueError && (
+            <span style={{ display: 'block', marginTop: 4, color: 'hsl(var(--destructive))' }}>{reissueError}</span>
+          )}
+        </p>
+        {claimCode && (
+          <div className="p-row gap-8 center" style={{ marginTop: 8 }}>
+            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+              Claim code
+            </span>
+            <span className="p-mono" style={{ fontSize: 13, fontWeight: 600 }}>{claimCode}</span>
+            <button className="btn btn-outline btn-sm" style={{ gap: 6 }} onClick={() => copy('vtc-claim-code', claimCode)}>
+              <CopyIcon copied={copied} />
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="p-row gap-8" style={{ flexShrink: 0 }}>
+        <button className="btn btn-outline btn-sm" onClick={handleReissue} disabled={reissuing}>
+          {reissuing ? 'Reissuing…' : 'Reissue link'}
+        </button>
+        <a className="btn btn-outline btn-sm" href={installUrl} target="_blank" rel="noopener" onClick={handleOpen}>Open install →</a>
+      </div>
+    </div>
+  )
+}
+
+// Reissue control for the VTC admin install link — lives in the Configuration
+// card once the original link has been opened (before that, the top banner
+// owns both actions).
+export function VtcInstallConfigRow({ used, reissuing, reissueError, justReissued, handleReissue }: VtcInstallState) {
+  if (!used) return null
+
+  return (
+    <>
+      <hr className="p-sep"/>
+      <div className="p-row between center" style={{ gap: 12 }}>
+        <div className="p-col" style={{ minWidth: 0 }}>
+          <span className="p-muted text-sm">VTC admin install</span>
+          <span className="field-hint" style={{ marginTop: 4 }}>
+            {justReissued
+              ? 'Reissuing restarts the VTC service — wait 10 seconds before opening the new link.'
+              : 'Link already opened. Reissue a new one to claim the VTC admin.'}
+          </span>
+          {reissueError && <span style={{ color: 'hsl(var(--destructive))', display: 'block', marginTop: 4 }} className="field-hint">{reissueError}</span>}
+        </div>
+        <button className="btn btn-outline btn-sm" style={{ flexShrink: 0 }} onClick={handleReissue} disabled={reissuing}>
+          {reissuing ? 'Reissuing…' : 'Reissue link'}
+        </button>
+      </div>
+    </>
+  )
+}
+
 // Collected DIDs — shown at the top of the completed/running page, below DidsEnrollAlert.
 // Admin DIDs (mediator/did-hosting) live in AdminKeysCard instead, alongside their keys.
 export function CollectedDidsCard({ collected }: { collected?: SetupSessionCollected }) {
   const { copiedKey, copy } = useCopyState()
-  if (!collected || !(collected.vta_did || collected.mediator_did || collected.did_hosting_did)) {
+  if (!collected || !(collected.vta_did || collected.mediator_did || collected.did_hosting_did || collected.vtc_did)) {
     return null
   }
   return (
@@ -204,6 +338,9 @@ export function CollectedDidsCard({ collected }: { collected?: SetupSessionColle
         )}
         {collected.did_hosting_did && (
           <Row label="DID hosting daemon DID" value={collected.did_hosting_did} copyKey="did-daemon" copiedKey={copiedKey} onCopy={copy} />
+        )}
+        {collected.vtc_did && (
+          <Row label="VTC DID" value={collected.vtc_did} copyKey="did-vtc" copiedKey={copiedKey} onCopy={copy} />
         )}
       </div>
     </div>
@@ -242,6 +379,12 @@ export function EndpointConfigRows({ urls }: { urls?: SetupSessionUrls }) {
       <ConfigLinkRow label="Mediator" href={`${urls.mediator}/mediator/v1/healthchecker`} value={`${urls.mediator}/mediator/v1/healthchecker`} />
       <hr className="p-sep"/>
       <ConfigLinkRow label="DID Hosting" href={urls.dids} value={urls.dids} />
+      {urls.vtc && (
+        <>
+          <hr className="p-sep"/>
+          <ConfigLinkRow label="VTC" href={urls.vtc} value={urls.vtc} />
+        </>
+      )}
     </>
   )
 }

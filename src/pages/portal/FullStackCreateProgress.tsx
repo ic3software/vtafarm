@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
-import { statusBadge, FULL_STACK_PHASES, phaseIndex, isValidAdminDid } from './portalUtils'
+import { statusBadge, fullStackPhases, phaseIndex, isValidAdminDid } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, CollectedDidsCard, EndpointConfigRows, AdminKeysCard } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, VtcInstallAlert, VtcInstallConfigRow, useVtcInstall, CollectedDidsCard, EndpointConfigRows, AdminKeysCard } from './FullStackOutputs'
 
-export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: string; vtaName: string }) {
+export function FullStackCreateProgress({ sessionId, vtaName, mode }: { sessionId: string; vtaName: string; mode: 'full_stack' | 'full_stack_with_vtc' }) {
   const { loadSessions } = useOutletContext<PortalContext>()
   const navigate = useNavigate()
 
@@ -19,7 +19,10 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
   const [provisionError, setProvisionError] = useState('')
   const [copiedVta, setCopiedVta] = useState(false)
 
+  const isVtc = mode === 'full_stack_with_vtc'
+  const phases = fullStackPhases(mode)
   const didsEnroll = useDidsEnroll(session)
+  const vtcInstall = useVtcInstall(isVtc ? session : null)
 
   function copyVtaDid(did: string) {
     navigator.clipboard.writeText(did).catch(() => {})
@@ -79,8 +82,8 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
   const status = session?.status
   const failed = status === 'failed'
   const completed = status === 'running'
-  const currentIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, status))
-  const currentPhaseLabel = FULL_STACK_PHASES[currentIndex]?.label ?? 'Setup'
+  const currentIndex = Math.max(0, phaseIndex(phases, status))
+  const currentPhaseLabel = phases[currentIndex]?.label ?? 'Setup'
 
   return (
     <>
@@ -108,7 +111,7 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
         </div>
       </div>
 
-      <PhaseStepper phases={FULL_STACK_PHASES} currentIndex={currentIndex} failed={failed} />
+      <PhaseStepper phases={phases} currentIndex={currentIndex} failed={failed} />
 
       {failed ? (
         <>
@@ -199,14 +202,16 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
           </div>
 
           <DidsEnrollAlert {...didsEnroll} />
+          {isVtc && <VtcInstallAlert {...vtcInstall} />}
           <CollectedDidsCard collected={session?.collected} />
 
           <div className="p-card" style={{ marginBottom: 16 }}>
             <div className="card-header"><h3 className="card-title">Configuration</h3></div>
             <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-              <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">full_stack</span></div>
+              <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">{mode}</span></div>
               <EndpointConfigRows urls={session?.urls} />
               <DidsEnrollConfigRow {...didsEnroll} />
+              {isVtc && <VtcInstallConfigRow {...vtcInstall} />}
             </div>
           </div>
 

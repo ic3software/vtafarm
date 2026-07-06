@@ -2,13 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
-import { statusBadge, FULL_STACK_PHASES, isValidAdminDid } from './portalUtils'
+import { statusBadge, fullStackPhases, isValidAdminDid } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullStackCreateProgress } from './FullStackCreateProgress'
 
 type Stage = 0 | 1 | 2 | 3
-type Mode = 'vta_only' | 'full_stack'
+type Mode = 'vta_only' | 'full_stack' | 'full_stack_with_vtc'
 
 export function CreateVTAView() {
   const { loadSessions } = useOutletContext<PortalContext>()
@@ -24,6 +24,9 @@ export function CreateVTAView() {
   const [selectedMediatorImage, setSelectedMediatorImage] = useState('')
   const [didsImages, setDidsImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedDidsImage, setSelectedDidsImage] = useState('')
+  const [vtcName, setVtcName] = useState('personal-vtc')
+  const [vtcImages, setVtcImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
+  const [selectedVtcImage, setSelectedVtcImage] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -60,15 +63,16 @@ export function CreateVTAView() {
       .catch(() => {})
   }, [])
 
-  // full_stack requires beta_access — fetched fresh from the DB since the
-  // login session/JWT doesn't carry it (an admin can flip it at any time).
+  // full_stack / full_stack_with_vtc require beta_access — fetched fresh from
+  // the DB since the login session/JWT doesn't carry it (an admin can flip it
+  // at any time).
   useEffect(() => {
     api.getMe().then(me => setBetaAccess(me.beta_access)).catch(() => {})
   }, [])
 
-  // Lazily fetch mediator/dids images the first time full_stack is selected.
+  // Lazily fetch mediator/dids images the first time a full-stack mode is selected.
   useEffect(() => {
-    if (mode !== 'full_stack' || mediatorImages.length > 0) return
+    if (mode === 'vta_only' || mediatorImages.length > 0) return
     api.listImages('mediator')
       .then(imgs => {
         setMediatorImages(imgs)
@@ -84,6 +88,18 @@ export function CreateVTAView() {
       })
       .catch(() => {})
   }, [mode, mediatorImages.length])
+
+  // Lazily fetch vtc images the first time full_stack_with_vtc is selected.
+  useEffect(() => {
+    if (mode !== 'full_stack_with_vtc' || vtcImages.length > 0) return
+    api.listImages('vtc')
+      .then(imgs => {
+        setVtcImages(imgs)
+        const latestImg = imgs.find(i => i.latest) ?? imgs[0]
+        setSelectedVtcImage(latestImg?.image ?? '')
+      })
+      .catch(() => {})
+  }, [mode, vtcImages.length])
 
   // Stage 1: poll status; trigger setup log streaming when vta_setup_running
   useEffect(() => {
@@ -210,8 +226,11 @@ export function CreateVTAView() {
 
   async function handleCreate() {
     if (!selectedImage) { setCreateError('Select a VTA image'); return }
-    if (mode === 'full_stack' && (!selectedMediatorImage || !selectedDidsImage)) {
+    if (mode !== 'vta_only' && (!selectedMediatorImage || !selectedDidsImage)) {
       setCreateError('Select a mediator and DID hosting image'); return
+    }
+    if (mode === 'full_stack_with_vtc' && !selectedVtcImage) {
+      setCreateError('Select a VTC image'); return
     }
     setCreateError(''); setCreating(true)
     try {
@@ -219,7 +238,8 @@ export function CreateVTAView() {
         mode,
         vta_image: selectedImage,
         vta_name: vtaName,
-        ...(mode === 'full_stack' ? { mediator_image: selectedMediatorImage, dids_image: selectedDidsImage } : {}),
+        ...(mode !== 'vta_only' ? { mediator_image: selectedMediatorImage, dids_image: selectedDidsImage } : {}),
+        ...(mode === 'full_stack_with_vtc' ? { vtc_image: selectedVtcImage, vtc_name: vtcName } : {}),
       })
       setSessionId(r.id)
       setStage(1)
@@ -315,7 +335,7 @@ export function CreateVTAView() {
         </div>
       </div>
       ) : stage === 0 && (
-        <PhaseStepper phases={FULL_STACK_PHASES} currentIndex={0} spinning={false} />
+        <PhaseStepper phases={fullStackPhases(mode)} currentIndex={0} spinning={false} />
       )}
 
       {/* Stage 0 */}
@@ -332,6 +352,7 @@ export function CreateVTAView() {
                 <div className="p-tabs">
                   <button type="button" className="p-tab" data-active={mode === 'vta_only'} onClick={() => setMode('vta_only')}>VTA Only</button>
                   <button type="button" className="p-tab" data-active={mode === 'full_stack'} onClick={() => setMode('full_stack')}>Full Stack</button>
+                  <button type="button" className="p-tab" data-active={mode === 'full_stack_with_vtc'} onClick={() => setMode('full_stack_with_vtc')}>Full Stack + VTC</button>
                 </div>
               ) : (
                 <span className="p-badge badge-secondary">VTA Only</span>
@@ -339,7 +360,9 @@ export function CreateVTAView() {
               <div className="field-hint">
                 {mode === 'vta_only'
                   ? 'Deploys just the VTA, pointed at a shared external mediator and DID hosting service.'
-                  : 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon just for you.'}
+                  : mode === 'full_stack'
+                    ? 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon just for you.'
+                    : 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon + Verifiable Trust Community just for you.'}
               </div>
             </div>
             <div>
@@ -369,7 +392,7 @@ export function CreateVTAView() {
                 <input className="p-input p-mono" placeholder="Loading images…" disabled />
               )}
             </div>
-            {mode === 'full_stack' && (
+            {mode !== 'vta_only' && (
               <>
                 <div>
                   <label className="p-label" htmlFor="cv-mediator-image">Mediator Image <span className="req">*</span></label>
@@ -411,11 +434,47 @@ export function CreateVTAView() {
                 </div>
               </>
             )}
+            {mode === 'full_stack_with_vtc' && (
+              <>
+                <div>
+                  <label className="p-label" htmlFor="cv-vtc-name">Community name <span className="req">*</span></label>
+                  <div className="input-group">
+                    <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <input className="p-input p-mono" id="cv-vtc-name" type="text" value={vtcName}
+                      onChange={e => setVtcName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
+                  </div>
+                  <div className="field-hint">Names the Verifiable Trust Community — also used as the VTA context the community lives under.</div>
+                </div>
+                <div>
+                  <label className="p-label" htmlFor="cv-vtc-image">VTC Image <span className="req">*</span></label>
+                  {vtcImages.length > 0 ? (
+                    <Select value={selectedVtcImage} onValueChange={setSelectedVtcImage}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vtcImages.map(img => (
+                          <SelectItem key={img.image} value={img.image} className="p-mono">
+                            {img.tag}{img.latest ? ' [latest]' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <input className="p-input p-mono" placeholder="Loading images…" disabled />
+                  )}
+                </div>
+              </>
+            )}
             {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
           </div>
           <div className="card-footer between">
             <span className="field-hint" style={{ marginTop: 0 }}>
-              {mode === 'full_stack' ? '3 DNS records are created immediately after session creation.' : 'A DNS record is created immediately after session creation.'}
+              {mode === 'full_stack_with_vtc'
+                ? '4 DNS records are created immediately after session creation.'
+                : mode === 'full_stack'
+                  ? '3 DNS records are created immediately after session creation.'
+                  : 'A DNS record is created immediately after session creation.'}
             </span>
             <button className="btn btn-default" onClick={handleCreate} disabled={creating}>
               {creating ? 'Creating…' : <>Create session <span className="arrow">→</span></>}
@@ -424,9 +483,9 @@ export function CreateVTAView() {
         </div>
       )}
 
-      {/* full_stack progress — owns everything after session creation for this mode */}
-      {mode === 'full_stack' && stage === 1 && sessionId && (
-        <FullStackCreateProgress sessionId={sessionId} vtaName={vtaName} />
+      {/* full_stack / full_stack_with_vtc progress — owns everything after session creation for these modes */}
+      {mode !== 'vta_only' && stage === 1 && sessionId && (
+        <FullStackCreateProgress sessionId={sessionId} vtaName={vtaName} mode={mode} />
       )}
 
       {/* Failure state (vta_only) */}
