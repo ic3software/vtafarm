@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type MouseEvent } from 'react'
 import { api, type SetupSession, type SetupSessionUrls, type SetupSessionCollected } from '@/lib/api'
 import { useCopyState } from './portalUtils'
 
@@ -244,22 +244,44 @@ export type VtcInstallState = ReturnType<typeof useVtcInstall>
 
 // One-shot VTC admin install link + second-channel claim code — shown at the
 // top of the completed/running page while there's still an unopened link.
-// The VTC refuses a claim without both values, so the claim code is shown
-// (copyable) right in the banner. Once opened, reissuing moves to the
-// Configuration card (VtcInstallConfigRow).
-export function VtcInstallAlert({ installUrl, claimCode, used, reissuing, reissueError, justReissued, handleOpen, handleReissue }: VtcInstallState) {
+// The VTC refuses a claim without both values, so the claim code must be
+// copied before the (single-use) link can be opened. Reissuing lives in the
+// Configuration card (VtcInstallConfigRow), not here.
+export function VtcInstallAlert({ installUrl, claimCode, used, reissueError, justReissued, handleOpen }: VtcInstallState) {
   const { copiedKey, copy } = useCopyState()
+  // Gate the one-shot link on copying the claim code first — the claimed flag
+  // persists past useCopyState's transient "Copied!" timeout, and resets when a
+  // reissue mints a fresh claim code so the new one must be copied again
+  // (render-phase reset per the React "adjust state on prop change" pattern).
+  const [claimCopied, setClaimCopied] = useState(false)
+  const [openWarning, setOpenWarning] = useState(false)
+  const [seenClaimCode, setSeenClaimCode] = useState(claimCode)
+  if (seenClaimCode !== claimCode) {
+    setSeenClaimCode(claimCode)
+    setClaimCopied(false)
+    setOpenWarning(false)
+  }
   if (!installUrl || used) return null
 
   const copied = copiedKey === 'vtc-claim-code'
+  const needsCopyFirst = !!claimCode && !claimCopied
+
+  function handleOpenClick(e: MouseEvent<HTMLAnchorElement>) {
+    if (needsCopyFirst) {
+      e.preventDefault()
+      setOpenWarning(true)
+      return
+    }
+    handleOpen()
+  }
+
   return (
     <div className="p-alert alert-warning" style={{ marginBottom: 16 }}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
       <div className="grow">
         <p className="alert-title">VTC admin install</p>
         <p className="alert-desc">
-          Visit this one-shot link to claim the VTC admin — you'll be asked for the claim code below.
-          The link expires 15 minutes after it was issued; if it's stale, reissue a fresh one first.
+          Copy the claim code below first, then open the one-shot link to claim the VTC admin — you'll be asked for it.
           {justReissued && (
             <span style={{ display: 'block', marginTop: 4 }}>
               Reissuing restarts the VTC service — wait 10 seconds before opening the new link.
@@ -275,18 +297,28 @@ export function VtcInstallAlert({ installUrl, claimCode, used, reissuing, reissu
               Claim code
             </span>
             <span className="p-mono" style={{ fontSize: 13, fontWeight: 600 }}>{claimCode}</span>
-            <button className="btn btn-outline btn-sm" style={{ gap: 6 }} onClick={() => copy('vtc-claim-code', claimCode)}>
+            <button className="btn btn-outline btn-sm" style={{ gap: 6 }} onClick={() => { copy('vtc-claim-code', claimCode); setClaimCopied(true); setOpenWarning(false) }}>
               <CopyIcon copied={copied} />
               {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
         )}
+        {openWarning && (
+          <span className="field-hint" style={{ display: 'block', marginTop: 8, color: 'hsl(var(--destructive))' }}>
+            Copy the claim code first, then open the link.
+          </span>
+        )}
       </div>
       <div className="p-row gap-8" style={{ flexShrink: 0 }}>
-        <button className="btn btn-outline btn-sm" onClick={handleReissue} disabled={reissuing}>
-          {reissuing ? 'Reissuing…' : 'Reissue link'}
-        </button>
-        <a className="btn btn-outline btn-sm" href={installUrl} target="_blank" rel="noopener" onClick={handleOpen}>Open install →</a>
+        <a
+          className="btn btn-outline btn-sm"
+          href={installUrl}
+          target="_blank"
+          rel="noopener"
+          aria-disabled={needsCopyFirst}
+          style={needsCopyFirst ? { opacity: 0.55 } : undefined}
+          onClick={handleOpenClick}
+        >Open link →</a>
       </div>
     </div>
   )
