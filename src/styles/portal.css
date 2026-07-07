@@ -196,6 +196,9 @@
 /* --- Separator --- */
 .portal-root .p-sep { height: 1px; background: hsl(var(--border)); border: none; margin: 0; }
 
+/* --- Form section heading (eyebrow) --- */
+.portal-root .p-section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+
 /* --- Alert --- */
 .portal-root .p-alert { display: flex; gap: 12px; padding: 14px 16px; border-radius: var(--radius); border: 1px solid hsl(var(--border)); background: hsl(var(--card)); }
 .portal-root .p-alert svg { width: 17px; height: 17px; flex: none; margin-top: 1px; }
@@ -261,6 +264,16 @@
 .portal-root .p-tabs { display: inline-flex; gap: 2px; padding: 3px; background: hsl(var(--muted)); border-radius: calc(var(--radius) - 1px); }
 .portal-root .p-tab { height: 30px; padding: 0 14px; font-size: 13px; font-weight: 500; color: hsl(var(--muted-foreground)); border-radius: calc(var(--radius) - 4px); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: color .15s, background .15s, box-shadow .15s; border: none; background: transparent; }
 .portal-root .p-tab[data-active="true"] { background: hsl(var(--card)); color: hsl(var(--foreground)); box-shadow: var(--shadow-sm); }
+/* Full-width variant: even segments filling the row, for form mode-pickers */
+.portal-root .p-tabs.full { display: flex; width: 100%; }
+.portal-root .p-tabs.full .p-tab { flex: 1; justify-content: center; position: relative; }
+/* Inactive segments read as clickable: hover feedback + thin dividers between them */
+.portal-root .p-tabs.full .p-tab:not([data-active="true"]):hover { color: hsl(var(--foreground)); background: hsl(var(--card) / 0.55); }
+.portal-root .p-tabs.full .p-tab + .p-tab::before { content: ""; position: absolute; left: -1px; top: 7px; bottom: 7px; width: 1px; background: hsl(var(--border)); transition: opacity .15s; }
+.portal-root .p-tabs.full .p-tab[data-active="true"]::before,
+.portal-root .p-tabs.full .p-tab[data-active="true"] + .p-tab::before,
+.portal-root .p-tabs.full .p-tab:hover::before,
+.portal-root .p-tabs.full .p-tab:hover + .p-tab::before { opacity: 0; }
 
 /* --- Stepper --- */
 .portal-root .stepper { display: flex; align-items: flex-start; width: 100%; }

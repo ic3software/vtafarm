@@ -17,14 +17,14 @@ export function CreateVTAView() {
   const [stage, setStage] = useState<Stage>(0)
   const [mode, setMode] = useState<Mode>('vta_only')
   const [betaAccess, setBetaAccess] = useState(false)
-  const [vtaName, setVtaName] = useState('personal-vta')
+  const [vtaName, setVtaName] = useState('my-vta')
   const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedImage, setSelectedImage] = useState('')
   const [mediatorImages, setMediatorImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedMediatorImage, setSelectedMediatorImage] = useState('')
   const [didsImages, setDidsImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedDidsImage, setSelectedDidsImage] = useState('')
-  const [vtcName, setVtcName] = useState('personal-vtc')
+  const [vtcName, setVtcName] = useState('my-vtc')
   const [vtcImages, setVtcImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedVtcImage, setSelectedVtcImage] = useState('')
   const [creating, setCreating] = useState(false)
@@ -349,7 +349,7 @@ export function CreateVTAView() {
             <div>
               <div className="p-label">Mode <span className="req">*</span></div>
               {betaAccess ? (
-                <div className="p-tabs">
+                <div className="p-tabs full">
                   <button type="button" className="p-tab" data-active={mode === 'vta_only'} onClick={() => setMode('vta_only')}>VTA Only</button>
                   <button type="button" className="p-tab" data-active={mode === 'full_stack'} onClick={() => setMode('full_stack')}>Full Stack</button>
                   <button type="button" className="p-tab" data-active={mode === 'full_stack_with_vtc'} onClick={() => setMode('full_stack_with_vtc')}>Full Stack + VTC</button>
@@ -365,6 +365,7 @@ export function CreateVTAView() {
                     : 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon + Verifiable Trust Community just for you.'}
               </div>
             </div>
+            <div className="p-section-title" style={{ marginTop: 4 }}>Personal setup</div>
             <div>
               <label className="p-label" htmlFor="cv-name">Agent name <span className="req">*</span></label>
               <div className="input-group">
@@ -436,6 +437,8 @@ export function CreateVTAView() {
             )}
             {mode === 'full_stack_with_vtc' && (
               <>
+                <hr className="p-sep" style={{ marginTop: 12, marginBottom: 8 }} />
+                <div className="p-section-title">Community setup</div>
                 <div>
                   <label className="p-label" htmlFor="cv-vtc-name">Community name <span className="req">*</span></label>
                   <div className="input-group">
@@ -443,7 +446,6 @@ export function CreateVTAView() {
                     <input className="p-input p-mono" id="cv-vtc-name" type="text" value={vtcName}
                       onChange={e => setVtcName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
                   </div>
-                  <div className="field-hint">Names the Verifiable Trust Community — also used as the VTA context the community lives under.</div>
                 </div>
                 <div>
                   <label className="p-label" htmlFor="cv-vtc-image">VTC Image <span className="req">*</span></label>
