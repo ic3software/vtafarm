@@ -17,14 +17,14 @@ export function CreateVTAView() {
   const [stage, setStage] = useState<Stage>(0)
   const [mode, setMode] = useState<Mode>('vta_only')
   const [betaAccess, setBetaAccess] = useState(false)
-  const [vtaName, setVtaName] = useState('my-vta')
+  const [vtaName, setVtaName] = useState('myvta')
   const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedImage, setSelectedImage] = useState('')
   const [mediatorImages, setMediatorImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedMediatorImage, setSelectedMediatorImage] = useState('')
   const [didsImages, setDidsImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedDidsImage, setSelectedDidsImage] = useState('')
-  const [vtcName, setVtcName] = useState('my-vtc')
+  const [vtcName, setVtcName] = useState('myvtc')
   const [vtcImages, setVtcImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedVtcImage, setSelectedVtcImage] = useState('')
   const [creating, setCreating] = useState(false)
@@ -373,6 +373,10 @@ export function CreateVTAView() {
                 <input className="p-input p-mono" id="cv-name" type="text" value={vtaName}
                   onChange={e => setVtaName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
               </div>
+              <div className="field-hint">
+                Must be unique. Your agent will live at{' '}
+                <span className="p-mono">vta-&lt;name&gt;.firstperson.dev</span>.
+              </div>
             </div>
             <div>
               <label className="p-label" htmlFor="cv-image">VTA Image <span className="req">*</span></label>
@@ -445,6 +449,10 @@ export function CreateVTAView() {
                     <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     <input className="p-input p-mono" id="cv-vtc-name" type="text" value={vtcName}
                       onChange={e => setVtcName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
+                  </div>
+                  <div className="field-hint">
+                    Must be unique. Your community will live at{' '}
+                    <span className="p-mono">vtc-&lt;name&gt;.firstperson.dev</span>.
                   </div>
                 </div>
                 <div>
