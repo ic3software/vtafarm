@@ -9,6 +9,8 @@ import {
 } from '@/lib/api'
 import { imageTag } from '@/lib/utils'
 
+const ALL_COMPONENTS: UpgradeComponent[] = ['vta', 'mediator', 'dids', 'vtc']
+
 const componentLabels: Record<UpgradeComponent, string> = {
   vta: 'VTA',
   mediator: 'Mediator',
@@ -31,37 +33,61 @@ function batchBadge(status: string) {
   return 'badge-default'
 }
 
+interface ComponentRow {
+  images: Array<{ tag: string; image: string; latest?: boolean }>
+  image: string // selected target
+  include: boolean
+  unavailable?: string // registry not configured / fetch failed
+}
+
 interface UpgradeModalProps {
   /** Session unique_ids to upgrade, or 'all' for every eligible session. */
   selection: string[] | 'all'
+  /** Components pre-checked in the configure step. */
+  defaultComponents?: UpgradeComponent[]
   /** Open straight into the progress view of an existing batch. */
   batchId?: number
   /** didUpgrade: whether a batch ran (parent should refresh its list). */
   onClose: (didUpgrade: boolean) => void
 }
 
-export function UpgradeModal({ selection, batchId: initialBatchId, onClose }: UpgradeModalProps) {
-  const [component, setComponent] = useState<UpgradeComponent>('vta')
-  const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
-  const [image, setImage] = useState('')
+export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: initialBatchId, onClose }: UpgradeModalProps) {
+  const [rows, setRows] = useState<Record<UpgradeComponent, ComponentRow> | null>(null)
   const [preview, setPreview] = useState<{ targets: UpgradeTarget[]; skipped: UpgradeSkipped[] } | null>(null)
   const [batchId, setBatchId] = useState<number | null>(initialBatchId ?? null)
   const [batch, setBatch] = useState<UpgradeBatchDetail | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  // Configure phase: load the component's tag list, defaulting to latest.
-  // Stale state from a previous component is reset in the select's onChange.
+  // Configure phase: load every component's tag list once, default to latest.
   useEffect(() => {
     if (batchId !== null) return
-    api.adminListImages(component)
-      .then(list => {
-        setImages(list)
-        const latest = list.find(i => i.latest) ?? list[0]
-        if (latest) setImage(latest.image)
-      })
-      .catch(err => setError(err instanceof Error ? err.message : 'Failed to load images'))
-  }, [component, batchId])
+    let stopped = false
+    Promise.all(ALL_COMPONENTS.map(component =>
+      api.adminListImages(component)
+        .then(images => ({ component, images, error: '' }))
+        .catch((err: unknown) => ({
+          component, images: [] as ComponentRow['images'],
+          error: err instanceof Error ? err.message : 'unavailable',
+        })),
+    )).then(results => {
+      if (stopped) return
+      const next = {} as Record<UpgradeComponent, ComponentRow>
+      for (const r of results) {
+        const latest = r.images.find(i => i.latest) ?? r.images[0]
+        next[r.component] = {
+          images: r.images,
+          image: latest?.image ?? '',
+          include: defaultComponents.includes(r.component) && !r.error && r.images.length > 0,
+          unavailable: r.error || undefined,
+        }
+      }
+      setRows(next)
+    })
+    return () => { stopped = true }
+    // defaultComponents is stable for the modal's lifetime — load once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchId])
 
   // Progress phase: poll the batch until it reaches a terminal state.
   useEffect(() => {
@@ -79,27 +105,26 @@ export function UpgradeModal({ selection, batchId: initialBatchId, onClose }: Up
     return () => { stopped = true; clearInterval(timer) }
   }, [batchId])
 
-  const runPreview = useCallback(() => {
-    setBusy(true); setError('')
-    api.createUpgrade({
-      component, image, dry_run: true,
-      ...(selection === 'all' ? { all: true } : { session_ids: selection }),
-    })
-      .then(res => setPreview({ targets: res.targets, skipped: res.skipped }))
-      .catch(err => setError(err instanceof Error ? err.message : 'Preview failed'))
-      .finally(() => setBusy(false))
-  }, [component, image, selection])
+  const chosen = rows
+    ? ALL_COMPONENTS.filter(c => rows[c].include && rows[c].image)
+        .map(c => ({ component: c, image: rows[c].image }))
+    : []
 
-  const startUpgrade = useCallback(() => {
+  const submit = useCallback((dryRun: boolean) => {
     setBusy(true); setError('')
     api.createUpgrade({
-      component, image,
+      components: chosen,
+      dry_run: dryRun || undefined,
       ...(selection === 'all' ? { all: true } : { session_ids: selection }),
     })
-      .then(res => { if (res.id) setBatchId(res.id) })
-      .catch(err => setError(err instanceof Error ? err.message : 'Failed to start upgrade'))
+      .then(res => {
+        if (dryRun) setPreview({ targets: res.targets, skipped: res.skipped })
+        else if (res.id) setBatchId(res.id)
+      })
+      .catch(err => setError(err instanceof Error ? err.message : 'Request failed'))
       .finally(() => setBusy(false))
-  }, [component, image, selection])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, selection])
 
   function act(fn: (id: number) => Promise<unknown>) {
     if (batchId === null) return
@@ -110,59 +135,71 @@ export function UpgradeModal({ selection, batchId: initialBatchId, onClose }: Up
       .finally(() => setBusy(false))
   }
 
+  function updateRow(component: UpgradeComponent, patch: Partial<ComponentRow>) {
+    setRows(prev => prev ? { ...prev, [component]: { ...prev[component], ...patch } } : prev)
+    setPreview(null)
+    setError('')
+  }
+
   const terminal = batch?.status === 'completed' || batch?.status === 'cancelled'
   const didUpgrade = batchId !== null
 
   return (
     <div className="p-overlay">
-      <div className="p-dialog" style={{ maxWidth: 600 }}>
+      <div className="p-dialog" style={{ maxWidth: 620 }}>
         {batchId === null ? (
           <>
             <div className="dialog-header">
               <h3 className="dialog-title">Upgrade sessions</h3>
               <p className="dialog-desc">
                 {selection === 'all'
-                  ? 'Roll a new image out to every eligible running session.'
-                  : `Roll a new image out to ${selection.length} selected session${selection.length === 1 ? '' : 's'}.`}
-                {' '}Sessions are upgraded a few at a time; the batch pauses on the first failure.
+                  ? 'Roll new images out to every eligible running session.'
+                  : `Roll new images out to ${selection.length} selected session${selection.length === 1 ? '' : 's'}.`}
+                {' '}Pick the components to upgrade — sessions are upgraded one task at a time, and the batch pauses on the first failure.
               </p>
             </div>
             <div className="dialog-body">
-              <div>
-                <label className="p-label">Component</label>
-                <select className="p-select" value={component}
-                  onChange={e => {
-                    setComponent(e.target.value as UpgradeComponent)
-                    setImages([]); setImage(''); setPreview(null); setError('')
-                  }}>
-                  {(Object.keys(componentLabels) as UpgradeComponent[]).map(c => (
-                    <option key={c} value={c}>{componentLabels[c]}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="p-label">Target image</label>
-                <select className="p-select p-mono" style={{ fontSize: 12 }} value={image}
-                  onChange={e => { setImage(e.target.value); setPreview(null) }}>
-                  {images.map(i => (
-                    <option key={i.image} value={i.image}>
-                      {i.tag}{i.latest ? ' (latest)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {rows === null ? (
+                <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Loading image lists…</p>
+              ) : ALL_COMPONENTS.map(component => {
+                const row = rows[component]
+                return (
+                  <div key={component} className="p-row" style={{ alignItems: 'center', gap: 10 }}>
+                    <label className="p-row" style={{ alignItems: 'center', gap: 8, minWidth: 130, fontSize: 13, cursor: row.unavailable ? 'not-allowed' : 'pointer' }}>
+                      <input type="checkbox" checked={row.include} disabled={!!row.unavailable}
+                        onChange={e => updateRow(component, { include: e.target.checked })} />
+                      {componentLabels[component]}
+                    </label>
+                    {row.unavailable ? (
+                      <span style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{row.unavailable}</span>
+                    ) : (
+                      <select className="p-select p-mono" style={{ fontSize: 12, flex: 1 }} value={row.image}
+                        disabled={!row.include}
+                        onChange={e => updateRow(component, { image: e.target.value })}>
+                        {row.images.map(i => (
+                          <option key={i.image} value={i.image}>
+                            {i.tag}{i.latest ? ' (latest)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )
+              })}
 
               {preview && (
                 <div style={{ fontSize: 13 }}>
                   <p style={{ margin: '0 0 6px' }}>
-                    <strong>{preview.targets.length}</strong> session{preview.targets.length === 1 ? '' : 's'} will be
-                    upgraded to <span className="p-mono">{imageTag(image)}</span>
+                    <strong>{preview.targets.length}</strong> upgrade task{preview.targets.length === 1 ? '' : 's'} will run
                     {preview.skipped.length > 0 && <> · {preview.skipped.length} skipped</>}
                   </p>
                   {preview.skipped.length > 0 && (
                     <ul style={{ margin: 0, paddingLeft: 18, color: 'hsl(var(--muted-foreground))' }}>
-                      {preview.skipped.map(s => (
-                        <li key={s.session_id}><span className="p-mono">{s.session_id}</span> — {s.reason}</li>
+                      {preview.skipped.map((s, i) => (
+                        <li key={i}>
+                          <span className="p-mono">{s.session_id}</span>
+                          {s.component && <> ({s.component})</>} — {s.reason}
+                        </li>
                       ))}
                     </ul>
                   )}
@@ -175,13 +212,13 @@ export function UpgradeModal({ selection, batchId: initialBatchId, onClose }: Up
                 Cancel
               </button>
               {preview === null ? (
-                <button className="btn btn-default" type="button" disabled={busy || !image} onClick={runPreview}>
+                <button className="btn btn-default" type="button" disabled={busy || chosen.length === 0} onClick={() => submit(true)}>
                   {busy ? 'Checking…' : 'Preview'}
                 </button>
               ) : (
                 <button className="btn btn-default" type="button"
-                  disabled={busy || preview.targets.length === 0} onClick={startUpgrade}>
-                  {busy ? 'Starting…' : `Upgrade ${preview.targets.length} session${preview.targets.length === 1 ? '' : 's'}`}
+                  disabled={busy || preview.targets.length === 0} onClick={() => submit(false)}>
+                  {busy ? 'Starting…' : `Run ${preview.targets.length} upgrade${preview.targets.length === 1 ? '' : 's'}`}
                 </button>
               )}
             </div>
@@ -195,8 +232,8 @@ export function UpgradeModal({ selection, batchId: initialBatchId, onClose }: Up
               </div>
               {batch && (
                 <p className="dialog-desc" style={{ marginTop: 4 }}>
-                  {componentLabels[batch.component]} → <span className="p-mono">{imageTag(batch.image)}</span>
-                  {batch.status === 'paused' && ' — paused after a failure. Resume to continue with the remaining sessions, or cancel the batch.'}
+                  Components: {batch.components.map(c => componentLabels[c]).join(', ')}
+                  {batch.status === 'paused' && ' — paused after a failure. Resume to continue with the remaining tasks, or cancel the batch.'}
                 </p>
               )}
             </div>
@@ -204,11 +241,12 @@ export function UpgradeModal({ selection, batchId: initialBatchId, onClose }: Up
               {batch === null ? (
                 <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Loading…</p>
               ) : batch.tasks.map((t, i) => (
-                <div key={t.session_id || i} className="p-row" style={{ alignItems: 'center', gap: 10, fontSize: 13 }}>
+                <div key={`${t.session_id}-${t.component}-${i}`} className="p-row" style={{ alignItems: 'center', gap: 10, fontSize: 13 }}>
                   <span className="p-mono" style={{ fontSize: 12, minWidth: 70 }}>{t.session_id || '(deleted)'}</span>
+                  <span className="p-badge badge-secondary">{t.component}</span>
                   <span style={{ color: 'hsl(var(--muted-foreground))', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {t.vta_name}
-                    <span className="p-mono" style={{ fontSize: 11.5 }}> {imageTag(t.from_image)} → {imageTag(batch.image)}</span>
+                    <span className="p-mono" style={{ fontSize: 11.5 }}> {imageTag(t.from_image)} → {imageTag(t.to_image)}</span>
                   </span>
                   <span className={`p-badge ${taskBadge(t.status)}`} title={t.error_msg || undefined}>{t.status}</span>
                 </div>
@@ -216,8 +254,8 @@ export function UpgradeModal({ selection, batchId: initialBatchId, onClose }: Up
               {batch?.tasks.some(t => t.status === 'failed' && t.error_msg) && (
                 <div style={{ fontSize: 12, color: 'hsl(var(--destructive))' }}>
                   {batch.tasks.filter(t => t.status === 'failed' && t.error_msg).map((t, i) => (
-                    <p key={t.session_id || i} style={{ margin: '2px 0' }}>
-                      <span className="p-mono">{t.session_id}</span>: {t.error_msg}
+                    <p key={i} style={{ margin: '2px 0' }}>
+                      <span className="p-mono">{t.session_id}</span> ({t.component}): {t.error_msg}
                     </p>
                   ))}
                 </div>

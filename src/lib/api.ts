@@ -130,18 +130,19 @@ export type UpgradeTaskStatus = 'pending' | 'running' | 'succeeded' | 'failed' |
 export interface UpgradeTarget {
   session_id: string
   vta_name: string
+  component: UpgradeComponent
   from_image: string
 }
 
 export interface UpgradeSkipped {
   session_id: string
+  component?: UpgradeComponent
   reason: string
 }
 
 export interface UpgradeBatchSummary {
   id: number
-  component: UpgradeComponent
-  image: string
+  components: UpgradeComponent[]
   concurrency: number
   status: UpgradeBatchStatus
   task_counts: Record<string, number>
@@ -152,7 +153,9 @@ export interface UpgradeBatchSummary {
 export interface UpgradeTaskItem {
   session_id: string
   vta_name?: string
+  component: UpgradeComponent
   from_image: string
+  to_image: string
   status: UpgradeTaskStatus
   error_msg?: string
   updated_at: string
@@ -160,8 +163,7 @@ export interface UpgradeTaskItem {
 
 export interface UpgradeBatchDetail {
   id: number
-  component: UpgradeComponent
-  image: string
+  components: UpgradeComponent[]
   status: UpgradeBatchStatus
   created_at: string
   tasks: UpgradeTaskItem[]
@@ -238,8 +240,7 @@ export const api = {
 
   // ── Admin — upgrade batches ──────────────────────────────────────────────────
   createUpgrade: (data: {
-    component: UpgradeComponent
-    image: string
+    components: Array<{ component: UpgradeComponent; image: string }>
     session_ids?: string[]
     all?: boolean
     dry_run?: boolean

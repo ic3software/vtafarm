@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { api, type AdminSetupSession, type UpgradeBatchSummary } from '@/lib/api'
+import { api, type AdminSetupSession, type UpgradeBatchSummary, type UpgradeComponent } from '@/lib/api'
 import { UpgradeModal } from './UpgradeModal'
 import { imageTag } from '@/lib/utils'
 
@@ -22,6 +22,12 @@ const modeLabels: Record<string, string> = {
   full_stack_with_vtc: 'Full stack + VTC',
 }
 
+const modeComponents: Record<string, UpgradeComponent[]> = {
+  vta_only: ['vta'],
+  full_stack: ['vta', 'mediator', 'dids'],
+  full_stack_with_vtc: ['vta', 'mediator', 'dids', 'vtc'],
+}
+
 function componentImages(s: AdminSetupSession): Array<[string, string]> {
   const rows: Array<[string, string]> = []
   if (s.vta_image) rows.push(['vta', s.vta_image])
@@ -31,8 +37,24 @@ function componentImages(s: AdminSetupSession): Array<[string, string]> {
   return rows
 }
 
+/** Page numbers with ellipsis gaps, e.g. 1 … 4 5 6 … 12. */
+function pageNumbers(current: number, total: number): Array<number | '…'> {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const wanted = [...new Set([1, current - 1, current, current + 1, total])]
+    .filter(p => p >= 1 && p <= total)
+    .sort((a, b) => a - b)
+  const out: Array<number | '…'> = []
+  let prev = 0
+  for (const p of wanted) {
+    if (p - prev > 1) out.push('…')
+    out.push(p)
+    prev = p
+  }
+  return out
+}
+
 type ModalState =
-  | { kind: 'create'; selection: string[] | 'all' }
+  | { kind: 'create'; selection: string[] | 'all'; defaultComponents: UpgradeComponent[] }
   | { kind: 'progress'; batchId: number }
   | null
 
@@ -42,7 +64,8 @@ export function SessionsView() {
   const [total, setTotal] = useState(0)
   const [pageSize, setPageSize] = useState(20)
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+  // unique_id → mode, so the upgrade modal can pre-check the right components
+  const [selected, setSelected] = useState<Map<string, string>>(new Map())
   const [modal, setModal] = useState<ModalState>(null)
   const [activeBatch, setActiveBatch] = useState<UpgradeBatchSummary | null>(null)
 
@@ -76,17 +99,17 @@ export function SessionsView() {
     setModal(null)
     void refreshActiveBatch()
     if (didUpgrade) {
-      setSelected(new Set())
+      setSelected(new Map())
       setLoading(true)
       void fetchPage(page)
     }
   }
 
-  function toggleSelected(id: string) {
+  function toggleSelected(s: AdminSetupSession) {
     setSelected(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      const next = new Map(prev)
+      if (next.has(s.unique_id)) next.delete(s.unique_id)
+      else next.set(s.unique_id, s.mode)
       return next
     })
   }
@@ -96,11 +119,20 @@ export function SessionsView() {
 
   function togglePageSelection() {
     setSelected(prev => {
-      const next = new Set(prev)
+      const next = new Map(prev)
       if (allPageSelected) eligibleOnPage.forEach(s => next.delete(s.unique_id))
-      else eligibleOnPage.forEach(s => next.add(s.unique_id))
+      else eligibleOnPage.forEach(s => next.set(s.unique_id, s.mode))
       return next
     })
+  }
+
+  // Union of the selected sessions' components — pre-checked in the modal.
+  function selectedComponents(): UpgradeComponent[] {
+    const set = new Set<UpgradeComponent>()
+    for (const mode of selected.values()) {
+      for (const c of modeComponents[mode] ?? ['vta']) set.add(c)
+    }
+    return set.size > 0 ? [...set] : ['vta']
   }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -112,8 +144,9 @@ export function SessionsView() {
           <h1>Sessions</h1>
           <p className="sub">All users' VTA setup sessions, newest first. Select running sessions to upgrade their images.</p>
         </div>
-        <button className="btn btn-outline btn-sm" onClick={() => setModal({ kind: 'create', selection: 'all' })}>
-          Upgrade all…
+        <button className="btn btn-outline btn-sm"
+          onClick={() => setModal({ kind: 'create', selection: 'all', defaultComponents: ['vta'] })}>
+          Upgrade all
         </button>
       </div>
 
@@ -126,8 +159,7 @@ export function SessionsView() {
             {activeBatch.status}
           </span>
           <span style={{ flex: 1 }}>
-            Upgrade batch #{activeBatch.id} — {activeBatch.component} →{' '}
-            <span className="p-mono" style={{ fontSize: 12 }}>{imageTag(activeBatch.image)}</span>
+            Upgrade batch #{activeBatch.id} — {activeBatch.components.join(', ')}
           </span>
           <button className="btn btn-outline btn-sm" onClick={() => setModal({ kind: 'progress', batchId: activeBatch.id })}>
             View progress
@@ -138,10 +170,11 @@ export function SessionsView() {
       {selected.size > 0 && (
         <div className="p-row" style={{ alignItems: 'center', gap: 10, marginBottom: 14, fontSize: 13 }}>
           <span>{selected.size} selected</span>
-          <button className="btn btn-default btn-sm" onClick={() => setModal({ kind: 'create', selection: [...selected] })}>
-            Upgrade selected…
+          <button className="btn btn-default btn-sm"
+            onClick={() => setModal({ kind: 'create', selection: [...selected.keys()], defaultComponents: selectedComponents() })}>
+            Upgrade selected
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setSelected(new Set())}>
+          <button className="btn btn-ghost btn-sm" onClick={() => setSelected(new Map())}>
             Clear
           </button>
         </div>
@@ -181,7 +214,7 @@ export function SessionsView() {
               <tr key={s.id}>
                 <td>
                   <input type="checkbox" checked={selected.has(s.unique_id)} disabled={s.status !== 'running'}
-                    onChange={() => toggleSelected(s.unique_id)} aria-label={`Select session ${s.unique_id}`} />
+                    onChange={() => toggleSelected(s)} aria-label={`Select session ${s.unique_id}`} />
                 </td>
                 <td>
                   <div className="p-row gap-8" style={{ alignItems: 'baseline' }}>
@@ -217,9 +250,9 @@ export function SessionsView() {
 
       <div className="p-row" style={{ alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
         <span style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>
-          {total} session{total === 1 ? '' : 's'} · Page {page} of {totalPages}
+          Total {total} session{total === 1 ? '' : 's'}
         </span>
-        <div className="p-row gap-8">
+        <div className="p-row gap-8" style={{ alignItems: 'center' }}>
           <button
             className="btn btn-outline btn-sm"
             disabled={loading || page <= 1}
@@ -227,6 +260,18 @@ export function SessionsView() {
           >
             Previous
           </button>
+          {pageNumbers(page, totalPages).map((p, i) => p === '…' ? (
+            <span key={`gap-${i}`} style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>…</span>
+          ) : (
+            <button
+              key={p}
+              className={`btn btn-sm ${p === page ? 'btn-default' : 'btn-outline'}`}
+              disabled={loading}
+              onClick={() => { if (p !== page) loadPage(p) }}
+            >
+              {p}
+            </button>
+          ))}
           <button
             className="btn btn-outline btn-sm"
             disabled={loading || page >= totalPages}
@@ -238,7 +283,7 @@ export function SessionsView() {
       </div>
 
       {modal?.kind === 'create' && (
-        <UpgradeModal selection={modal.selection} onClose={closeModal} />
+        <UpgradeModal selection={modal.selection} defaultComponents={modal.defaultComponents} onClose={closeModal} />
       )}
       {modal?.kind === 'progress' && (
         <UpgradeModal selection={[]} batchId={modal.batchId} onClose={closeModal} />
