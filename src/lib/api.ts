@@ -123,6 +123,50 @@ export interface AdminSessionsPage {
   page_size: number
 }
 
+export type UpgradeComponent = 'vta' | 'mediator' | 'dids' | 'vtc'
+export type UpgradeBatchStatus = 'running' | 'paused' | 'completed' | 'cancelled'
+export type UpgradeTaskStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped'
+
+export interface UpgradeTarget {
+  session_id: string
+  vta_name: string
+  from_image: string
+}
+
+export interface UpgradeSkipped {
+  session_id: string
+  reason: string
+}
+
+export interface UpgradeBatchSummary {
+  id: number
+  component: UpgradeComponent
+  image: string
+  concurrency: number
+  status: UpgradeBatchStatus
+  task_counts: Record<string, number>
+  created_at: string
+  updated_at: string
+}
+
+export interface UpgradeTaskItem {
+  session_id: string
+  vta_name?: string
+  from_image: string
+  status: UpgradeTaskStatus
+  error_msg?: string
+  updated_at: string
+}
+
+export interface UpgradeBatchDetail {
+  id: number
+  component: UpgradeComponent
+  image: string
+  status: UpgradeBatchStatus
+  created_at: string
+  tasks: UpgradeTaskItem[]
+}
+
 interface ApiError extends Error {
   status: number
 }
@@ -189,8 +233,25 @@ export const api = {
   // ── Admin — setup sessions ───────────────────────────────────────────────────
   adminListSessions: (page = 1) =>
     req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?page=${page}`),
-  adminListImages: (component: 'vta' | 'mediator' | 'dids' | 'vtc' = 'vta') =>
+  adminListImages: (component: UpgradeComponent = 'vta') =>
     req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/admin/setup/images?component=${component}`),
+
+  // ── Admin — upgrade batches ──────────────────────────────────────────────────
+  createUpgrade: (data: {
+    component: UpgradeComponent
+    image: string
+    session_ids?: string[]
+    all?: boolean
+    dry_run?: boolean
+  }) =>
+    req<{ id?: number; status?: UpgradeBatchStatus; targets: UpgradeTarget[]; skipped: UpgradeSkipped[] }>(
+      'POST', '/api/v1/admin/upgrades', data),
+  listUpgrades: () => req<UpgradeBatchSummary[]>('GET', '/api/v1/admin/upgrades'),
+  getUpgrade: (id: number) => req<UpgradeBatchDetail>('GET', `/api/v1/admin/upgrades/${id}`),
+  cancelUpgrade: (id: number) =>
+    req<{ id: number; status: UpgradeBatchStatus }>('POST', `/api/v1/admin/upgrades/${id}/cancel`),
+  resumeUpgrade: (id: number) =>
+    req<{ id: number; status: UpgradeBatchStatus }>('POST', `/api/v1/admin/upgrades/${id}/resume`),
 
   // ── Invitations ──────────────────────────────────────────────────────────────
   createInvitation: () =>
