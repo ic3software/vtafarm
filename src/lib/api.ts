@@ -132,6 +132,7 @@ export interface UpgradeTarget {
   vta_name: string
   component: UpgradeComponent
   from_image: string
+  to_image?: string
 }
 
 export interface UpgradeSkipped {
