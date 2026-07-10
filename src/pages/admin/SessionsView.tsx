@@ -68,13 +68,15 @@ export function SessionsView() {
   const [selected, setSelected] = useState<Map<string, string>>(new Map())
   const [modal, setModal] = useState<ModalState>(null)
   const [activeBatch, setActiveBatch] = useState<UpgradeBatchSummary | null>(null)
+  // null = all modes; filtering happens server-side (the list is paginated).
+  const [modeFilter, setModeFilter] = useState<string | null>(null)
 
   const fetchPage = useCallback((p: number) => (
-    api.adminListSessions(p)
+    api.adminListSessions(p, modeFilter ?? undefined)
       .then(res => { setSessions(res.items); setTotal(res.total); setPage(res.page); setPageSize(res.page_size) })
       .catch(() => {})
       .finally(() => setLoading(false))
-  ), [])
+  ), [modeFilter])
 
   // Surface a batch that is still running/paused (e.g. started in a previous
   // visit) so the admin can get back to its progress view.
@@ -87,12 +89,20 @@ export function SessionsView() {
       .catch(() => {})
   ), [])
 
-  // loading starts true, so the initial fetch needs no synchronous setState here.
+  // loading starts true, so the initial fetch needs no synchronous setState
+  // here. Re-runs on filter change (fetchPage's identity tracks modeFilter);
+  // toggleModeFilter sets loading before that happens.
   useEffect(() => { void fetchPage(1); void refreshActiveBatch() }, [fetchPage, refreshActiveBatch])
 
   function loadPage(p: number) {
     setLoading(true)
     void fetchPage(p)
+  }
+
+  function setFilter(mode: string | null) {
+    if (mode === modeFilter) return
+    setLoading(true)
+    setModeFilter(mode)
   }
 
   function closeModal(didUpgrade: boolean) {
@@ -148,6 +158,23 @@ export function SessionsView() {
           onClick={() => setModal({ kind: 'create', selection: 'all', defaultComponents: ALL_COMPONENTS })}>
           Upgrade all
         </button>
+      </div>
+
+      <div className="p-row" style={{ gap: 8, marginBottom: 14 }}>
+        <button
+          className={`btn btn-sm ${modeFilter === null ? 'btn-default' : 'btn-outline'}`}
+          aria-pressed={modeFilter === null}
+          onClick={() => setFilter(null)}>
+          All
+        </button>
+        {Object.entries(modeLabels).map(([mode, label]) => (
+          <button key={mode}
+            className={`btn btn-sm ${modeFilter === mode ? 'btn-default' : 'btn-outline'}`}
+            aria-pressed={modeFilter === mode}
+            onClick={() => setFilter(mode)}>
+            {label}
+          </button>
+        ))}
       </div>
 
       {activeBatch && (

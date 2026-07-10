@@ -235,8 +235,8 @@ export const api = {
     req<{ id: string; beta_access: boolean }>('PUT', `/api/v1/admin/users/${id}/beta-access`, { beta_access: betaAccess }),
 
   // ── Admin — setup sessions ───────────────────────────────────────────────────
-  adminListSessions: (page = 1) =>
-    req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?page=${page}`),
+  adminListSessions: (page = 1, mode?: string) =>
+    req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?page=${page}${mode ? `&mode=${encodeURIComponent(mode)}` : ''}`),
   adminListImages: (component: UpgradeComponent = 'vta') =>
     req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/admin/setup/images?component=${component}`),
 
