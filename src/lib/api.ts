@@ -99,6 +99,30 @@ export interface Invitation {
   created_at: string
 }
 
+export interface AdminSetupSession {
+  id: number
+  unique_id: string
+  user_unique_id: string
+  vta_name: string
+  vtc_name?: string
+  mode: SetupMode
+  status: SetupStatus
+  error_msg?: string
+  fqdn: string
+  vta_image?: string
+  mediator_image?: string
+  dids_image?: string
+  vtc_image?: string
+  created_at: string
+}
+
+export interface AdminSessionsPage {
+  items: AdminSetupSession[]
+  total: number
+  page: number
+  page_size: number
+}
+
 interface ApiError extends Error {
   status: number
 }
@@ -161,6 +185,12 @@ export const api = {
   listUsers: () => req<User[]>('GET', '/api/v1/admin/users'),
   setUserBetaAccess: (id: string, betaAccess: boolean) =>
     req<{ id: string; beta_access: boolean }>('PUT', `/api/v1/admin/users/${id}/beta-access`, { beta_access: betaAccess }),
+
+  // ── Admin — setup sessions ───────────────────────────────────────────────────
+  adminListSessions: (page = 1) =>
+    req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?page=${page}`),
+  adminListImages: (component: 'vta' | 'mediator' | 'dids' | 'vtc' = 'vta') =>
+    req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/admin/setup/images?component=${component}`),
 
   // ── Invitations ──────────────────────────────────────────────────────────────
   createInvitation: () =>
