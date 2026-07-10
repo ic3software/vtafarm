@@ -124,6 +124,7 @@ export interface AdminSessionsPage {
 }
 
 export type UpgradeComponent = 'vta' | 'mediator' | 'dids' | 'vtc'
+export const ALL_COMPONENTS: UpgradeComponent[] = ['vta', 'mediator', 'dids', 'vtc']
 export type UpgradeBatchStatus = 'running' | 'paused' | 'completed' | 'cancelled'
 export type UpgradeTaskStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped'
 

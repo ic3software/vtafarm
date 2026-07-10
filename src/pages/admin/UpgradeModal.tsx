@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   api,
+  ALL_COMPONENTS,
   type UpgradeComponent,
   type UpgradeBatchDetail,
   type UpgradeTarget,
@@ -8,8 +9,6 @@ import {
   type UpgradeTaskStatus,
 } from '@/lib/api'
 import { imageTag } from '@/lib/utils'
-
-const ALL_COMPONENTS: UpgradeComponent[] = ['vta', 'mediator', 'dids', 'vtc']
 
 const componentLabels: Record<UpgradeComponent, string> = {
   vta: 'VTA',

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { api, type AdminSetupSession, type UpgradeBatchSummary, type UpgradeComponent } from '@/lib/api'
+import { api, ALL_COMPONENTS, type AdminSetupSession, type UpgradeBatchSummary, type UpgradeComponent } from '@/lib/api'
 import { UpgradeModal } from './UpgradeModal'
 import { imageTag } from '@/lib/utils'
 
@@ -145,7 +145,7 @@ export function SessionsView() {
           <p className="sub">All users' VTA setup sessions, newest first. Select running sessions to upgrade their images.</p>
         </div>
         <button className="btn btn-outline btn-sm"
-          onClick={() => setModal({ kind: 'create', selection: 'all', defaultComponents: ['vta'] })}>
+          onClick={() => setModal({ kind: 'create', selection: 'all', defaultComponents: ALL_COMPONENTS })}>
           Upgrade all
         </button>
       </div>
