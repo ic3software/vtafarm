@@ -1,4 +1,9 @@
+import { useState, type FormEvent } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
+import { Mail, MailOpen } from 'lucide-react'
+import { api } from '@/lib/api'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useTheme } from '@/lib/useTheme'
 import { MobilePreview } from '@/pages/MobilePreview'
 import { UserLogin } from '@/pages/UserLogin'
@@ -13,6 +18,7 @@ import { AdminsView } from '@/pages/admin/AdminsView'
 import { UsersView } from '@/pages/admin/UsersView'
 import { SessionsView } from '@/pages/admin/SessionsView'
 import { InvitationsView } from '@/pages/admin/InvitationsView'
+import { RequestsView } from '@/pages/admin/RequestsView'
 import { SecurityView } from '@/pages/admin/SecurityView'
 import { Register } from '@/pages/Register'
 import { AdminEnroll } from '@/pages/AdminEnroll'
@@ -20,6 +26,38 @@ import { UserAuthProvider } from '@/contexts/UserAuthContext'
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 
 function HomePage() {
+  const [open, setOpen] = useState(false)
+  const [email, setEmail] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState<'received' | 'already_requested' | null>(null)
+  const [error, setError] = useState('')
+
+  // Reset on OPEN, not close — the dialog stays mounted during its exit
+  // animation, and resetting then would swap the success message back to the
+  // (taller) form mid-fade, making the modal visibly jump.
+  function handleOpenChange(next: boolean) {
+    setOpen(next)
+    if (next) {
+      setEmail('')
+      setDone(null)
+      setError('')
+    }
+  }
+
+  async function submitRequest(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      const res = await api.requestSignup(email.trim())
+      setDone(res.status === 'already_requested' ? 'already_requested' : 'received')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Request failed — please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <main className="flex min-h-dvh items-center justify-center">
       <div className="section-wrap flex flex-col items-center text-center">
@@ -49,6 +87,58 @@ function HomePage() {
             Docs
           </a>
         </div>
+
+        <button
+          type="button"
+          onClick={() => handleOpenChange(true)}
+          className="btn-ghost-light group mt-4 flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
+        >
+          {/* Closed envelope crossfades into an open one on hover. */}
+          <span className="relative size-4" aria-hidden="true">
+            <Mail className="absolute inset-0 size-4 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:opacity-0" />
+            <MailOpen className="absolute inset-0 size-4 opacity-0 transition-all duration-200 group-hover:opacity-100" />
+          </span>
+          Request access
+        </button>
+
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Request access</DialogTitle>
+              <DialogDescription>
+                {done === 'already_requested'
+                  ? 'You\'ve already requested access — please wait while an admin reviews it.'
+                  : done === 'received'
+                    ? 'Request received — we\'ll email you an invitation link once it\'s approved.'
+                    : 'Leave your email and we\'ll send you an invitation link once your request is approved.'}
+              </DialogDescription>
+            </DialogHeader>
+            {!done && (
+              <form onSubmit={submitRequest} className="flex flex-col gap-3">
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  autoFocus
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  aria-label="Email address"
+                  autoComplete="email"
+                  data-1p-ignore=""
+                  data-bwignore=""
+                  data-lpignore="true"
+                  data-form-type="other"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                />
+                {error && <p className="text-sm text-destructive">{error}</p>}
+                <Button type="submit" size="lg" disabled={busy} className="h-11 w-full text-[14.5px]">
+                  {busy ? 'Sending…' : 'Send request'}
+                </Button>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </main>
   )
@@ -80,6 +170,7 @@ export default function App() {
               <Route index element={<AdminsView />} />
               <Route path="users" element={<UsersView />} />
               <Route path="sessions" element={<SessionsView />} />
+              <Route path="requests" element={<RequestsView />} />
               <Route path="invitations" element={<InvitationsView />} />
               <Route path="settings" element={<SecurityView />} />
             </Route>

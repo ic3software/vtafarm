@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { api, ALL_COMPONENTS, type AdminSetupSession, type UpgradeBatchSummary, type UpgradeComponent } from '@/lib/api'
+import { api, ALL_COMPONENTS, type AdminSessionsPage, type AdminSetupSession, type UpgradeBatchSummary, type UpgradeComponent } from '@/lib/api'
 import { UpgradeModal } from './UpgradeModal'
-import { imageTag } from '@/lib/utils'
+import { imageTag, pageNumbers } from '@/lib/utils'
 
 const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'
 
@@ -37,22 +37,6 @@ function componentImages(s: AdminSetupSession): Array<[string, string]> {
   return rows
 }
 
-/** Page numbers with ellipsis gaps, e.g. 1 … 4 5 6 … 12. */
-function pageNumbers(current: number, total: number): Array<number | '…'> {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const wanted = [...new Set([1, current - 1, current, current + 1, total])]
-    .filter(p => p >= 1 && p <= total)
-    .sort((a, b) => a - b)
-  const out: Array<number | '…'> = []
-  let prev = 0
-  for (const p of wanted) {
-    if (p - prev > 1) out.push('…')
-    out.push(p)
-    prev = p
-  }
-  return out
-}
-
 type ModalState =
   | { kind: 'create'; selection: string[] | 'all'; defaultComponents: UpgradeComponent[] }
   | { kind: 'progress'; batchId: number }
@@ -70,10 +54,14 @@ export function SessionsView() {
   const [activeBatch, setActiveBatch] = useState<UpgradeBatchSummary | null>(null)
   // null = all modes; filtering happens server-side (the list is paginated).
   const [modeFilter, setModeFilter] = useState<string | null>(null)
+  const [counts, setCounts] = useState<AdminSessionsPage['counts'] | null>(null)
 
   const fetchPage = useCallback((p: number) => (
     api.adminListSessions(p, modeFilter ?? undefined)
-      .then(res => { setSessions(res.items); setTotal(res.total); setPage(res.page); setPageSize(res.page_size) })
+      .then(res => {
+        setSessions(res.items); setTotal(res.total); setPage(res.page)
+        setPageSize(res.page_size); setCounts(res.counts)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   ), [modeFilter])
@@ -165,14 +153,14 @@ export function SessionsView() {
           className={`btn btn-sm ${modeFilter === null ? 'btn-default' : 'btn-outline'}`}
           aria-pressed={modeFilter === null}
           onClick={() => setFilter(null)}>
-          All
+          All{counts ? ` (${counts.all})` : ''}
         </button>
         {Object.entries(modeLabels).map(([mode, label]) => (
           <button key={mode}
             className={`btn btn-sm ${modeFilter === mode ? 'btn-default' : 'btn-outline'}`}
             aria-pressed={modeFilter === mode}
             onClick={() => setFilter(mode)}>
-            {label}
+            {label}{counts ? ` (${counts[mode as keyof typeof counts] ?? 0})` : ''}
           </button>
         ))}
       </div>

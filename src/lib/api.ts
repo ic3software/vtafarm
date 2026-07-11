@@ -99,6 +99,35 @@ export interface Invitation {
   created_at: string
 }
 
+export interface SignupRequest {
+  id: number
+  email: string
+  status: 'pending' | 'approved'
+  created_at: string
+  email_sent_at?: string
+  invite_token?: string
+  invite_expires_at?: string
+  invite_used_at?: string
+}
+
+export interface SignupRequestsPage {
+  items: SignupRequest[]
+  total: number
+  page: number
+  page_size: number
+  /** Per-state totals, independent of the active filter. */
+  counts: { all: number; pending: number; invited: number; expired: number; registered: number }
+}
+
+export interface SignupApproveResult {
+  id: number
+  email?: string
+  invite_url?: string
+  email_sent: boolean
+  email_error?: string
+  error?: string
+}
+
 export interface AdminSetupSession {
   id: number
   unique_id: string
@@ -121,6 +150,8 @@ export interface AdminSessionsPage {
   total: number
   page: number
   page_size: number
+  /** Per-mode totals, independent of the active filter, plus "all". */
+  counts: Record<'all' | SetupMode, number>
 }
 
 export type UpgradeComponent = 'vta' | 'mediator' | 'dids' | 'vtc'
@@ -264,6 +295,14 @@ export const api = {
     req<{ valid: boolean; expires_at: string }>('GET', `/api/v1/invitations/${token}`),
   registerViaInvitation: (token: string) =>
     req<{ id: number; unique_id: string; token: string }>('POST', `/api/v1/invitations/${token}/register`),
+
+  // ── Signup requests ──────────────────────────────────────────────────────────
+  requestSignup: (email: string) =>
+    req<{ status: string }>('POST', '/api/v1/signup-requests', { email }),
+  listSignupRequests: (page = 1, state?: string) =>
+    req<SignupRequestsPage>('GET', `/api/v1/admin/signup-requests?page=${page}${state ? `&state=${encodeURIComponent(state)}` : ''}`),
+  approveSignupRequests: (ids: number[]) =>
+    req<{ results: SignupApproveResult[] }>('POST', '/api/v1/admin/signup-requests/approve', { ids }),
 
   // ── User passkeys ────────────────────────────────────────────────────────────
   passkeyRegisterBegin: () =>
