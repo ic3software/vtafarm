@@ -16,10 +16,13 @@ function statusBadge(status: string) {
   return 'badge-secondary'
 }
 
+// full_stack (without VTC) can no longer be created, but old sessions still
+// carry it — shown as "legacy" to distinguish it from the current Full stack
+// (which is full_stack_with_vtc under the hood).
 const modeLabels: Record<string, string> = {
   vta_only: 'VTA only',
-  full_stack: 'Full stack',
-  full_stack_with_vtc: 'Full stack + VTC',
+  full_stack: 'Full stack (legacy)',
+  full_stack_with_vtc: 'Full stack',
 }
 
 const modeComponents: Record<string, UpgradeComponent[]> = {

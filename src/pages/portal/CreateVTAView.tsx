@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FullStackCreateProgress } from './FullStackCreateProgress'
 
 type Stage = 0 | 1 | 2 | 3
-type Mode = 'vta_only' | 'full_stack' | 'full_stack_with_vtc'
+// full_stack (without VTC) still exists in old sessions but can no longer be
+// created — the UI offers only these two modes.
+type Mode = 'vta_only' | 'full_stack_with_vtc'
 
 export function CreateVTAView() {
   const { loadSessions } = useOutletContext<PortalContext>()
@@ -351,8 +353,7 @@ export function CreateVTAView() {
               {betaAccess ? (
                 <div className="p-tabs full">
                   <button type="button" className="p-tab" data-active={mode === 'vta_only'} onClick={() => setMode('vta_only')}>VTA Only</button>
-                  <button type="button" className="p-tab" data-active={mode === 'full_stack'} onClick={() => setMode('full_stack')}>Full Stack</button>
-                  <button type="button" className="p-tab" data-active={mode === 'full_stack_with_vtc'} onClick={() => setMode('full_stack_with_vtc')}>Full Stack + VTC</button>
+                  <button type="button" className="p-tab" data-active={mode === 'full_stack_with_vtc'} onClick={() => setMode('full_stack_with_vtc')}>Full Stack</button>
                 </div>
               ) : (
                 <span className="p-badge badge-secondary">VTA Only</span>
@@ -360,9 +361,7 @@ export function CreateVTAView() {
               <div className="field-hint">
                 {mode === 'vta_only'
                   ? 'Deploys just the VTA, pointed at a shared external mediator and DID hosting service.'
-                  : mode === 'full_stack'
-                    ? 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon just for you.'
-                    : 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon + Verifiable Trust Community just for you.'}
+                  : 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon + Verifiable Trust Community just for you.'}
               </div>
             </div>
             <div className="p-section-title" style={{ marginTop: 4 }}>Personal setup</div>
@@ -482,9 +481,7 @@ export function CreateVTAView() {
             <span className="field-hint" style={{ marginTop: 0 }}>
               {mode === 'full_stack_with_vtc'
                 ? '4 DNS records are created immediately after session creation.'
-                : mode === 'full_stack'
-                  ? '3 DNS records are created immediately after session creation.'
-                  : 'A DNS record is created immediately after session creation.'}
+                : 'A DNS record is created immediately after session creation.'}
             </span>
             <button className="btn btn-default" onClick={handleCreate} disabled={creating}>
               {creating ? 'Creating…' : <>Create session <span className="arrow">→</span></>}

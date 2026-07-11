@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
-import { statusBadge, fullStackPhases, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid } from './portalUtils'
+import { statusBadge, fullStackPhases, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid, modeDisplay } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, VtcInstallAlert, VtcInstallConfigRow, useVtcInstall, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow } from './FullStackOutputs'
 import type { PortalContext } from './Portal'
@@ -322,7 +322,7 @@ export function SessionDetailView() {
           <div className="p-card">
             <div className="card-header"><h3 className="card-title">Configuration</h3></div>
             <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-              <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">{session.mode}</span></div>
+              <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">{modeDisplay(session.mode)}</span></div>
               <hr className="p-sep"/>
               <div className="p-row between"><span className="p-muted text-sm">Created</span><span className="text-sm">{new Date(session.created_at).toLocaleString()}</span></div>
               {!isFullStack && session.url && (
