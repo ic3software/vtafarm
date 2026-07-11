@@ -71,6 +71,8 @@ export interface UserInfo {
 export interface User {
   id: number
   unique_id: string
+  /** Self-declared at signup (unverified); null for pre-email and admin-invited accounts. */
+  email: string | null
   beta_access: boolean
   created_at: string
   updated_at: string
@@ -97,35 +99,6 @@ export interface Invitation {
   expires_at: string
   used_at: string | null
   created_at: string
-}
-
-export interface SignupRequest {
-  id: number
-  email: string
-  status: 'pending' | 'approved'
-  created_at: string
-  email_sent_at?: string
-  invite_token?: string
-  invite_expires_at?: string
-  invite_used_at?: string
-}
-
-export interface SignupRequestsPage {
-  items: SignupRequest[]
-  total: number
-  page: number
-  page_size: number
-  /** Per-state totals, independent of the active filter. */
-  counts: { all: number; pending: number; invited: number; expired: number; registered: number }
-}
-
-export interface SignupApproveResult {
-  id: number
-  email?: string
-  invite_url?: string
-  email_sent: boolean
-  email_error?: string
-  error?: string
 }
 
 export interface AdminSetupSession {
@@ -296,13 +269,24 @@ export const api = {
   registerViaInvitation: (token: string) =>
     req<{ id: number; unique_id: string; token: string }>('POST', `/api/v1/invitations/${token}/register`),
 
-  // ── Signup requests ──────────────────────────────────────────────────────────
-  requestSignup: (email: string) =>
-    req<{ status: string }>('POST', '/api/v1/signup-requests', { email }),
-  listSignupRequests: (page = 1, state?: string) =>
-    req<SignupRequestsPage>('GET', `/api/v1/admin/signup-requests?page=${page}${state ? `&state=${encodeURIComponent(state)}` : ''}`),
-  approveSignupRequests: (ids: number[]) =>
-    req<{ results: SignupApproveResult[] }>('POST', '/api/v1/admin/signup-requests/approve', { ids }),
+  // ── Account recovery ─────────────────────────────────────────────────────────
+  // Admin issues a 1-hour single-use login link for a user who lost their
+  // passkey and delivers the URL out of band. Consuming it revokes all the
+  // account's passkeys and sets the vtafarm_user cookie — follow with
+  // passkeyRegisterBegin/Complete to give the account a fresh passkey.
+  createRecoveryLink: (uniqueId: string) =>
+    req<{ token: string; expires_at: string }>('POST', `/api/v1/admin/users/${uniqueId}/recovery-link`),
+  validateRecovery: (token: string) =>
+    req<{ valid: boolean; expires_at: string }>('GET', `/api/v1/recovery/${token}`),
+  consumeRecovery: (token: string) =>
+    req<{ id: number; unique_id: string; token: string }>('POST', `/api/v1/recovery/${token}`),
+
+  // ── Signup ───────────────────────────────────────────────────────────────────
+  // Creates (or, while it still has no passkey, resumes) the account for this
+  // email and sets the vtafarm_user cookie — follow with passkeyRegisterBegin/
+  // Complete to make the account reachable.
+  signup: (email: string) =>
+    req<{ id: number; unique_id: string; token: string }>('POST', '/api/v1/signup', { email }),
 
   // ── User passkeys ────────────────────────────────────────────────────────────
   passkeyRegisterBegin: () =>

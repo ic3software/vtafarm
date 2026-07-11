@@ -11,6 +11,9 @@ export function UsersView() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [recoveringId, setRecoveringId] = useState<string | null>(null)
+  const [recovery, setRecovery] = useState<{ uniqueId: string; token: string; expires_at: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const loadUsers = useCallback(() => {
     setLoading(true)
@@ -32,6 +35,25 @@ export function UsersView() {
     }
   }
 
+  async function issueRecoveryLink(user: User) {
+    setRecoveringId(user.unique_id)
+    try {
+      const result = await api.createRecoveryLink(user.unique_id)
+      setRecovery({ uniqueId: user.unique_id, token: result.token, expires_at: result.expires_at })
+      setCopied(false)
+    } catch {
+      // silently ignore — admin can retry
+    } finally {
+      setRecoveringId(null)
+    }
+  }
+
+  async function copyRecoveryUrl(token: string) {
+    await navigator.clipboard.writeText(`${window.location.origin}/recover/${token}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <section className="p-content">
       <div className="page-head">
@@ -47,21 +69,23 @@ export function UsersView() {
             <tr>
               <th>ID</th>
               <th>Unique ID</th>
+              <th>Email</th>
               <th>Beta Access</th>
               <th>Created</th>
               <th>Updated</th>
+              <th className="col-actions" />
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   No users yet.
                 </td>
               </tr>
@@ -69,6 +93,9 @@ export function UsersView() {
               <tr key={u.id}>
                 <td><span className="p-mono" style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{u.id}</span></td>
                 <td><span className="p-mono" style={{ fontSize: 12 }}>{u.unique_id}</span></td>
+                <td style={{ fontSize: 13 }}>
+                  {u.email ?? <span style={{ color: 'hsl(var(--muted-foreground))' }}>—</span>}
+                </td>
                 <td>
                   <div className="p-row gap-8" style={{ alignItems: 'center' }}>
                     <span className={`p-badge ${u.beta_access ? 'badge-success' : 'badge-secondary'}`}>
@@ -85,11 +112,60 @@ export function UsersView() {
                 </td>
                 <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(u.created_at)}</td>
                 <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(u.updated_at)}</td>
+                <td className="col-actions">
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    disabled={recoveringId === u.unique_id}
+                    onClick={() => issueRecoveryLink(u)}
+                    title="Issue a single-use login link for a user who lost their passkey"
+                  >
+                    {recoveringId === u.unique_id ? 'Issuing…' : 'Recovery link'}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {recovery && (
+        <div className="p-overlay">
+          <div className="p-dialog">
+            <div className="dialog-header">
+              <h3 className="dialog-title">Recovery link created</h3>
+              <p className="dialog-desc">
+                Verify the requester is really the owner of account{' '}
+                <span className="p-mono">{recovery.uniqueId}</span> before sharing this
+                link — whoever opens it takes over the account. It expires on{' '}
+                <strong>{fmt(recovery.expires_at)}</strong>, works once, and revokes
+                all existing passkeys on the account when used.
+              </p>
+            </div>
+            <div className="dialog-body">
+              <div>
+                <label className="p-label">Recovery URL</label>
+                <div className="input-group">
+                  <input
+                    className="p-input p-mono"
+                    style={{ fontSize: 12 }}
+                    readOnly
+                    value={`${window.location.origin}/recover/${recovery.token}`}
+                    onFocus={e => e.target.select()}
+                  />
+                  <button className="ig-suffix" type="button" onClick={() => copyRecoveryUrl(recovery.token)}>
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="dialog-footer">
+              <button className="btn btn-default" type="button" onClick={() => setRecovery(null)}>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
