@@ -31,7 +31,7 @@ export function AgentsView() {
         </div>
       </div>
 
-      <div className="p-grid-2" style={{ gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 24 }}>
+      <div className="p-stats" style={{ marginBottom: 24 }}>
         <div className="p-stat"><div className="k">Total</div><div className="v">{sessions.length}</div></div>
         <div className="p-stat"><div className="k">Active agents</div><div className="v">{active}</div></div>
         <div className="p-stat"><div className="k">Provisioning</div><div className="v">{provisioning}{provisioning > 0 && <small> · in progress</small>}</div></div>

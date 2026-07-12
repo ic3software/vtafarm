@@ -366,6 +366,8 @@
 .portal-root .admin-pill { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: hsl(var(--primary)); background: hsl(var(--accent)); border: 1px solid hsl(var(--primary)/.25); padding: 2px 7px; border-radius: 999px; }
 
 /* --- Stat --- */
+.portal-root .p-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 860px) { .portal-root .p-stats { grid-template-columns: 1fr 1fr; gap: 12px; } }
 .portal-root .p-stat { padding: 18px 20px; border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--card)); }
 .portal-root .p-stat .k { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
 .portal-root .p-stat .v { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin-top: 6px; font-family: var(--serif); }
