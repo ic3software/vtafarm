@@ -23,6 +23,7 @@ export function Portal() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [sessions, setSessions] = useState<SetupSession[]>([])
   const [sessionsLoading, setSessionsLoading] = useState(true)
+  const [email, setEmail] = useState<string | null>(null)
 
   const loadSessions = useCallback(() => {
     setSessionsLoading(true)
@@ -41,6 +42,10 @@ export function Portal() {
   useEffect(() => {
     if (user) loadSessions()
   }, [user, loadSessions])
+
+  useEffect(() => {
+    if (user) api.getMe().then(me => setEmail(me.email)).catch(() => {})
+  }, [user])
 
   useEffect(() => {
     if (!userMenuOpen) return
@@ -112,7 +117,9 @@ export function Portal() {
               <div className="user-chip" onClick={e => { e.stopPropagation(); setUserMenuOpen(v => !v) }}>
                 <span className="p-avatar">{initials(user.unique_id)}</span>
                 <div className="meta grow">
-                  <div className="n" style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{user.unique_id}</div>
+                  {email
+                    ? <div className="n">{email}</div>
+                    : <div className="n" style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{user.unique_id}</div>}
                   <div className="e">User account</div>
                 </div>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 15, height: 15, color: 'hsl(var(--muted-foreground))' }}><path d="m18 15-6-6-6 6"/></svg>

@@ -295,7 +295,7 @@ export const api = {
     req<{ id: number; name: string }>('POST', `/api/v1/user/passkeys/register/complete?name=${encodeURIComponent(name)}`, credential),
   listPasskeys: () => req<PasskeyRecord[]>('GET', '/api/v1/user/passkeys'),
   deletePasskey: (id: number) => req<null>('DELETE', `/api/v1/user/passkeys/${id}`),
-  getMe: () => req<{ id: string; beta_access: boolean; created_at: string }>('GET', '/api/v1/user/me'),
+  getMe: () => req<{ id: string; email: string | null; beta_access: boolean; created_at: string }>('GET', '/api/v1/user/me'),
 
   // ── Setup sessions ───────────────────────────────────────────────────────────
   listImages: (component: 'vta' | 'mediator' | 'dids' | 'vtc' = 'vta') =>
