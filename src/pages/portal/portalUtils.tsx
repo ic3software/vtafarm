@@ -61,6 +61,15 @@ export function initials(uniqueId: string) {
   return uniqueId.slice(0, 2).toUpperCase() || '??'
 }
 
+// Display names for session modes: full_stack (without VTC) is retired, so
+// full_stack_with_vtc now presents as plain "full_stack" and the legacy mode
+// is marked as such. Raw API values are unchanged.
+export function modeDisplay(mode: string): string {
+  if (mode === 'full_stack') return 'full_stack_legacy'
+  if (mode === 'full_stack_with_vtc') return 'full_stack'
+  return mode
+}
+
 export function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60000)

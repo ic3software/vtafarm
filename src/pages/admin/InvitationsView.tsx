@@ -29,12 +29,13 @@ export function InvitationsView() {
   const [copiedId, setCopiedId] = useState<number | 'modal' | null>(null)
   const [createError, setCreateError] = useState('')
 
-  const loadInvitations = useCallback(() => {
-    setLoading(true)
+  // loading starts true, so this needs no synchronous setState when called
+  // from the effect; later calls refresh the data in place.
+  const loadInvitations = useCallback(() => (
     api.listInvitations().then(setInvitations).catch(() => {}).finally(() => setLoading(false))
-  }, [])
+  ), [])
 
-  useEffect(() => { loadInvitations() }, [loadInvitations])
+  useEffect(() => { void loadInvitations() }, [loadInvitations])
 
   async function handleCreate() {
     setCreateError('')

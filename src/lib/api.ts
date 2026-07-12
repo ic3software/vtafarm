@@ -71,6 +71,8 @@ export interface UserInfo {
 export interface User {
   id: number
   unique_id: string
+  /** Self-declared at signup (unverified); null for pre-email and admin-invited accounts. */
+  email: string | null
   beta_access: boolean
   created_at: string
   updated_at: string
@@ -121,6 +123,8 @@ export interface AdminSessionsPage {
   total: number
   page: number
   page_size: number
+  /** Per-mode totals, independent of the active filter, plus "all". */
+  counts: Record<'all' | SetupMode, number>
 }
 
 export type UpgradeComponent = 'vta' | 'mediator' | 'dids' | 'vtc'
@@ -264,6 +268,25 @@ export const api = {
     req<{ valid: boolean; expires_at: string }>('GET', `/api/v1/invitations/${token}`),
   registerViaInvitation: (token: string) =>
     req<{ id: number; unique_id: string; token: string }>('POST', `/api/v1/invitations/${token}/register`),
+
+  // ── Account recovery ─────────────────────────────────────────────────────────
+  // Admin issues a 1-hour single-use login link for a user who lost their
+  // passkey and delivers the URL out of band. Consuming it revokes all the
+  // account's passkeys and sets the vtafarm_user cookie — follow with
+  // passkeyRegisterBegin/Complete to give the account a fresh passkey.
+  createRecoveryLink: (uniqueId: string) =>
+    req<{ token: string; expires_at: string }>('POST', `/api/v1/admin/users/${uniqueId}/recovery-link`),
+  validateRecovery: (token: string) =>
+    req<{ valid: boolean; expires_at: string }>('GET', `/api/v1/recovery/${token}`),
+  consumeRecovery: (token: string) =>
+    req<{ id: number; unique_id: string; token: string }>('POST', `/api/v1/recovery/${token}`),
+
+  // ── Signup ───────────────────────────────────────────────────────────────────
+  // Creates (or, while it still has no passkey, resumes) the account for this
+  // email and sets the vtafarm_user cookie — follow with passkeyRegisterBegin/
+  // Complete to make the account reachable.
+  signup: (email: string) =>
+    req<{ id: number; unique_id: string; token: string }>('POST', '/api/v1/signup', { email }),
 
   // ── User passkeys ────────────────────────────────────────────────────────────
   passkeyRegisterBegin: () =>
