@@ -69,7 +69,7 @@ export function UserLogin() {
             )}
 
             <p className="p-muted text-xs mt-24" style={{ textAlign: 'center' }}>
-              Protected by VTA Farm · <span className="p-mono">did:vtafarm:network</span>
+              Protected by VTA Farm · <span className="p-mono">did:vtafarm:firstperson:dev</span>
             </p>
           </div>
         </div>
