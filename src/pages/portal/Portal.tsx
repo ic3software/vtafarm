@@ -11,6 +11,7 @@ export interface PortalContext {
   sessionsLoading: boolean
   loadSessions: () => void
   uniqueId: string
+  email: string | null
 }
 
 export function Portal() {
@@ -147,7 +148,7 @@ export function Portal() {
             </button>
           </header>
 
-          <Outlet context={{ sessions, sessionsLoading, loadSessions, uniqueId: user.unique_id } satisfies PortalContext} />
+          <Outlet context={{ sessions, sessionsLoading, loadSessions, uniqueId: user.unique_id, email } satisfies PortalContext} />
         </div>
       </div>
     </div>

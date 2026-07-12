@@ -11,7 +11,7 @@ function fmt(iso: string) {
 }
 
 export function SettingsView() {
-  const { uniqueId } = useOutletContext<PortalContext>()
+  const { uniqueId, email } = useOutletContext<PortalContext>()
 
   const [passkeys, setPasskeys] = useState<PasskeyRecord[]>([])
   const [loadingPasskeys, setLoadingPasskeys] = useState(true)
@@ -76,7 +76,7 @@ export function SettingsView() {
             <span className="p-avatar" style={{ width: 52, height: 52, fontSize: 18 }}>{initials(uniqueId)}</span>
             <div className="p-col">
               <span className="fw-600 p-mono" style={{ fontSize: 13 }}>{uniqueId}</span>
-              <span className="p-muted text-sm">User account</span>
+              <span className="p-muted text-sm">{email ?? 'User account'}</span>
             </div>
           </div>
         </div>
