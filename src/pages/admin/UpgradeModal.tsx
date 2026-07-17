@@ -286,6 +286,7 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
               <div className="p-row gap-8" style={{ alignItems: 'center' }}>
                 <h3 className="dialog-title" style={{ marginBottom: 0 }}>Upgrade batch #{batchId}</h3>
                 {batch && <span className={`p-badge ${batchBadge(batch.status)}`}>{batch.status}</span>}
+                {batch?.initiator === 'user' && <span className="p-badge badge-secondary">user-initiated</span>}
               </div>
               {batch && (
                 <p className="dialog-desc" style={{ marginTop: 4 }}>

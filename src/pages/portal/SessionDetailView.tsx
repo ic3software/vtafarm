@@ -4,6 +4,7 @@ import { api, type SetupSession, API_BASE } from '@/lib/api'
 import { statusBadge, fullStackPhases, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid, modeDisplay } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, VtcInstallAlert, VtcInstallConfigRow, useVtcInstall, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow } from './FullStackOutputs'
+import { SessionVersionsCard } from './SessionVersionsCard'
 import type { PortalContext } from './Portal'
 
 const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
@@ -337,6 +338,13 @@ export function SessionDetailView() {
             </div>
           </div>
           {isFullStackCompleted && <AdminKeysCard session={session} />}
+          {/* Self-service version changes — only once the stack is fully running */}
+          {session.status === 'running' && (
+            <SessionVersionsCard
+              session={session}
+              onUpgraded={() => api.getSession(sessionId).then(setSession).catch(() => {})}
+            />
+          )}
           {/* Danger Zone */}
           <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
             <div className="card-header">

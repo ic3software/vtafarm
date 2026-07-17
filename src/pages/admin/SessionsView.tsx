@@ -178,6 +178,7 @@ export function SessionsView() {
           </span>
           <span style={{ flex: 1 }}>
             Upgrade batch #{activeBatch.id} — {activeBatch.components.join(', ')}
+            {activeBatch.initiator === 'user' && ' (user-initiated)'}
           </span>
           <button className="btn btn-outline btn-sm" onClick={() => setModal({ kind: 'progress', batchId: activeBatch.id })}>
             View progress

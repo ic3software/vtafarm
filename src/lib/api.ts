@@ -49,6 +49,9 @@ export interface SetupSession {
   urls?: SetupSessionUrls
   vta_name?: string
   vta_image?: string
+  mediator_image?: string
+  dids_image?: string
+  vtc_image?: string
   vta_did?: string
   mediator_did?: string
   collected?: SetupSessionCollected
@@ -148,6 +151,8 @@ export interface UpgradeSkipped {
 
 export interface UpgradeBatchSummary {
   id: number
+  /** Who started the batch — 'user' for a self-service session upgrade. */
+  initiator: 'admin' | 'user'
   components: UpgradeComponent[]
   concurrency: number
   status: UpgradeBatchStatus
@@ -169,10 +174,30 @@ export interface UpgradeTaskItem {
 
 export interface UpgradeBatchDetail {
   id: number
+  initiator: 'admin' | 'user'
   components: UpgradeComponent[]
   status: UpgradeBatchStatus
   created_at: string
   tasks: UpgradeTaskItem[]
+}
+
+// One self-service image change of the user's own session. `paused` means it
+// stopped on a task failure — the failed task's error_msg says why.
+export interface SessionUpgradeTask {
+  component: UpgradeComponent
+  from_image: string
+  to_image: string
+  status: UpgradeTaskStatus
+  error_msg?: string
+  updated_at: string
+}
+
+export interface SessionUpgrade {
+  id: number
+  status: UpgradeBatchStatus
+  components: UpgradeComponent[]
+  created_at: string
+  tasks: SessionUpgradeTask[]
 }
 
 interface ApiError extends Error {
@@ -317,6 +342,11 @@ export const api = {
   deleteSession: (id: string) => req<null>('DELETE', `/api/v1/setup/${id}`),
   provisionAdmin: (id: string, admin_did: string) =>
     req<{ status: string }>('POST', `/api/v1/setup/${id}/admin`, { admin_did }),
+  // Self-service upgrade/downgrade of the caller's own session — the backend
+  // only ever matches sessions owned by the authenticated user.
+  createSessionUpgrade: (id: string, components: Array<{ component: UpgradeComponent; image: string }>) =>
+    req<SessionUpgrade>('POST', `/api/v1/setup/${id}/upgrade`, { components }),
+  getSessionUpgrade: (id: string) => req<SessionUpgrade>('GET', `/api/v1/setup/${id}/upgrade`),
   reissueDidsEnroll: (id: string) =>
     req<{ dids_admin_enroll_url: string }>('POST', `/api/v1/setup/${id}/dids/reissue-enroll`),
   ackDidsEnroll: (id: string) =>
