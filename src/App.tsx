@@ -15,6 +15,7 @@ import { CreateVTAView } from '@/pages/portal/CreateVTAView'
 import { SessionDetailView } from '@/pages/portal/SessionDetailView'
 import { SettingsView } from '@/pages/portal/SettingsView'
 import { AdminPanel } from '@/pages/admin/AdminPanel'
+import { DashboardView } from '@/pages/admin/DashboardView'
 import { AdminsView } from '@/pages/admin/AdminsView'
 import { UsersView } from '@/pages/admin/UsersView'
 import { SessionsView } from '@/pages/admin/SessionsView'
@@ -186,7 +187,8 @@ export default function App() {
             <Route path="login" element={<AdminLogin />} />
             <Route path="enroll/:token" element={<AdminEnroll />} />
             <Route element={<AdminPanel />}>
-              <Route index element={<AdminsView />} />
+              <Route index element={<DashboardView />} />
+              <Route path="admins" element={<AdminsView />} />
               <Route path="users" element={<UsersView />} />
               <Route path="sessions" element={<SessionsView />} />
               <Route path="invitations" element={<InvitationsView />} />

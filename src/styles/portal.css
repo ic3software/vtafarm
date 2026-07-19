@@ -429,3 +429,39 @@
 .portal-root .p-cmd .hl { color: hsl(252 100% 82%); }
 .portal-root .cmd-copy { flex: none; font-family: var(--mono); font-size: 11px; color: hsl(0 0% 60%); background: hsl(0 0% 100% / .06); border: 1px solid hsl(0 0% 100% / .12); border-radius: 6px; padding: 4px 9px; cursor: pointer; transition: background .14s, color .14s; }
 .portal-root .cmd-copy:hover { background: hsl(0 0% 100% / .12); color: #fff; }
+
+/* --- Dashboard (admin) --- */
+.portal-root .dash-grid { display: grid; gap: 14px; margin-bottom: 14px; }
+.portal-root .dash-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.portal-root .dash-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 960px) { .portal-root .dash-grid.cols-3, .portal-root .dash-grid.cols-2 { grid-template-columns: 1fr; } }
+
+/* Stat card — claude-design/app/ui.css .stat, but with a sans value */
+.portal-root .stat { padding: 18px 20px; border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--card)); box-shadow: var(--shadow-sm); }
+.portal-root .stat .k { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+.portal-root .stat .v { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; margin-top: 6px; }
+.portal-root .stat .v small { font-size: 13px; color: hsl(var(--muted-foreground)); font-weight: 400; }
+.portal-root .stat .stat-foot { margin-top: 12px; font-size: 12px; color: hsl(var(--muted-foreground)); line-height: 1.5; }
+
+/* Meter — fill carries severity; the unfilled track is a lighter step of the same hue */
+.portal-root .meter { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.portal-root .meter .m-label { width: 72px; flex: none; font-size: 11.5px; color: hsl(var(--muted-foreground)); }
+.portal-root .meter .m-track { flex: 1; height: 8px; border-radius: 999px; background: hsl(var(--primary) / 0.14); overflow: hidden; }
+.portal-root .meter .m-fill { height: 100%; border-radius: 999px; background: hsl(var(--primary)); transition: width .3s; }
+.portal-root .meter.warn .m-track { background: hsl(var(--warning) / 0.16); }
+.portal-root .meter.warn .m-fill { background: hsl(var(--warning)); }
+.portal-root .meter.crit .m-track { background: hsl(var(--destructive) / 0.14); }
+.portal-root .meter.crit .m-fill { background: hsl(var(--destructive)); }
+.portal-root .meter .m-val { flex: none; text-align: right; white-space: nowrap; font-family: var(--mono); font-size: 11px; color: hsl(var(--foreground)); }
+
+/* Estimate bar chart — emphasis form: the limiting resource carries the
+   warning hue, the rest sit back in a de-emphasised tint of the accent. */
+.portal-root .est-chart { margin-top: 14px; display: flex; flex-direction: column; gap: 9px; }
+.portal-root .ec-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.portal-root .ec-label { width: 64px; flex: none; color: hsl(var(--muted-foreground)); }
+.portal-root .ec-plot { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.portal-root .ec-track { flex: 1; min-width: 0; }
+.portal-root .ec-bar { height: 10px; border-radius: 0 4px 4px 0; background: hsl(var(--primary) / 0.35); min-width: 2px; max-width: 100%; }
+.portal-root .ec-bar.limiting { background: hsl(var(--warning)); }
+.portal-root .ec-val { flex: none; width: 36px; text-align: right; font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; color: hsl(var(--foreground)); white-space: nowrap; }
+.portal-root .ec-row.limiting .ec-label, .portal-root .ec-row.limiting .ec-val { font-weight: 600; color: hsl(var(--foreground)); }
