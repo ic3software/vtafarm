@@ -130,6 +130,66 @@ export interface AdminSessionsPage {
   counts: Record<'all' | SetupMode, number>
 }
 
+export interface DashboardNode {
+  name: string
+  /** False for cordoned/tainted nodes — excluded from capacity estimates. */
+  schedulable: boolean
+  cpu_allocatable_millis: number
+  cpu_requested_millis: number
+  cpu_used_millis: number
+  mem_allocatable_bytes: number
+  mem_requested_bytes: number
+  mem_used_bytes: number
+}
+
+export interface DashboardStorageNode {
+  name: string
+  /** False when the Longhorn node or all of its disks have allowScheduling off. */
+  schedulable: boolean
+  maximum_bytes: number
+  reserved_bytes: number
+  scheduled_bytes: number
+  available_bytes: number
+  schedulable_bytes: number
+}
+
+export interface DashboardEstimate {
+  /** Placement-simulated sessions that still fit — the authoritative number. */
+  count: number
+  by_cpu: number
+  by_memory: number
+  /** -1 when storage stats are unavailable. */
+  by_storage: number
+  limiting_resource: 'cpu' | 'memory' | 'storage'
+  cpu_millis_per_session: number
+  mem_bytes_per_session: number
+  /** Includes the replica factor. */
+  storage_bytes_per_session: number
+}
+
+export interface AdminDashboard {
+  cluster: {
+    cpu: { allocatable_millis: number; requested_millis: number; used_millis: number }
+    memory: { allocatable_bytes: number; requested_bytes: number; used_bytes: number }
+    storage: {
+      maximum_bytes: number
+      reserved_bytes: number
+      scheduled_bytes: number
+      available_bytes: number
+      schedulable_bytes: number
+      /** Bytes actually written across all Longhorn volumes (thin-provisioned actualSize). */
+      data_written_bytes: number
+      replica_count: number
+    }
+  }
+  nodes: DashboardNode[]
+  storage_nodes: DashboardStorageNode[] | null
+  metrics_available: boolean
+  storage_available: boolean
+  /** full_stack refers to full_stack_with_vtc — plain full_stack is retired. */
+  estimates: { vta_only: DashboardEstimate; full_stack: DashboardEstimate }
+}
+
 export type UpgradeComponent = 'vta' | 'mediator' | 'dids' | 'vtc'
 export const ALL_COMPONENTS: UpgradeComponent[] = ['vta', 'mediator', 'dids', 'vtc']
 export type UpgradeBatchStatus = 'running' | 'paused' | 'completed' | 'cancelled'
@@ -262,6 +322,9 @@ export const api = {
   listUsers: () => req<User[]>('GET', '/api/v1/admin/users'),
   setUserBetaAccess: (id: string, betaAccess: boolean) =>
     req<{ id: string; beta_access: boolean }>('PUT', `/api/v1/admin/users/${id}/beta-access`, { beta_access: betaAccess }),
+
+  // ── Admin — dashboard ────────────────────────────────────────────────────────
+  adminDashboard: () => req<AdminDashboard>('GET', '/api/v1/admin/dashboard'),
 
   // ── Admin — setup sessions ───────────────────────────────────────────────────
   adminListSessions: (page = 1, mode?: string) =>
