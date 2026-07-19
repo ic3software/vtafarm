@@ -162,6 +162,7 @@ export interface DashboardEstimate {
   by_storage: number
   limiting_resource: 'cpu' | 'memory' | 'storage'
   cpu_millis_per_session: number
+  /** Planning cost based on the sum of component memory limits. */
   mem_bytes_per_session: number
   /** Includes the replica factor. */
   storage_bytes_per_session: number

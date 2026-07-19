@@ -21,6 +21,16 @@ function pct(num: number, den: number): number {
   return den > 0 ? Math.min(100, Math.round((num / den) * 100)) : 0
 }
 
+function liveAwareFree(
+  allocatable: number,
+  requested: number,
+  used: number,
+  metricsAvailable: boolean,
+): number {
+  const occupied = metricsAvailable ? Math.max(requested, used) : requested
+  return Math.max(allocatable - occupied, 0)
+}
+
 /** Fill severity: the meter turns warning at 75% and critical at 90%. */
 function Meter({ label, num, den, detail, unknown, small }: {
   label: string
@@ -145,7 +155,12 @@ export function DashboardView() {
               {cpu && (
                 <>
                   <div className="v">
-                    {fmtCores(cpu.allocatable_millis - cpu.requested_millis)}{' '}
+                    {fmtCores(liveAwareFree(
+                      cpu.allocatable_millis,
+                      cpu.requested_millis,
+                      cpu.used_millis,
+                      data.metrics_available,
+                    ))}{' '}
                     <small>of {fmtCores(cpu.allocatable_millis)} cores free</small>
                   </div>
                   <Meter
@@ -173,7 +188,12 @@ export function DashboardView() {
               {mem && (
                 <>
                   <div className="v">
-                    {fmtBytes(mem.allocatable_bytes - mem.requested_bytes)}{' '}
+                    {fmtBytes(liveAwareFree(
+                      mem.allocatable_bytes,
+                      mem.requested_bytes,
+                      mem.used_bytes,
+                      data.metrics_available,
+                    ))}{' '}
                     <small>of {fmtBytes(mem.allocatable_bytes)} free</small>
                   </div>
                   <Meter
