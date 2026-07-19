@@ -452,7 +452,14 @@
 .portal-root .meter.warn .m-fill { background: hsl(var(--warning)); }
 .portal-root .meter.crit .m-track { background: hsl(var(--destructive) / 0.14); }
 .portal-root .meter.crit .m-fill { background: hsl(var(--destructive)); }
-.portal-root .meter .m-val { flex: none; text-align: right; white-space: nowrap; font-family: var(--mono); font-size: 11px; color: hsl(var(--foreground)); }
+/* m-val has a fixed width so every track in a card/cell renders the same
+   length regardless of how wide the value text is. */
+.portal-root .meter .m-val { flex: none; width: 150px; text-align: right; white-space: nowrap; font-family: var(--mono); font-size: 11px; color: hsl(var(--foreground)); }
+.portal-root .meter.sm .m-label { width: 28px; font-size: 10.5px; }
+.portal-root .meter.sm .m-track { height: 6px; }
+.portal-root .meter.sm .m-val { width: 140px; font-size: 10.5px; }
+.portal-root .p-table td .meter { margin-top: 4px; }
+.portal-root .p-table td .meter:first-child { margin-top: 0; }
 
 /* Estimate bar chart — emphasis form: the limiting resource carries the
    warning hue, the rest sit back in a de-emphasised tint of the accent. */

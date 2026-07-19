@@ -22,16 +22,19 @@ function pct(num: number, den: number): number {
 }
 
 /** Fill severity: the meter turns warning at 75% and critical at 90%. */
-function Meter({ label, num, den, detail, unknown }: {
+function Meter({ label, num, den, detail, unknown, small }: {
   label: string
   num: number
   den: number
   /** Absolute reading shown next to the percentage, e.g. "2.59 / 4 cores". */
   detail: string
   unknown?: boolean
+  /** Compact variant for table cells. */
+  small?: boolean
 }) {
   const p = pct(num, den)
-  const cls = unknown ? 'meter' : p >= 90 ? 'meter crit' : p >= 75 ? 'meter warn' : 'meter'
+  let cls = unknown ? 'meter' : p >= 90 ? 'meter crit' : p >= 75 ? 'meter warn' : 'meter'
+  if (small) cls += ' sm'
   return (
     <div className={cls}>
       <span className="m-label">{label}</span>
@@ -79,8 +82,7 @@ function EstimateCard({ title, est }: { title: string; est: DashboardEstimate })
       </div>
       <p className="stat-foot">
         Per session: {est.cpu_millis_per_session}m CPU · {fmtBytes(est.mem_bytes_per_session)} memory
-        {est.storage_bytes_per_session > 0 && ` · ${fmtBytes(est.storage_bytes_per_session)} disk`}.
-        Estimated by simulating placement on schedulable nodes.
+        {est.storage_bytes_per_session > 0 && ` · ${fmtBytes(est.storage_bytes_per_session)} disk`}
       </p>
     </div>
   )
@@ -245,12 +247,8 @@ export function DashboardView() {
                 <tr>
                   <th style={{ width: '22%' }}>Node</th>
                   <th style={{ width: '13%' }}>Status</th>
-                  <th>CPU request</th>
-                  <th>CPU live</th>
-                  <th>CPU capacity</th>
-                  <th>Mem request</th>
-                  <th>Mem live</th>
-                  <th>Mem capacity</th>
+                  <th>CPU</th>
+                  <th>Memory</th>
                 </tr>
               </thead>
               <tbody>
@@ -262,12 +260,40 @@ export function DashboardView() {
                         ? <span className="p-badge badge-success">schedulable</span>
                         : <span className="p-badge badge-warning">excluded</span>}
                     </td>
-                    <td><span className="p-mono" style={{ fontSize: 12 }}>{n.cpu_requested_millis}m</span></td>
-                    <td><span className="p-mono" style={{ fontSize: 12 }}>{data.metrics_available ? `${n.cpu_used_millis}m` : '—'}</span></td>
-                    <td><span className="p-mono" style={{ fontSize: 12 }}>{n.cpu_allocatable_millis}m</span></td>
-                    <td><span className="p-mono" style={{ fontSize: 12 }}>{fmtBytes(n.mem_requested_bytes)}</span></td>
-                    <td><span className="p-mono" style={{ fontSize: 12 }}>{data.metrics_available ? fmtBytes(n.mem_used_bytes) : '—'}</span></td>
-                    <td><span className="p-mono" style={{ fontSize: 12 }}>{fmtBytes(n.mem_allocatable_bytes)}</span></td>
+                    <td>
+                      <Meter
+                        small
+                        label="Req"
+                        num={n.cpu_requested_millis}
+                        den={n.cpu_allocatable_millis}
+                        detail={`${n.cpu_requested_millis}m / ${n.cpu_allocatable_millis}m`}
+                      />
+                      <Meter
+                        small
+                        label="Live"
+                        num={n.cpu_used_millis}
+                        den={n.cpu_allocatable_millis}
+                        detail={`${n.cpu_used_millis}m / ${n.cpu_allocatable_millis}m`}
+                        unknown={!data.metrics_available}
+                      />
+                    </td>
+                    <td>
+                      <Meter
+                        small
+                        label="Req"
+                        num={n.mem_requested_bytes}
+                        den={n.mem_allocatable_bytes}
+                        detail={`${fmtBytes(n.mem_requested_bytes)} / ${fmtBytes(n.mem_allocatable_bytes)}`}
+                      />
+                      <Meter
+                        small
+                        label="Live"
+                        num={n.mem_used_bytes}
+                        den={n.mem_allocatable_bytes}
+                        detail={`${fmtBytes(n.mem_used_bytes)} / ${fmtBytes(n.mem_allocatable_bytes)}`}
+                        unknown={!data.metrics_available}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
