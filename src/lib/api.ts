@@ -65,6 +65,26 @@ export interface SetupSession {
   updated_at?: string
 }
 
+/** Remaining create capacity for one mode. `available` is `count > 0`. */
+export interface ModeAvailability {
+  count: number
+  available: boolean
+}
+
+/**
+ * Per-mode remaining cluster capacity, used by the create screen to show
+ * "Unavailable" and disable the button before submitting. Fails open: when the
+ * cluster can't be measured, `determinable` is false and every mode reports
+ * `available: true`, so a transient outage never wrongly blocks creation.
+ */
+export interface SetupAvailability {
+  vta_only: ModeAvailability
+  full_stack_with_vtc: ModeAvailability
+  metrics_available: boolean
+  storage_available: boolean
+  determinable: boolean
+}
+
 export interface UserInfo {
   id: number
   unique_id: string
@@ -389,6 +409,9 @@ export const api = {
   // ── Setup sessions ───────────────────────────────────────────────────────────
   listImages: (component: 'vta' | 'mediator' | 'dids' | 'vtc' = 'vta') =>
     req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/setup/images?component=${component}`),
+  // Remaining per-mode cluster capacity — the create screen uses this to show
+  // "Unavailable" and disable the button before submitting.
+  setupAvailability: () => req<SetupAvailability>('GET', '/api/v1/setup/availability'),
   listSessions: () => req<SetupSession[]>('GET', '/api/v1/setup'),
   createSession: (data: {
     mode: SetupMode
