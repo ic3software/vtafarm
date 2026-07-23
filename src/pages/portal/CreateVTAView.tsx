@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
-import { api, API_BASE, type SetupSession } from '@/lib/api'
+import { api, API_BASE, type SetupSession, type SetupAvailability } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import { statusBadge, fullStackPhases, isValidAdminDid } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
@@ -19,6 +19,7 @@ export function CreateVTAView() {
   const [stage, setStage] = useState<Stage>(0)
   const [mode, setMode] = useState<Mode>('vta_only')
   const [betaAccess, setBetaAccess] = useState(false)
+  const [availability, setAvailability] = useState<SetupAvailability | null>(null)
   const [vtaName, setVtaName] = useState('myvta')
   const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedImage, setSelectedImage] = useState('')
@@ -70,6 +71,14 @@ export function CreateVTAView() {
   // at any time).
   useEffect(() => {
     api.getMe().then(me => setBetaAccess(me.beta_access)).catch(() => {})
+  }, [])
+
+  // Remaining cluster capacity per mode, so we can show "Unavailable" and block
+  // creation before the user submits. Fails open: on any error (or when the
+  // backend can't measure) we leave the form enabled — POST /setup is the
+  // authoritative gate and returns 503 if the cluster is truly full.
+  useEffect(() => {
+    api.setupAvailability().then(setAvailability).catch(() => {})
   }, [])
 
   // Lazily fetch mediator/dids images the first time a full-stack mode is selected.
@@ -291,6 +300,10 @@ export function CreateVTAView() {
     }
   })()
 
+  // Only block when the backend positively measured "no room" for this mode.
+  // determinable=false means capacity is unknown → stay enabled (fail-open).
+  const modeUnavailable = availability?.determinable === true && !availability[mode].available
+
   const showingSetupLogs = stage === 1 && setupStreamStarted && !setupLogsDone
   // Only use status as fallback when we never entered the log-streaming phase
   const showDIDForm = stage === 1 && (
@@ -348,6 +361,18 @@ export function CreateVTAView() {
             <p className="card-desc">Name your agent, choose a mode, and select the images to provision.</p>
           </div>
           <div className="card-content p-col gap-16">
+            {modeUnavailable && (
+              <div className="p-alert alert-warning">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                <div className="grow">
+                  <p className="alert-title">Unavailable</p>
+                  <p className="alert-desc">
+                    The cluster is currently at capacity and can't provision a new{' '}
+                    {mode === 'vta_only' ? 'VTA' : 'Full Stack'} agent right now. Please try again later or contact an admin.
+                  </p>
+                </div>
+              </div>
+            )}
             <div>
               <div className="p-label">Mode <span className="req">*</span></div>
               {betaAccess ? (
@@ -483,8 +508,8 @@ export function CreateVTAView() {
                 ? '4 DNS records are created immediately after session creation.'
                 : 'A DNS record is created immediately after session creation.'}
             </span>
-            <button className="btn btn-default" onClick={handleCreate} disabled={creating}>
-              {creating ? 'Creating…' : <>Create session <span className="arrow">→</span></>}
+            <button className="btn btn-default" onClick={handleCreate} disabled={creating || modeUnavailable}>
+              {creating ? 'Creating…' : modeUnavailable ? 'Unavailable' : <>Create session <span className="arrow">→</span></>}
             </button>
           </div>
         </div>
