@@ -253,6 +253,15 @@ shape for every mode:
 export type SetupStatus = /* … */ | 'dns_wait' | 'tls_provision'
 export type DomainKind  = 'managed' | 'custom' | 'platform'
 
+export interface PlatformStack {
+  exists: boolean
+  session_id?: string
+  status?: SetupStatus
+  label?: string
+  urls?: { vta: string; vtc: string; mediator: string; dids: string }
+  collected?: { mediator_did?: string; did_hosting_did?: string }
+}
+
 export interface DomainInfo {
   managed_domain: string
   env_prefix: string          // "dev-" against a local API, "" in production
@@ -302,6 +311,15 @@ getDomain:    (id: number) => req<Domain>('GET', `/api/v1/domains/${id}`),
 verifyDomain: (id: number) => req<Domain>('POST', `/api/v1/domains/${id}/verify`),
 deleteDomain: (id: number) => req<void>('DELETE', `/api/v1/domains/${id}`),
 domainInfo:   () => req<DomainInfo>('GET', '/api/v1/setup/domain-info'),
+
+// admin
+getPlatformStack:    () => req<PlatformStack>('GET', '/api/v1/admin/platform-stack'),
+createPlatformStack: (data: { label: string; vta_image: string; mediator_image: string;
+                              dids_image: string; vtc_image: string }) =>
+  req<{ id: string; status: SetupStatus }>('POST', '/api/v1/admin/platform-stack', data),
+// `confirm` is required by the API for the platform stack (API §11.1)
+adminDeleteSession:  (id: string, confirm?: string) =>
+  req<void>('DELETE', `/api/v1/admin/setup-sessions/${id}`, confirm ? { confirm } : undefined),
 ```
 
 ---
@@ -313,8 +331,69 @@ domainInfo:   () => req<DomainInfo>('GET', '/api/v1/setup/domain-info'),
 | `Portal.tsx` | New **Domains** nav item |
 | `AgentsView.tsx` | Show each session's domain under its name |
 | `SessionDetailView.tsx` | A "Domain" row: the domain plus a `custom` / `managed` / `platform` badge, linking to the Domains page for custom |
-| `admin/SessionsView.tsx` | Domain column — custom-domain sessions are what admins get asked about |
-| `admin/` (new or existing) | Somewhere to create the **platform** domain (API §10.1) and to release a domain stuck on another account |
+| `admin/SessionsView.tsx` | Domain column, plus delete — §6.2 |
+| `admin/PlatformStackView.tsx` | New page — §6.1 |
+
+### 6.1 Admin — `src/pages/admin/PlatformStackView.tsx`
+
+A dedicated page in the admin panel for the farm's own full stack on
+`firstperson.dev` (API §3.3). It is the only place this can be created, and no
+user-facing surface can ever attach that domain.
+
+**Three states, one card:**
+
+| State | Card |
+| --- | --- |
+| **not created** | Explainer + the four hostnames it *will* claim + `label` (defaults to `firstperson`) + the four image selectors + `[ Create platform stack ]` |
+| **provisioning** | The existing `PhaseStepper` + log console, reusing `FullStackCreateProgress` unchanged — it's an ordinary `full_stack_with_vtc` session |
+| **running** | The four URLs, plus the **collected values to copy into configuration** (API §3.3.4) |
+
+The running state is the one that needs care. `MEDIATOR_DID` only exists once
+the pipeline has minted it, and an operator will be pasting these into env
+config, so present them as copyable rows via the existing
+`EndpointConfigRows` / `useCopyState` treatment from `FullStackOutputs.tsx`:
+
+```text
+MEDIATOR_DID              did:webvh:…:dids.firstperson.dev:firstperson-mediator  [copy]
+DID_HOSTING_SERVER_URL    https://dids.firstperson.dev                           [copy]
+DID_HOSTING_CONTROL_URL   https://dids.firstperson.dev                           [copy]
+```
+
+In development the page behaves identically and shows the `dev-` hostnames —
+`dev-vta.firstperson.dev` and friends. Nothing in the UI needs to special-case
+this: every hostname comes from `componentHost()` (§3.4), which already applies
+`env_prefix`.
+
+Image selectors reuse the same `api.listImages(component)` calls as
+`CreateVTAView`. The **beta-access** gate does not appear here (the caller is an
+admin), but a **capacity** warning does — same `setupAvailability` treatment as
+the user create form, since the platform stack consumes the same resources.
+
+### 6.2 Admin — deleting sessions from `SessionsView`
+
+The admin sessions view is read-only today. Add a delete action per row, backed
+by `DELETE /api/v1/admin/setup-sessions/:id` (API §11.1).
+
+**A confirmation dialog is mandatory** — this is a destructive, irreversible
+action sitting in a dense table where a mis-click is entirely plausible. Use
+`@/components/ui/dialog`; never a bare `confirm()`, and never a delete that
+fires straight from the row button.
+
+Two tiers, matching blast radius:
+
+| Target | Dialog |
+| --- | --- |
+| A user's session | Names the session **and its owner** — "Delete `my-agent` (vincent@…)? This tears down the VTA, mediator, DID hosting and VTC, and cannot be undone." Confirm button is `btn-destructive`. |
+| The **platform stack** | Same, plus: "**Every VTA-only session will lose its mediator and DID hosting.**" And a **type-to-confirm** input — the admin types the label before the button enables. |
+
+The type-to-confirm tier is not decoration: the API requires
+`{"confirm": "<label>"}` for the platform stack and answers 400 without it
+(API §11.1), so the input is what makes the request valid. Don't reimplement
+the guard client-side only.
+
+After a successful delete, refresh the list and surface what was torn down
+rather than silently removing a row — an admin who mis-clicked should be able
+to see immediately what happened.
 
 ---
 
@@ -335,10 +414,16 @@ Everything reuses primitives already in `src/styles/portal.css` and
 | **1** | `domain-info` wiring + `componentHost()` + replace the two hardcoded hints | API phase 1 |
 | **2** | Domain picker + `label` field + types | API phase 2 |
 | **3** | `DomainsView` — attach, records table, verify | API phase 3 |
-| **4** | Statuses, agents/detail/admin surfaces | API phase 4 |
+| **4** | Statuses, agents/detail surfaces | API phase 4 |
+| **A** | `PlatformStackView` (§6.1) + admin session delete with confirmation (§6.2) | API phase 2 — **not** blocked on verification or TLS |
 
 Phase 1 is worth shipping alongside the backend's `dev-` rename: without it the
 portal shows the wrong hostname to anyone running against a local API.
+
+Phase **A** is deliberately out of the numbered sequence: the platform stack
+needs neither domain verification nor certificates, so it only depends on API
+phase 2. It can ship well before the custom-domain UI exists — and should, since
+it is what makes `vta_only`'s mediator and DID host stable (API §3.3).
 
 ---
 
