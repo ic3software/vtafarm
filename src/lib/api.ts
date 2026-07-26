@@ -352,6 +352,9 @@ export const api = {
     req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?page=${page}${mode ? `&mode=${encodeURIComponent(mode)}` : ''}`),
   adminListImages: (component: UpgradeComponent = 'vta') =>
     req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/admin/setup/images?component=${component}`),
+  /** Tears down any user's session — irreversible. Gate behind a confirmation. */
+  adminDeleteSession: (id: string) =>
+    req<null>('DELETE', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}`),
 
   // ── Admin — upgrade batches ──────────────────────────────────────────────────
   createUpgrade: (data: {
