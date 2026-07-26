@@ -249,7 +249,7 @@ export function SessionsView() {
               <th>Status</th>
               <th>Images</th>
               <th>Created</th>
-              <th></th>
+              <th className="col-actions">Delete</th>
             </tr>
           </thead>
           <tbody>
@@ -297,7 +297,7 @@ export function SessionsView() {
                   ))}
                 </td>
                 <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap' }}>{fmt(s.created_at)}</td>
-                <td>
+                <td className="col-actions">
                   <button
                     className="btn btn-ghost btn-sm"
                     style={{ color: 'hsl(var(--destructive))' }}
