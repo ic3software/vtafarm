@@ -58,6 +58,12 @@ export function SessionsView() {
   // null = all modes; filtering happens server-side (the list is paginated).
   const [modeFilter, setModeFilter] = useState<string | null>(null)
   const [counts, setCounts] = useState<AdminSessionsPage['counts'] | null>(null)
+  // Delete is irreversible and reaches another user's session, so it's gated
+  // behind a dialog that requires typing the session's unique_id.
+  const [deleteTarget, setDeleteTarget] = useState<AdminSetupSession | null>(null)
+  const [deleteInput, setDeleteInput] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   const fetchPage = useCallback((p: number) => (
     api.adminListSessions(p, modeFilter ?? undefined)
@@ -103,6 +109,35 @@ export function SessionsView() {
       setSelected(new Map())
       setLoading(true)
       void fetchPage(page)
+    }
+  }
+
+  function askDelete(s: AdminSetupSession) {
+    setDeleteTarget(s)
+    setDeleteInput('')
+    setDeleteError('')
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget || deleteInput !== deleteTarget.unique_id) return
+    const { unique_id } = deleteTarget
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await api.adminDeleteSession(unique_id)
+      setSelected(prev => {
+        if (!prev.has(unique_id)) return prev
+        const next = new Map(prev)
+        next.delete(unique_id)
+        return next
+      })
+      setDeleteTarget(null)
+      // Deleting the only row on a page past the first leaves it empty.
+      loadPage(sessions.length === 1 && page > 1 ? page - 1 : page)
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete session')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -214,18 +249,19 @@ export function SessionsView() {
               <th>Status</th>
               <th>Images</th>
               <th>Created</th>
+              <th className="col-actions">Delete</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={9} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : sessions.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={9} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   No sessions yet.
                 </td>
               </tr>
@@ -261,6 +297,16 @@ export function SessionsView() {
                   ))}
                 </td>
                 <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap' }}>{fmt(s.created_at)}</td>
+                <td className="col-actions">
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: 'hsl(var(--destructive))' }}
+                    onClick={() => askDelete(s)}
+                    aria-label={`Delete session ${s.unique_id}`}
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -306,6 +352,51 @@ export function SessionsView() {
       )}
       {modal?.kind === 'progress' && (
         <UpgradeModal selection={[]} batchId={modal.batchId} onClose={closeModal} />
+      )}
+
+      {deleteTarget && (
+        <div className="p-overlay">
+          <div className="p-dialog">
+            <div className="dialog-header">
+              <h3 className="dialog-title">Delete this session?</h3>
+              <p className="dialog-desc">
+                This permanently destroys <span className="p-mono">{deleteTarget.vta_name}</span>
+                {' '}(<span className="p-mono">{deleteTarget.fqdn}</span>), owned by user{' '}
+                <span className="p-mono">{deleteTarget.user_unique_id}</span> — its DNS records,
+                Kubernetes resources, stored secrets, and session data. This cannot be undone.
+              </p>
+            </div>
+            <div className="dialog-body">
+              <div>
+                <label className="p-label">
+                  Type <span className="p-mono">{deleteTarget.unique_id}</span> to confirm
+                </label>
+                <input
+                  className="p-input p-mono"
+                  placeholder={deleteTarget.unique_id}
+                  value={deleteInput}
+                  onChange={e => setDeleteInput(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              {deleteError && (
+                <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{deleteError}</p>
+              )}
+            </div>
+            <div className="dialog-footer">
+              <button className="btn btn-ghost" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-destructive"
+                onClick={handleDelete}
+                disabled={deleting || deleteInput !== deleteTarget.unique_id}
+              >
+                {deleting ? 'Deleting…' : 'Delete session'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   )
