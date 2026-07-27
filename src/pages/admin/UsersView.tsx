@@ -94,33 +94,44 @@ export function UsersView() {
                 <td><span className="p-mono" style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{u.id}</span></td>
                 <td><span className="p-mono" style={{ fontSize: 12 }}>{u.unique_id}</span></td>
                 <td style={{ fontSize: 13 }}>
-                  {u.email ?? <span style={{ color: 'hsl(var(--muted-foreground))' }}>—</span>}
+                  {u.system
+                    ? <span className="p-badge badge-warning">System account</span>
+                    : u.email ?? <span style={{ color: 'hsl(var(--muted-foreground))' }}>—</span>}
                 </td>
                 <td>
-                  <div className="p-row gap-8" style={{ alignItems: 'center' }}>
-                    <span className={`p-badge ${u.beta_access ? 'badge-success' : 'badge-secondary'}`}>
-                      {u.beta_access ? 'Enabled' : 'Disabled'}
-                    </span>
-                    <button
-                      className="btn btn-outline btn-sm"
-                      disabled={updatingId === u.unique_id}
-                      onClick={() => toggleBetaAccess(u)}
-                    >
-                      {updatingId === u.unique_id ? 'Saving…' : u.beta_access ? 'Revoke' : 'Grant'}
-                    </button>
-                  </div>
+                  {/* The platform stack's owner is not a person: no passkey, no
+                      email, and beta access is meaningless on it — so none of
+                      the per-user controls apply. */}
+                  {u.system ? (
+                    <span style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>n/a</span>
+                  ) : (
+                    <div className="p-row gap-8" style={{ alignItems: 'center' }}>
+                      <span className={`p-badge ${u.beta_access ? 'badge-success' : 'badge-secondary'}`}>
+                        {u.beta_access ? 'Enabled' : 'Disabled'}
+                      </span>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        disabled={updatingId === u.unique_id}
+                        onClick={() => toggleBetaAccess(u)}
+                      >
+                        {updatingId === u.unique_id ? 'Saving…' : u.beta_access ? 'Revoke' : 'Grant'}
+                      </button>
+                    </div>
+                  )}
                 </td>
                 <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(u.created_at)}</td>
                 <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(u.updated_at)}</td>
                 <td className="col-actions">
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    disabled={recoveringId === u.unique_id}
-                    onClick={() => issueRecoveryLink(u)}
-                    title="Issue a single-use login link for a user who lost their passkey"
-                  >
-                    {recoveringId === u.unique_id ? 'Issuing…' : 'Recovery link'}
-                  </button>
+                  {!u.system && (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      disabled={recoveringId === u.unique_id}
+                      onClick={() => issueRecoveryLink(u)}
+                      title="Issue a single-use login link for a user who lost their passkey"
+                    >
+                      {recoveringId === u.unique_id ? 'Issuing…' : 'Recovery link'}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

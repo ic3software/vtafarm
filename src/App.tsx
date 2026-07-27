@@ -12,6 +12,7 @@ import { AdminLogin } from '@/pages/AdminLogin'
 import { Portal } from '@/pages/portal/Portal'
 import { AgentsView } from '@/pages/portal/AgentsView'
 import { CreateVTAView } from '@/pages/portal/CreateVTAView'
+import { DomainsView } from '@/pages/portal/DomainsView'
 import { SessionDetailView } from '@/pages/portal/SessionDetailView'
 import { SettingsView } from '@/pages/portal/SettingsView'
 import { AdminPanel } from '@/pages/admin/AdminPanel'
@@ -19,6 +20,7 @@ import { DashboardView } from '@/pages/admin/DashboardView'
 import { AdminsView } from '@/pages/admin/AdminsView'
 import { UsersView } from '@/pages/admin/UsersView'
 import { SessionsView } from '@/pages/admin/SessionsView'
+import { PlatformStackView } from '@/pages/admin/PlatformStackView'
 import { InvitationsView } from '@/pages/admin/InvitationsView'
 import { SecurityView } from '@/pages/admin/SecurityView'
 import { Register } from '@/pages/Register'
@@ -178,6 +180,7 @@ export default function App() {
           <Route path="/portal" element={<Portal />}>
             <Route index element={<AgentsView />} />
             <Route path="create" element={<CreateVTAView />} />
+            <Route path="domains" element={<DomainsView />} />
             <Route path="session/:id" element={<SessionDetailView />} />
             <Route path="settings" element={<SettingsView />} />
           </Route>
@@ -191,6 +194,7 @@ export default function App() {
               <Route path="admins" element={<AdminsView />} />
               <Route path="users" element={<UsersView />} />
               <Route path="sessions" element={<SessionsView />} />
+              <Route path="platform-stack" element={<PlatformStackView />} />
               <Route path="invitations" element={<InvitationsView />} />
               <Route path="settings" element={<SecurityView />} />
             </Route>

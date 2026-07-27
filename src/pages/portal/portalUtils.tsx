@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import type { SetupSession, SetupStatus } from '@/lib/api'
+import { useState, useEffect } from 'react'
+import { api, type DomainInfo, type DomainType, type SetupSession, type SetupStatus } from '@/lib/api'
 
 const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   // vta_only
@@ -10,8 +10,12 @@ const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   running:            { cls: 'badge-success',     label: 'running' },
   // full_stack
   dns_provision:         { cls: 'badge-secondary', label: 'DNS provisioning' },
+  // Every session confirms its hostnames resolve before any cluster resources
+  // are spent on them; only a custom domain waits for a certificate.
+  dns_wait:               { cls: 'badge-warning',   label: 'verifying DNS' },
   env_provision:          { cls: 'badge-warning',   label: 'env provisioning' },
   k8s_provision:          { cls: 'badge-warning',   label: 'k8s provisioning' },
+  tls_provision:          { cls: 'badge-warning',   label: 'issuing certificate' },
   step_vta_setup:         { cls: 'badge-warning',   label: 'VTA setup' },
   step_mediator_p1:       { cls: 'badge-warning',   label: 'mediator setup (1/3)' },
   step_mediator_reprov:   { cls: 'badge-warning',   label: 'mediator setup (2/3)' },
@@ -60,6 +64,19 @@ export function initials(uniqueId: string) {
   return uniqueId.slice(0, 2).toUpperCase() || '??'
 }
 
+// Where a session's hostnames come from. `managed` is the default and the
+// common case, so it stays quiet; the other two are worth noticing.
+const DOMAIN_TYPE_META: Record<DomainType, { cls: string; label: string }> = {
+  managed: { cls: 'badge-secondary', label: 'managed' },
+  custom: { cls: 'badge-default', label: 'custom' },
+  platform: { cls: 'badge-warning', label: 'platform' },
+}
+
+export function domainTypeBadge(type: DomainType | undefined) {
+  const meta = DOMAIN_TYPE_META[type ?? 'managed'] ?? DOMAIN_TYPE_META.managed
+  return <span className={`p-badge ${meta.cls}`}>{meta.label}</span>
+}
+
 export function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60000)
@@ -93,7 +110,10 @@ export const VTA_ONLY_PHASES: Phase[] = [
 // the VTA is up.
 export const FULL_STACK_PHASES: Phase[] = [
   { key: 'create',    label: 'Create session',    statuses: [] },
-  { key: 'dns_env',   label: 'DNS & environment', statuses: ['dns_provision', 'env_provision', 'k8s_provision'] },
+  // dns_wait and tls_provision fold in here rather than adding steps: they are
+  // both pre-flight for the same phase, and the stepper keeps one shape for
+  // every mode and domain kind.
+  { key: 'dns_env',   label: 'DNS & environment', statuses: ['dns_provision', 'dns_wait', 'env_provision', 'k8s_provision', 'tls_provision'] },
   { key: 'vta_setup', label: 'VTA setup',         statuses: ['step_vta_setup'] },
   { key: 'mediator',  label: 'Mediator setup',    statuses: ['step_mediator_p1', 'step_mediator_reprov', 'step_mediator_p2'] },
   { key: 'dids',      label: 'DID hosting setup', statuses: ['step_dids_p1', 'step_dids_provision', 'step_dids_p2', 'step_dids_invite', 'step_dids_load_did'] },
@@ -120,6 +140,56 @@ export function useCopyState(timeoutMs = 2000) {
     setTimeout(() => setCopiedKey(k => (k === key ? null : k)), timeoutMs)
   }
   return { copiedKey, copy }
+}
+
+// ── Hostnames ────────────────────────────────────────────────────────────────
+
+export type HostComponent = 'vta' | 'vtc' | 'mediator' | 'dids'
+
+/**
+ * The hostname one component of a session gets — the single place the UI is
+ * allowed to compose one, mirroring the API's own derivation.
+ *
+ * `fixedLabels` selects the form custom and platform domains use, where the
+ * four labels are the same for every session (`vta.aaa.com`) because the
+ * domain already identifies the owner; managed domains carry the user-chosen
+ * name in the label (`vta-alice.firstperson.dev`). Note the VTC's name is its
+ * own `vtc_name`, not the session's `vta_name`.
+ *
+ * `env_prefix` is applied for us, so `dev-` appears automatically against a
+ * local API.
+ */
+export function componentHost(
+  info: DomainInfo,
+  component: HostComponent,
+  opts: { fixedLabels: boolean; name?: string; domain?: string },
+): string {
+  const label = opts.fixedLabels
+    ? `${info.env_prefix}${component}`
+    : `${info.env_prefix}${component}-${opts.name}`
+  return `${label}.${opts.domain ?? info.managed_domain}`
+}
+
+// Environment-static, so one fetch serves every view for the lifetime of the
+// page. Returns null until it resolves — render the surrounding copy without
+// the hostname rather than guessing at one.
+//
+// Two caches because there are two endpoints: the portal and the admin panel
+// authenticate with different cookies, so each has its own route returning the
+// identical payload.
+const domainInfoCache: Record<'user' | 'admin', Promise<DomainInfo> | null> = { user: null, admin: null }
+
+export function useDomainInfo(variant: 'user' | 'admin' = 'user'): DomainInfo | null {
+  const [info, setInfo] = useState<DomainInfo | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    domainInfoCache[variant] ??= variant === 'admin' ? api.adminDomainInfo() : api.domainInfo()
+    domainInfoCache[variant]!
+      .then(d => { if (!cancelled) setInfo(d) })
+      .catch(() => { domainInfoCache[variant] = null })
+    return () => { cancelled = true }
+  }, [variant])
+  return info
 }
 
 // ── Shared admin-DID (did:key) validation ────────────────────────────────────

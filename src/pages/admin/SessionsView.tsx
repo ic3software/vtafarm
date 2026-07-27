@@ -21,6 +21,14 @@ const modeLabels: Record<string, string> = {
   full_stack: 'Full stack',
 }
 
+// Where the session's hostnames come from. `managed` is the default and by far
+// the common case, so it stays visually quiet; the other two are worth noticing.
+const domainBadge: Record<string, string> = {
+  managed: 'badge-secondary',
+  custom: 'badge-default',
+  platform: 'badge-warning',
+}
+
 const modeComponents: Record<string, UpgradeComponent[]> = {
   vta_only: ['vta'],
   full_stack: ['vta', 'mediator', 'dids', 'vtc'],
@@ -33,6 +41,17 @@ function componentImages(s: AdminSetupSession): Array<[string, string]> {
   if (s.dids_image) rows.push(['dids', s.dids_image])
   if (s.vtc_image) rows.push(['vtc', s.vtc_image])
   return rows
+}
+
+function isPlatform(s: AdminSetupSession) {
+  return s.domain_type === 'platform'
+}
+
+// What the admin has to type to enable the delete button. The platform stack
+// asks for its label because that is the value the API itself demands in the
+// request body; every other session asks for its session id.
+function confirmWord(s: AdminSetupSession) {
+  return isPlatform(s) ? s.vta_name : s.unique_id
 }
 
 type ModalState =
@@ -114,12 +133,15 @@ export function SessionsView() {
   }
 
   async function handleDelete() {
-    if (!deleteTarget || deleteInput !== deleteTarget.unique_id) return
+    if (!deleteTarget || deleteInput !== confirmWord(deleteTarget)) return
     const { unique_id } = deleteTarget
     setDeleting(true)
     setDeleteError('')
     try {
-      await api.adminDeleteSession(unique_id)
+      // The platform stack's confirm word is its label, and the API requires it
+      // in the body — this input is what makes the request valid, not just a
+      // client-side speed bump.
+      await api.adminDeleteSession(unique_id, isPlatform(deleteTarget) ? deleteTarget.vta_name : undefined)
       setSelected(prev => {
         if (!prev.has(unique_id)) return prev
         const next = new Map(prev)
@@ -241,6 +263,7 @@ export function SessionsView() {
               <th>User</th>
               <th>Name</th>
               <th>Mode</th>
+              <th>Domain</th>
               <th>Status</th>
               <th>Images</th>
               <th>Created</th>
@@ -250,13 +273,13 @@ export function SessionsView() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : sessions.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   No sessions yet.
                 </td>
               </tr>
@@ -280,6 +303,11 @@ export function SessionsView() {
                   )}
                 </td>
                 <td><span className="p-badge badge-default">{modeLabels[s.mode] ?? s.mode}</span></td>
+                <td>
+                  <span className={`p-badge ${domainBadge[s.domain_type] ?? 'badge-secondary'}`}>
+                    {s.domain_type}
+                  </span>
+                </td>
                 <td title={s.error_msg || undefined}>
                   <span className={`p-badge ${statusBadge(s.status)}`}>{s.status}</span>
                 </td>
@@ -353,7 +381,9 @@ export function SessionsView() {
         <div className="p-overlay">
           <div className="p-dialog">
             <div className="dialog-header">
-              <h3 className="dialog-title">Delete this session?</h3>
+              <h3 className="dialog-title">
+                {isPlatform(deleteTarget) ? 'Delete the platform stack?' : 'Delete this session?'}
+              </h3>
               <p className="dialog-desc">
                 This permanently destroys <span className="p-mono">{deleteTarget.vta_name}</span>
                 {' '}(<span className="p-mono">{deleteTarget.fqdn}</span>), owned by user{' '}
@@ -362,13 +392,25 @@ export function SessionsView() {
               </p>
             </div>
             <div className="dialog-body">
+              {isPlatform(deleteTarget) && (
+                <div className="p-alert alert-destructive">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                  <div className="grow">
+                    <p className="alert-title">Every VTA-only session loses its mediator and DID hosting.</p>
+                    <p className="alert-desc">
+                      This is the farm's own stack — the shared infrastructure other users'
+                      agents point at, not one customer's agent.
+                    </p>
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="p-label">
-                  Type <span className="p-mono">{deleteTarget.unique_id}</span> to confirm
+                  Type <span className="p-mono">{confirmWord(deleteTarget)}</span> to confirm
                 </label>
                 <input
                   className="p-input p-mono"
-                  placeholder={deleteTarget.unique_id}
+                  placeholder={confirmWord(deleteTarget)}
                   value={deleteInput}
                   onChange={e => setDeleteInput(e.target.value)}
                   autoFocus
@@ -385,9 +427,9 @@ export function SessionsView() {
               <button
                 className="btn btn-destructive"
                 onClick={handleDelete}
-                disabled={deleting || deleteInput !== deleteTarget.unique_id}
+                disabled={deleting || deleteInput !== confirmWord(deleteTarget)}
               >
-                {deleting ? 'Deleting…' : 'Delete session'}
+                {deleting ? 'Deleting…' : isPlatform(deleteTarget) ? 'Delete platform stack' : 'Delete session'}
               </button>
             </div>
           </div>

@@ -6,7 +6,8 @@ export type SetupStatus =
   // vta_only
   | 'dns_provisioned' | 'vta_setup_running' | 'vta_setup_complete' | 'provisioning' | 'running'
   // full_stack
-  | 'dns_provision' | 'env_provision' | 'k8s_provision' | 'step_vta_setup'
+  | 'dns_provision' | 'dns_wait' | 'env_provision' | 'k8s_provision' | 'tls_provision'
+  | 'step_vta_setup'
   | 'step_mediator_p1' | 'step_mediator_reprov' | 'step_mediator_p2'
   | 'step_dids_p1' | 'step_dids_provision' | 'step_dids_p2' | 'step_dids_invite'
   | 'step_dids_load_did' | 'deploy_dids' | 'deploy_mediator'
@@ -17,6 +18,22 @@ export type SetupStatus =
   | 'failed'
 
 export type SetupMode = 'vta_only' | 'full_stack'
+
+/**
+ * Where a session's hostnames come from — orthogonal to its mode.
+ *
+ * `managed` derives the labels from the user's chosen name in our own zone
+ * (`vta-alice.firstperson.dev`); `custom` and `platform` both use the four
+ * fixed labels (`vta.`, `vtc.`, `mediator.`, `dids.`) and differ only in who
+ * owns the zone — theirs vs. ours.
+ */
+export type DomainType = 'managed' | 'custom' | 'platform'
+
+/**
+ * The kind of a `domains` row. Narrower than `DomainType`: a managed session
+ * has no domain row at all, so `managed` is not a kind anything can carry.
+ */
+export type DomainKind = 'custom' | 'platform'
 
 export interface SetupSessionUrls {
   vta: string
@@ -45,6 +62,10 @@ export interface SetupSession {
   id: string
   status: SetupStatus
   mode: SetupMode
+  /** managed | custom | platform — where this session's hostnames come from. */
+  domain_type?: DomainType
+  /** The zone the hostnames sit under (`firstperson.dev`, `aaa.com`). */
+  domain?: string
   url?: string
   urls?: SetupSessionUrls
   vta_name?: string
@@ -65,17 +86,38 @@ export interface SetupSession {
   updated_at?: string
 }
 
-/** Remaining create capacity for one mode. `available` is `count > 0`. */
+/**
+ * Why a mode can't be created right now.
+ *
+ * `at_capacity` is transient. The three `platform_stack_*` /
+ * `shared_infra_*` reasons are `vta_only`-only: that mode is just the VTA,
+ * wired to the mediator and DID hosting the **platform stack** provides, so it
+ * cannot be created before an admin has stood that up and pointed this server
+ * at it. `full_stack` runs its own and is never gated on it.
+ */
+export type UnavailableReason =
+  | 'at_capacity'
+  | 'platform_stack_missing'
+  | 'platform_stack_not_ready'
+  | 'shared_infra_unconfigured'
+
+/** Whether one mode can be created, and if not, why. */
 export interface ModeAvailability {
   count: number
   available: boolean
+  reason?: UnavailableReason
+  /** A sentence to show the user. Prefer it over composing copy client-side. */
+  detail?: string
 }
 
 /**
- * Per-mode remaining cluster capacity, used by the create screen to show
- * "Unavailable" and disable the button before submitting. Fails open: when the
- * cluster can't be measured, `determinable` is false and every mode reports
- * `available: true`, so a transient outage never wrongly blocks creation.
+ * Per-mode createability, used by the create screen to disable the button
+ * before submitting.
+ *
+ * Capacity fails open: when the cluster can't be measured, `determinable` is
+ * false and no mode is blocked on capacity, so a transient outage never wrongly
+ * stops creation. The platform-stack dependency is not capacity and does not
+ * fail open — it's a hard prerequisite, so `available` already accounts for it.
  */
 export interface SetupAvailability {
   vta_only: ModeAvailability
@@ -83,6 +125,78 @@ export interface SetupAvailability {
   metrics_available: boolean
   storage_available: boolean
   determinable: boolean
+}
+
+/**
+ * Hostname facts for this environment, so the UI never hardcodes the
+ * production shape (`vta-<name>.firstperson.dev`), which is wrong against a
+ * local API and will be wrong again for custom and platform domains. Route
+ * every displayed hostname through `componentHost()` in `portalUtils`.
+ */
+export interface DomainInfo {
+  /** The zone managed sessions are created under (CLUSTER_DOMAIN). */
+  managed_domain: string
+  /** Prefixed onto every DNS label the API creates — `dev-` locally, `` in production. */
+  env_prefix: string
+  /** External IP of the cluster ingress; empty when the cluster isn't configured. */
+  target_ip: string
+  /** Hostname a custom domain's records point at, e.g. `dev-lb.firstperson.dev`. */
+  target_host?: string
+}
+
+export type HostComponentName = 'vta' | 'mediator' | 'dids' | 'vtc'
+
+/**
+ * One hostname the user must point at us, plus its last resolution.
+ *
+ * `expected_value` is always the CNAME target, never an IP: the user's records
+ * are effectively permanent — their DID-hosting hostname is embedded in every
+ * `did:webvh` the session mints — so they point at a name we can repoint later
+ * without anyone editing their DNS again.
+ */
+export interface DnsRecordStatus {
+  component: HostComponentName
+  fqdn: string
+  expected_type: 'CNAME'
+  expected_value: string
+  resolved: string[]
+  cname?: string
+  ok: boolean
+  /**
+   * Why it failed, in words meant for the user. **Render this rather than
+   * composing DNS advice in the UI** — one source of truth, and it stays
+   * correct as the checker improves.
+   */
+  detail?: string
+}
+
+/** The control challenge. Accepted at the `_vtafarm-challenge` name or the apex. */
+export interface TxtRecordStatus {
+  name: string
+  expected: string
+  /** Every value found at either name; a match on any one passes. */
+  found: string[]
+  ok: boolean
+  detail?: string
+}
+
+export interface Domain {
+  id: number
+  domain: string
+  kind: DomainKind
+  verified: boolean
+  verified_at: string | null
+  /** unique_id of the session running on this domain, when there is one. */
+  in_use_by?: string
+  /** What all four CNAMEs point at. */
+  target: string
+  /**
+   * Whether this response performed live lookups. False on the list endpoint,
+   * which never resolves — show a neutral "not checked" state, not a failure.
+   */
+  checked: boolean
+  txt?: TxtRecordStatus
+  records: DnsRecordStatus[]
 }
 
 export interface UserInfo {
@@ -97,6 +211,12 @@ export interface User {
   /** Self-declared at signup (unverified); null for pre-email and admin-invited accounts. */
   email: string | null
   beta_access: boolean
+  /**
+   * The account that owns the platform stack. Not a login — no passkey, no
+   * email — so nothing meant for a person (beta access, recovery links) should
+   * be offered on it.
+   */
+  system?: boolean
   created_at: string
   updated_at: string
 }
@@ -131,6 +251,12 @@ export interface AdminSetupSession {
   vta_name: string
   vtc_name?: string
   mode: SetupMode
+  /**
+   * The `platform` row is the farm's own stack — the one deletion that needs
+   * an explicit `confirm` body, since every `vta_only` session loses its
+   * mediator and DID host with it.
+   */
+  domain_type: DomainType
   status: SetupStatus
   error_msg?: string
   fqdn: string
@@ -139,6 +265,57 @@ export interface AdminSetupSession {
   dids_image?: string
   vtc_image?: string
   created_at: string
+}
+
+/**
+ * The farm's own `full_stack` at `vta.{CLUSTER_DOMAIN}` and friends — the
+ * mediator and DID host every `vta_only` session points at.
+ *
+ * `exists: false` covers both "never created" and "created then torn down":
+ * the `domains` row outlives its session, so `domain` may still be set in the
+ * second case.
+ */
+export interface PlatformStack {
+  exists: boolean
+  /** The session's 8-char unique_id — present only while one exists. */
+  id?: string
+  status?: SetupStatus
+  /** Reaches no hostname; it survives only in `did:webvh` paths. */
+  label?: string
+  domain?: string
+  urls?: SetupSessionUrls
+  images?: { vta: string; mediator: string; dids: string; vtc: string }
+  /**
+   * `vta_did` is what an admin feeds to `pnm setup` locally to mint the admin
+   * DID the stack parks waiting for — so it has to be on screen before that
+   * DID can be asked for.
+   */
+  collected?: SetupSessionCollected
+  /**
+   * What to paste into the environment once the stack is running. Empty
+   * strings until the pipeline mints them — `MEDIATOR_DID` in particular
+   * cannot be known before setup completes.
+   */
+  config_values?: {
+    MEDIATOR_DID: string
+    DID_HOSTING_SERVER_URL: string
+    DID_HOSTING_CONTROL_URL: string
+    DID_HOSTING_DID: string
+  }
+  /**
+   * The same post-provisioning outputs a user's session hands back. Not
+   * decoration: without the VTC install URL and its claim code nobody can
+   * claim the platform community, and the two admin keys are shown for
+   * offline backup and reachable nowhere else.
+   */
+  action_required?: SetupSessionActionRequired
+  dids_enroll_used?: boolean
+  vtc_install_used?: boolean
+  mediator_admin_key?: string
+  webvh_admin_key?: string
+  error_msg?: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface AdminSessionsPage {
@@ -351,9 +528,57 @@ export const api = {
     req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?page=${page}${mode ? `&mode=${encodeURIComponent(mode)}` : ''}`),
   adminListImages: (component: UpgradeComponent = 'vta') =>
     req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/admin/setup/images?component=${component}`),
-  /** Tears down any user's session — irreversible. Gate behind a confirmation. */
-  adminDeleteSession: (id: string) =>
-    req<null>('DELETE', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}`),
+  /** Admin-cookie twin of `domainInfo` — the admin panel holds a different cookie. */
+  adminDomainInfo: () => req<DomainInfo>('GET', '/api/v1/admin/setup/domain-info'),
+  /**
+   * Resumes any session parked at `awaiting_admin_did`. The admin-cookie twin
+   * of `provisionAdmin`, and the only way to resume the platform stack — its
+   * owner is a passkey-less system account, so the user-facing route can never
+   * be called for it.
+   */
+  adminProvisionAdmin: (id: string, admin_did: string) =>
+    req<{ status: string }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/admin`, { admin_did }),
+  // Admin twins of the post-provisioning actions. Without them an admin can see
+  // the platform stack's single-use enrollment and install links but never
+  // acknowledge or reissue one — which is most of finishing the stack.
+  adminReissueDidsEnroll: (id: string) =>
+    req<{ dids_admin_enroll_url: string }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/dids/reissue-enroll`),
+  adminAckDidsEnroll: (id: string) =>
+    req<{ dids_enroll_used: boolean }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/dids/enroll-ack`),
+  adminReissueVtcInstall: (id: string) =>
+    req<{ install_url: string; claim_code: string }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/vtc/reissue-install`),
+  adminAckVtcInstall: (id: string) =>
+    req<{ vtc_install_used: boolean }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/vtc/install-ack`),
+  /**
+   * Tears down any user's session — irreversible. Gate behind a confirmation.
+   *
+   * `confirm` is the platform stack's label, and the API *requires* it for
+   * that one session (400 without it): deleting it takes every `vta_only`
+   * session's mediator and DID host with it. Don't reimplement that guard
+   * client-side only.
+   */
+  adminDeleteSession: (id: string, confirm?: string) =>
+    req<null>('DELETE', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}`, confirm ? { confirm } : undefined),
+
+  // ── Admin — platform stack ───────────────────────────────────────────────────
+  // The farm's own full stack under our zone's fixed labels. Created whole —
+  // domain row, DNS, session — by one action; this is the only route that can
+  // mint a domains row for our own zone.
+  getPlatformStack: () => req<PlatformStack>('GET', '/api/v1/admin/platform-stack'),
+  // No admin_did: the stack runs exactly the sequence a user's session does and
+  // parks at awaiting_admin_did, where adminProvisionAdmin resumes it. The DID
+  // is minted locally by `pnm setup` from a VTA DID that doesn't exist yet.
+  createPlatformStack: (data: {
+    label?: string
+    vta_image: string
+    mediator_image: string
+    dids_image: string
+    vtc_image: string
+    portable?: boolean
+    pre_rotation_count?: number
+  }) =>
+    req<{ id: string; status: SetupStatus; label: string; domain: string; urls: SetupSessionUrls }>(
+      'POST', '/api/v1/admin/platform-stack', data),
 
   // ── Admin — upgrade batches ──────────────────────────────────────────────────
   createUpgrade: (data: {
@@ -414,6 +639,9 @@ export const api = {
   // Remaining per-mode cluster capacity — the create screen uses this to show
   // "Unavailable" and disable the button before submitting.
   setupAvailability: () => req<SetupAvailability>('GET', '/api/v1/setup/availability'),
+  // Environment hostname facts behind every hostname hint. Static per
+  // deployment — see useDomainInfo() in portalUtils, which caches it.
+  domainInfo: () => req<DomainInfo>('GET', '/api/v1/setup/domain-info'),
   listSessions: () => req<SetupSession[]>('GET', '/api/v1/setup'),
   createSession: (data: {
     mode: SetupMode
@@ -426,7 +654,28 @@ export const api = {
     dids_image?: string
     vtc_image?: string
     vtc_name?: string
+    /** A verified custom domain. Omitted → managed. full_stack only. */
+    domain_id?: number
+    /**
+     * Replaces vta_name/vtc_name on a custom domain, where the four labels are
+     * fixed and no user-chosen name reaches a hostname. Mutually exclusive
+     * with them — sending both is a 400.
+     */
+    label?: string
   }) => req<{ id: string; status: string; url?: string; urls?: SetupSessionUrls }>('POST', '/api/v1/setup', data),
+
+  // ── Domains ──────────────────────────────────────────────────────────────────
+  // A zone the user owns, verified on its own page before any session exists.
+  // Every route 404s while CUSTOM_DOMAIN_ENABLED is off on the API.
+  listDomains: () => req<Domain[]>('GET', '/api/v1/domains'),
+  attachDomain: (domain: string) => req<Domain>('POST', '/api/v1/domains', { domain }),
+  // Resolves live and promotes to verified when everything passes, so polling
+  // it surfaces a fix made in another tab. Cheap once verified — no lookups.
+  getDomain: (id: number) => req<Domain>('GET', `/api/v1/domains/${id}`),
+  // A failing check is a 200 with per-record detail, not an error — it's the
+  // normal path and must not be rendered as one.
+  verifyDomain: (id: number) => req<Domain>('POST', `/api/v1/domains/${id}/verify`),
+  deleteDomain: (id: number) => req<null>('DELETE', `/api/v1/domains/${id}`),
   getSession: (id: string) => req<SetupSession>('GET', `/api/v1/setup/${id}`),
   deleteSession: (id: string) => req<null>('DELETE', `/api/v1/setup/${id}`),
   provisionAdmin: (id: string, admin_did: string) =>

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
-import { api, API_BASE, type SetupSession, type SetupAvailability } from '@/lib/api'
+import { api, API_BASE, type SetupSession, type SetupAvailability, type Domain } from '@/lib/api'
 import type { PortalContext } from './Portal'
-import { statusBadge, FULL_STACK_PHASES, isValidAdminDid } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, isValidAdminDid, componentHost, useDomainInfo } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullStackCreateProgress } from './FullStackCreateProgress'
@@ -11,12 +11,14 @@ type Stage = 0 | 1 | 2 | 3
 type Mode = 'vta_only' | 'full_stack'
 
 export function CreateVTAView() {
-  const { loadSessions } = useOutletContext<PortalContext>()
+  // betaAccess comes from the portal shell, which already reads it fresh from
+  // the DB — the JWT doesn't carry it, and an admin can flip it at any time.
+  const { loadSessions, betaAccess } = useOutletContext<PortalContext>()
   const navigate = useNavigate()
 
   const [stage, setStage] = useState<Stage>(0)
   const [mode, setMode] = useState<Mode>('vta_only')
-  const [betaAccess, setBetaAccess] = useState(false)
+  const domainInfo = useDomainInfo()
   const [availability, setAvailability] = useState<SetupAvailability | null>(null)
   const [vtaName, setVtaName] = useState('myvta')
   const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
@@ -28,6 +30,14 @@ export function CreateVTAView() {
   const [vtcName, setVtcName] = useState('myvtc')
   const [vtcImages, setVtcImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedVtcImage, setSelectedVtcImage] = useState('')
+  // Custom domains the caller has attached. Empty when they have none — and
+  // also when the API has the feature switched off, which 404s the list.
+  const [domains, setDomains] = useState<Domain[]>([])
+  // 'managed' or a domain id as a string; Select works in strings.
+  const [domainChoice, setDomainChoice] = useState('managed')
+  // On a fixed-label domain one label replaces both names — neither reaches a
+  // hostname there, and their only surviving job is the did:webvh path.
+  const [label, setLabel] = useState('myagent')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -64,13 +74,6 @@ export function CreateVTAView() {
       .catch(() => {})
   }, [])
 
-  // full_stack requires beta_access — fetched fresh from
-  // the DB since the login session/JWT doesn't carry it (an admin can flip it
-  // at any time).
-  useEffect(() => {
-    api.getMe().then(me => setBetaAccess(me.beta_access)).catch(() => {})
-  }, [])
-
   // Remaining cluster capacity per mode, so we can show "Unavailable" and block
   // creation before the user submits. Fails open: on any error (or when the
   // backend can't measure) we leave the form enabled — POST /setup is the
@@ -97,6 +100,16 @@ export function CreateVTAView() {
       })
       .catch(() => {})
   }, [mode, mediatorImages.length])
+
+  // The caller's domains, for the picker. Only full_stack can use one, so this
+  // waits for that mode. On failure the picker shows managed alone, which is
+  // the correct offer for someone with no verified domain anyway.
+  const domainsLoaded = useRef(false)
+  useEffect(() => {
+    if (mode !== 'full_stack' || domainsLoaded.current) return
+    domainsLoaded.current = true
+    api.listDomains().then(setDomains).catch(() => {})
+  }, [mode])
 
   // Lazily fetch vtc images the first time full_stack is selected.
   useEffect(() => {
@@ -233,6 +246,12 @@ export function CreateVTAView() {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [logs])
 
+  // Only full_stack can run on a custom domain; switching back to vta_only
+  // must not leave a stale selection armed.
+  const selectedDomain = mode === 'full_stack' && domainChoice !== 'managed'
+    ? domains.find(d => String(d.id) === domainChoice) ?? null
+    : null
+
   async function handleCreate() {
     if (!selectedImage) { setCreateError('Select a VTA image'); return }
     if (mode !== 'vta_only' && (!selectedMediatorImage || !selectedDidsImage)) {
@@ -246,9 +265,14 @@ export function CreateVTAView() {
       const r = await api.createSession({
         mode,
         vta_image: selectedImage,
-        vta_name: vtaName,
+        // vta_name/vtc_name and label are mutually exclusive: on a custom
+        // domain the hostnames are fixed, so neither name means anything.
+        ...(selectedDomain
+          ? { domain_id: selectedDomain.id, label }
+          : { vta_name: vtaName }),
         ...(mode !== 'vta_only' ? { mediator_image: selectedMediatorImage, dids_image: selectedDidsImage } : {}),
-        ...(mode === 'full_stack' ? { vtc_image: selectedVtcImage, vtc_name: vtcName } : {}),
+        ...(mode === 'full_stack' ? { vtc_image: selectedVtcImage } : {}),
+        ...(mode === 'full_stack' && !selectedDomain ? { vtc_name: vtcName } : {}),
       })
       setSessionId(r.id)
       setStage(1)
@@ -298,9 +322,28 @@ export function CreateVTAView() {
     }
   })()
 
-  // Only block when the backend positively measured "no room" for this mode.
-  // determinable=false means capacity is unknown → stay enabled (fail-open).
-  const modeUnavailable = availability?.determinable === true && !availability[mode].available
+  // Live hostname previews. Managed domains carry the user-chosen name in the
+  // label, so these track what's typed; an empty field keeps the <name>
+  // placeholder these hints used to hardcode. Null until domain-info resolves —
+  // the hint then renders without a hostname rather than with a guessed one.
+  const fixedLabels = selectedDomain !== null
+  const hostOpts = { fixedLabels, domain: selectedDomain?.domain }
+  const vtaHost = domainInfo && componentHost(domainInfo, 'vta', { ...hostOpts, name: vtaName || '<name>' })
+  const vtcHost = domainInfo && componentHost(domainInfo, 'vtc', { ...hostOpts, name: vtcName || '<name>' })
+  const didsHost = domainInfo && componentHost(domainInfo, 'dids', hostOpts)
+
+  // A verified domain that no session is running on. One domain backs one
+  // session, because its four labels are fixed.
+  const selectableDomains = domains.filter(d => d.verified)
+
+  // The backend already folds capacity (fail-open) and the platform-stack
+  // prerequisite (hard) into one `available`, and says which applies — so the
+  // screen reads one field and shows the server's own sentence rather than
+  // guessing at a reason.
+  const modeAvailability = availability?.[mode]
+  const modeUnavailable = modeAvailability ? !modeAvailability.available : false
+  const blockedOnPlatformStack = modeAvailability?.reason?.startsWith('platform_stack') === true ||
+    modeAvailability?.reason === 'shared_infra_unconfigured'
 
   const showingSetupLogs = stage === 1 && setupStreamStarted && !setupLogsDone
   // Only use status as fallback when we never entered the log-streaming phase
@@ -363,10 +406,24 @@ export function CreateVTAView() {
               <div className="p-alert alert-warning">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
                 <div className="grow">
-                  <p className="alert-title">Unavailable</p>
+                  <p className="alert-title">
+                    {blockedOnPlatformStack ? 'Not ready yet' : 'Unavailable'}
+                  </p>
                   <p className="alert-desc">
-                    The cluster is currently at capacity and can't provision a new{' '}
-                    {mode === 'vta_only' ? 'VTA' : 'Full Stack'} agent right now. Please try again later or contact an admin.
+                    {modeAvailability?.detail ?? (
+                      <>
+                        The cluster is currently at capacity and can't provision a new{' '}
+                        {mode === 'vta_only' ? 'VTA' : 'Full Stack'} agent right now. Please try again later or contact an admin.
+                      </>
+                    )}
+                    {/* A VTA-only user whose only blocker is the missing shared
+                        infrastructure can't do anything about it themselves —
+                        point at the one mode that doesn't depend on it, but only
+                        when they can actually pick it. */}
+                    {blockedOnPlatformStack && betaAccess && mode === 'vta_only' &&
+                      availability?.full_stack.available && (
+                        <> A Full Stack agent runs its own mediator and DID hosting, so it can be created now.</>
+                      )}
                   </p>
                 </div>
               </div>
@@ -387,19 +444,91 @@ export function CreateVTAView() {
                   : 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon + Verifiable Trust Community just for you.'}
               </div>
             </div>
+            {mode === 'full_stack' && (
+              <div>
+                <label className="p-label" htmlFor="cv-domain">Domain</label>
+                <Select value={domainChoice} onValueChange={setDomainChoice}>
+                  <SelectTrigger className="w-full" id="cv-domain">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="managed">
+                      Managed{domainInfo ? ` — ${domainInfo.managed_domain}` : ''}
+                    </SelectItem>
+                    {selectableDomains.map(d => (
+                      <SelectItem key={d.id} value={String(d.id)} disabled={!!d.in_use_by} className="p-mono">
+                        {d.domain}{d.in_use_by ? ' (in use by another agent)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Shown even with nothing to pick — it's the only place the
+                    feature is discoverable from. */}
+                <div className="field-hint">
+                  {selectableDomains.length === 0 ? (
+                    <>
+                      Own a domain?{' '}
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ padding: 0, height: 'auto' }}
+                        onClick={() => navigate('/portal/domains')}>
+                        Attach it under Domains
+                      </button>
+                      {' '}to run this agent under your own hostnames.
+                    </>
+                  ) : selectedDomain ? (
+                    <>Your agent gets fixed hostnames under <span className="p-mono">{selectedDomain.domain}</span>.</>
+                  ) : (
+                    'Hostnames are generated from the names below, in the VTA Farm zone.'
+                  )}
+                </div>
+              </div>
+            )}
+
+            {selectedDomain && (
+              <div className="p-alert alert-warning">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                <div className="grow">
+                  <p className="alert-title">This can't be changed later</p>
+                  <p className="alert-desc">
+                    Your agent's DIDs permanently embed{' '}
+                    <span className="p-mono">{didsHost ?? `dids.${selectedDomain.domain}`}</span>, and
+                    third parties resolve them from there. Moving to a different domain means
+                    creating a new agent from scratch.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="p-section-title" style={{ marginTop: 4 }}>Personal setup</div>
-            <div>
-              <label className="p-label" htmlFor="cv-name">Agent name <span className="req">*</span></label>
-              <div className="input-group">
-                <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
-                <input className="p-input p-mono" id="cv-name" type="text" value={vtaName}
-                  onChange={e => setVtaName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
+            {selectedDomain ? (
+              <div>
+                <label className="p-label" htmlFor="cv-label">Label <span className="req">*</span></label>
+                <div className="input-group">
+                  <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+                  <input className="p-input p-mono" id="cv-label" type="text" value={label}
+                    onChange={e => setLabel(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
+                </div>
+                {/* No "must be unique" here: on a custom domain the label reaches
+                    no hostname, so duplicates across accounts are fine and a
+                    conflict would be a bug, not user error. */}
+                <div className="field-hint">
+                  Just for you — it identifies this agent in your list and appears in its
+                  DID paths.
+                </div>
               </div>
-              <div className="field-hint">
-                Must be unique. Your agent will live at{' '}
-                <span className="p-mono">vta-&lt;name&gt;.firstperson.dev</span>.
+            ) : (
+              <div>
+                <label className="p-label" htmlFor="cv-name">Agent name <span className="req">*</span></label>
+                <div className="input-group">
+                  <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+                  <input className="p-input p-mono" id="cv-name" type="text" value={vtaName}
+                    onChange={e => setVtaName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
+                </div>
+                <div className="field-hint">
+                  Must be unique.{vtaHost && <> Your agent will live at{' '}
+                  <span className="p-mono">{vtaHost}</span>.</>}
+                </div>
               </div>
-            </div>
+            )}
             <div>
               <label className="p-label" htmlFor="cv-image">VTA Image <span className="req">*</span></label>
               {images.length > 0 ? (
@@ -465,18 +594,27 @@ export function CreateVTAView() {
               <>
                 <hr className="p-sep" style={{ marginTop: 12, marginBottom: 8 }} />
                 <div className="p-section-title">Community setup</div>
-                <div>
-                  <label className="p-label" htmlFor="cv-vtc-name">Community name <span className="req">*</span></label>
-                  <div className="input-group">
-                    <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <input className="p-input p-mono" id="cv-vtc-name" type="text" value={vtcName}
-                      onChange={e => setVtcName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
+                {/* On a custom domain the community's hostname is fixed too, so
+                    the single label above already covers it. */}
+                {!selectedDomain && (
+                  <div>
+                    <label className="p-label" htmlFor="cv-vtc-name">Community name <span className="req">*</span></label>
+                    <div className="input-group">
+                      <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      <input className="p-input p-mono" id="cv-vtc-name" type="text" value={vtcName}
+                        onChange={e => setVtcName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
+                    </div>
+                    <div className="field-hint">
+                      Must be unique.{vtcHost && <> Your community will live at{' '}
+                      <span className="p-mono">{vtcHost}</span>.</>}
+                    </div>
                   </div>
-                  <div className="field-hint">
-                    Must be unique. Your community will live at{' '}
-                    <span className="p-mono">vtc-&lt;name&gt;.firstperson.dev</span>.
+                )}
+                {selectedDomain && vtcHost && (
+                  <div className="field-hint" style={{ marginTop: 0 }}>
+                    Your community will live at <span className="p-mono">{vtcHost}</span>.
                   </div>
-                </div>
+                )}
                 <div>
                   <label className="p-label" htmlFor="cv-vtc-image">VTC Image <span className="req">*</span></label>
                   {vtcImages.length > 0 ? (
@@ -502,9 +640,11 @@ export function CreateVTAView() {
           </div>
           <div className="card-footer between">
             <span className="field-hint" style={{ marginTop: 0 }}>
-              {mode === 'full_stack'
-                ? '4 DNS records are created immediately after session creation.'
-                : 'A DNS record is created immediately after session creation.'}
+              {selectedDomain
+                ? 'Your domain is already verified — provisioning starts right away.'
+                : mode === 'full_stack'
+                  ? '4 DNS records are created immediately after session creation.'
+                  : 'A DNS record is created immediately after session creation.'}
             </span>
             <button className="btn btn-default" onClick={handleCreate} disabled={creating || modeUnavailable}>
               {creating ? 'Creating…' : modeUnavailable ? 'Unavailable' : <>Create session <span className="arrow">→</span></>}
@@ -515,7 +655,7 @@ export function CreateVTAView() {
 
       {/* full_stack progress — owns everything after session creation for that mode */}
       {mode === 'full_stack' && stage === 1 && sessionId && (
-        <FullStackCreateProgress sessionId={sessionId} vtaName={vtaName} />
+        <FullStackCreateProgress sessionId={sessionId} vtaName={selectedDomain ? label : vtaName} />
       )}
 
       {/* Failure state (vta_only) */}

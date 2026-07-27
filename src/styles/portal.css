@@ -166,6 +166,11 @@
 .portal-root .card-desc { font-size: 13px; color: hsl(var(--muted-foreground)); margin: 0; line-height: 1.5; }
 .portal-root .card-content { padding: 20px 24px 24px; }
 .portal-root .card-footer { padding: 16px 24px; border-top: 1px solid hsl(var(--border)); display: flex; align-items: center; gap: 10px; }
+/* .card-header carries no bottom padding because .card-content normally
+   supplies it. A card with no content puts the footer's border straight under
+   the description — match .card-content's 20px so those cards breathe the same
+   as every other one. */
+.portal-root .card-header + .card-footer { margin-top: 20px; }
 
 /* --- Badge --- */
 .portal-root .p-badge {

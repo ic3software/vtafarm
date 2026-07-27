@@ -1,12 +1,26 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
+import { api, type SetupAvailability } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import { statusBadge, timeAgo } from './portalUtils'
 
 export function AgentsView() {
-  const { sessions, sessionsLoading, loadSessions } = useOutletContext<PortalContext>()
+  const { sessions, sessionsLoading, loadSessions, betaAccess } = useOutletContext<PortalContext>()
   useEffect(() => { loadSessions() }, [])
   const navigate = useNavigate()
+
+  const [availability, setAvailability] = useState<SetupAvailability | null>(null)
+  useEffect(() => { api.setupAvailability().then(setAvailability).catch(() => {}) }, [])
+
+  // Don't send someone into a form they can't submit. Fail open: until
+  // availability resolves — or if the call fails — the button stays live and
+  // POST /setup remains the authoritative gate.
+  const canCreate = !availability ||
+    availability.vta_only.available ||
+    (betaAccess && availability.full_stack.available)
+  // With one mode blocked the reason is unambiguous; with both, VTA-only's is
+  // the one that applies to every account.
+  const blockedReason = availability?.vta_only.detail
 
   const active = sessions.filter(s => s.status === 'running').length
   const failed = sessions.filter(s => s.status === 'failed').length
@@ -24,12 +38,30 @@ export function AgentsView() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 2v6h6M21 12A9 9 0 0 0 6 5.3L3 8M21 22v-6h-6M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg>
             Refresh
           </button>
-          <button className="btn btn-default" onClick={() => navigate('/portal/create')}>
+          <button
+            className="btn btn-default"
+            onClick={() => navigate('/portal/create')}
+            disabled={!canCreate}
+            title={canCreate ? undefined : blockedReason}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 5v14M5 12h14"/></svg>
             Create VTA
           </button>
         </div>
       </div>
+
+      {/* A disabled button with no reason is worse than no button. This is the
+          shared mediator and DID hosting being absent — nothing the user can
+          fix, so say so plainly rather than leaving them clicking. */}
+      {!canCreate && blockedReason && (
+        <div className="p-alert alert-warning" style={{ marginBottom: 20 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <div className="grow">
+            <p className="alert-title">Agent creation is unavailable</p>
+            <p className="alert-desc">{blockedReason}</p>
+          </div>
+        </div>
+      )}
 
       <div className="p-stats" style={{ marginBottom: 24 }}>
         <div className="p-stat"><div className="k">Total</div><div className="v">{sessions.length}</div></div>
@@ -49,7 +81,11 @@ export function AgentsView() {
             </svg>
           </div>
           <h3>No agents yet</h3>
-          <p>Create your first Verifiable Trust Agent to get started.</p>
+          <p>
+            {canCreate
+              ? 'Create your first Verifiable Trust Agent to get started.'
+              : 'Agent creation isn’t available yet — check back once an admin has finished setting up the platform.'}
+          </p>
         </div>
       ) : (
         <div className="table-wrap">
@@ -73,7 +109,12 @@ export function AgentsView() {
                       </span>
                       <div className="p-col">
                         <span className="fw-600">{s.vta_name ?? `session-${s.id}`}</span>
-                        <span className="p-mono text-xs p-muted">{s.mode}</span>
+                        <span className="p-mono text-xs p-muted">
+                          {s.mode}
+                          {/* Only worth naming when it isn't the default — a
+                              "managed" tag on every row is noise. */}
+                          {s.domain_type && s.domain_type !== 'managed' && s.domain && <> · {s.domain}</>}
+                        </span>
                       </div>
                     </div>
                   </td>
