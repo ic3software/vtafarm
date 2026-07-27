@@ -286,6 +286,12 @@ export interface PlatformStack {
   urls?: SetupSessionUrls
   images?: { vta: string; mediator: string; dids: string; vtc: string }
   /**
+   * `vta_did` is what an admin feeds to `pnm setup` locally to mint the admin
+   * DID the stack parks waiting for — so it has to be on screen before that
+   * DID can be asked for.
+   */
+  collected?: SetupSessionCollected
+  /**
    * What to paste into the environment once the stack is running. Empty
    * strings until the pipeline mints them — `MEDIATOR_DID` in particular
    * cannot be known before setup completes.
@@ -514,6 +520,14 @@ export const api = {
   /** Admin-cookie twin of `domainInfo` — the admin panel holds a different cookie. */
   adminDomainInfo: () => req<DomainInfo>('GET', '/api/v1/admin/setup/domain-info'),
   /**
+   * Resumes any session parked at `awaiting_admin_did`. The admin-cookie twin
+   * of `provisionAdmin`, and the only way to resume the platform stack — its
+   * owner is a passkey-less system account, so the user-facing route can never
+   * be called for it.
+   */
+  adminProvisionAdmin: (id: string, admin_did: string) =>
+    req<{ status: string }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/admin`, { admin_did }),
+  /**
    * Tears down any user's session — irreversible. Gate behind a confirmation.
    *
    * `confirm` is the platform stack's label, and the API *requires* it for
@@ -529,12 +543,11 @@ export const api = {
   // domain row, DNS, session — by one action; this is the only route that can
   // mint a domains row for our own zone.
   getPlatformStack: () => req<PlatformStack>('GET', '/api/v1/admin/platform-stack'),
+  // No admin_did: the stack runs exactly the sequence a user's session does and
+  // parks at awaiting_admin_did, where adminProvisionAdmin resumes it. The DID
+  // is minted locally by `pnm setup` from a VTA DID that doesn't exist yet.
   createPlatformStack: (data: {
     label?: string
-    // Required here, unlike POST /setup: the platform session is owned by a
-    // passkey-less system account, so nothing could ever resume it if the
-    // pipeline parked at awaiting_admin_did.
-    admin_did: string
     vta_image: string
     mediator_image: string
     dids_image: string

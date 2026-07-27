@@ -81,7 +81,11 @@ export function PlatformStackView() {
   const consoleBodyRef = useRef<HTMLDivElement>(null)
 
   const [label, setLabel] = useState('firstperson')
+  // Submitted at awaiting_admin_did, not at create: `pnm setup` mints it
+  // locally from the VTA DID, which the pipeline only produces once it runs.
   const [adminDid, setAdminDid] = useState('')
+  const [provisioning, setProvisioning] = useState(false)
+  const [provisionError, setProvisionError] = useState('')
   const [images, setImages] = useState<Record<UpgradeComponent, ImageOption[]>>({ vta: [], mediator: [], dids: [], vtc: [] })
   const [selected, setSelected] = useState<Record<UpgradeComponent, string>>({ vta: '', mediator: '', dids: '', vtc: '' })
   const [creating, setCreating] = useState(false)
@@ -156,19 +160,13 @@ export function PlatformStackView() {
 
   async function handleCreate() {
     const trimmedLabel = label.trim()
-    const trimmedDid = adminDid.trim()
     if (!trimmedLabel) { setCreateError('Enter a label'); return }
-    if (!isValidAdminDid(trimmedDid)) {
-      setCreateError('Invalid did:key — paste only the did:key value (e.g. did:key:z6Mk…) with no surrounding text, labels, quotes, or whitespace.')
-      return
-    }
     if (ALL_COMPONENTS.some(c => !selected[c])) { setCreateError('Select an image for every component'); return }
 
     setCreateError(''); setCreating(true)
     try {
       await api.createPlatformStack({
         label: trimmedLabel,
-        admin_did: trimmedDid,
         vta_image: selected.vta,
         mediator_image: selected.mediator,
         dids_image: selected.dids,
@@ -179,6 +177,25 @@ export function PlatformStackView() {
       setCreateError(err instanceof Error ? err.message : 'Failed to create the platform stack')
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function handleProvision() {
+    const trimmed = adminDid.trim()
+    if (!isValidAdminDid(trimmed)) {
+      setProvisionError('Invalid did:key — paste only the did:key value (e.g. did:key:z6Mk…) with no surrounding text, labels, quotes, or whitespace.')
+      return
+    }
+    if (!stack?.id) return
+    setProvisionError(''); setProvisioning(true)
+    try {
+      await api.adminProvisionAdmin(stack.id, trimmed)
+      await load()
+      // Leave `provisioning` set: the poll above picks the status change up and
+      // moves past this screen, so there is no done state to reset to.
+    } catch (err) {
+      setProvisionError(err instanceof Error ? err.message : 'Provisioning failed')
+      setProvisioning(false)
     }
   }
 
@@ -254,7 +271,6 @@ export function PlatformStackView() {
                       on the farm's own zone.
                     </>
                   )}
-                  <p style={{ margin: '6px 0 0' }}>The label below reaches none of them.</p>
                 </div>
               </div>
             </div>
@@ -267,17 +283,6 @@ export function PlatformStackView() {
                 Appears in no hostname. It survives only in the stack's DID paths —{' '}
                 <span className="p-mono">did:webvh:&lt;scid&gt;:dids.…:{label || 'firstperson'}-vta</span> — and is
                 what deleting the stack asks you to type.
-              </div>
-            </div>
-
-            <div>
-              <label className="p-label" htmlFor="ps-admin-did">Admin DID <span className="req">*</span></label>
-              <input className="p-input p-mono" id="ps-admin-did" type="text" placeholder="did:key:z6Mk…"
-                value={adminDid} onChange={e => setAdminDid(e.target.value)} />
-              <div className="field-hint">
-                Required up front, unlike a user's session. The stack is owned by a
-                passkey-less system account, so nothing could resume it later if the
-                pipeline parked waiting for this.
               </div>
             </div>
 
@@ -324,8 +329,10 @@ export function PlatformStackView() {
   // ── Exists ─────────────────────────────────────────────────────────────────
   const failed = status === 'failed'
   const running = status === 'running'
+  const awaitingAdminDid = status === 'awaiting_admin_did'
   const currentIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, status))
   const cfg = stack.config_values
+  const vtaDid = stack.collected?.vta_did
 
   return (
     <section className="p-content">
@@ -379,7 +386,47 @@ export function PlatformStackView() {
         </div>
       )}
 
-      {!running && !failed && (
+      {/* Same step a user's session reaches, and for the same reason: the admin
+          DID is minted locally by `pnm setup` from the VTA DID above, which
+          only exists once the pipeline has produced it. The one difference is
+          that any admin can complete it — this stack has no owning user. */}
+      {awaitingAdminDid && (
+        <div className="p-card" style={{ marginBottom: 16 }}>
+          <div className="card-header">
+            <h3 className="card-title">Provision admin DID</h3>
+            <p className="card-desc">
+              VTA, Mediator and DID Hosting are up. Run <span className="p-mono">pnm setup</span>{' '}
+              locally against the VTA DID below, and paste the admin DID it outputs.
+            </p>
+          </div>
+          <div className="card-content p-col gap-16">
+            {vtaDid && (
+              <CopyRow label="VTA DID" value={vtaDid}
+                copyKey="vta-did" copiedKey={copiedKey} onCopy={copy} />
+            )}
+            <div>
+              <label className="p-label" htmlFor="ps-admin-did">Admin DID</label>
+              <input className="p-input p-mono" id="ps-admin-did" type="text" placeholder="did:key:z6Mk…"
+                autoFocus value={adminDid} onChange={e => setAdminDid(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleProvision()}
+                disabled={provisioning} />
+              <div className="field-hint">
+                Paste the <span className="p-mono">did:key:…</span> generated by your local
+                identity tool.
+              </div>
+            </div>
+            {provisionError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{provisionError}</p>}
+          </div>
+          <div className="card-footer" style={{ justifyContent: 'flex-end' }}>
+            <button className="btn btn-default" onClick={handleProvision}
+              disabled={provisioning || !adminDid.trim() || !vtaDid}>
+              {provisioning ? 'Provisioning…' : <>Provision stack <span className="arrow">→</span></>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!running && !failed && !awaitingAdminDid && (
         <div className="p-card" style={{ marginBottom: 16 }}>
           <div className="card-header with-action">
             <div>
