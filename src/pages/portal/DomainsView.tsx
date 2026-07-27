@@ -249,10 +249,26 @@ export function DomainsView() {
     <section className="p-content">
       {head}
 
-      {/* Directly under the page's own description, not down in the card: this
-          is the answer to "it's verified, now what?", and the next thing the
-          user does about it happens on another page entirely. */}
-      {domain?.verified && !domain.in_use_by && (
+      {/* Directly under the page's own description, not down in the card: both
+          are the answer to "it's verified, now what?", and what the user does
+          next about either happens on another page entirely. They stay a pair
+          here — one slot, two mutually exclusive states — so the page doesn't
+          reshuffle depending on which one applies. */}
+      {domain?.verified && (domain.in_use_by ? (
+        <div className="p-alert alert-info" style={{ marginBottom: 16 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div className="grow">
+            <p className="alert-title">In use</p>
+            <p className="alert-desc">
+              <button className="btn btn-ghost btn-sm" style={{ padding: 0, height: 'auto' }}
+                onClick={() => navigate(`/portal/session/${domain.in_use_by}`)}>
+                Open the agent running on it
+              </button>
+              {' '}— a domain backs one agent at a time, because its hostnames are fixed.
+            </p>
+          </div>
+        </div>
+      ) : (
         <div className="p-alert alert-success" style={{ marginBottom: 16 }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M20 6 9 17l-5-5"/></svg>
           <div className="grow">
@@ -263,7 +279,7 @@ export function DomainsView() {
             </p>
           </div>
         </div>
-      )}
+      ))}
 
       {removedNotice && (
         <div className="p-alert alert-warning" style={{ marginBottom: 16 }}>
@@ -318,33 +334,18 @@ export function DomainsView() {
 
           <div className="card-content p-col gap-12">
             {domain.verified ? (
-              <>
-                <div className="p-col gap-12">
-                  {domain.records.map(r => (
-                    <div key={r.component} className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
-                      <span className="p-muted text-sm" style={{ flexShrink: 0 }}>{componentLabel(r.component)}</span>
-                      <span className="p-mono text-xs" style={{ textAlign: 'right', overflowWrap: 'anywhere', minWidth: 0 }}>
-                        {r.fqdn}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                {domain.in_use_by ? (
-                  <div className="p-alert alert-info">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                    <div className="grow">
-                      <p className="alert-title">In use</p>
-                      <p className="alert-desc">
-                        <button className="btn btn-ghost btn-sm" style={{ padding: 0, height: 'auto' }}
-                          onClick={() => navigate(`/portal/session/${domain.in_use_by}`)}>
-                          Open the agent running on it
-                        </button>
-                        {' '}— a domain backs one agent at a time, because its hostnames are fixed.
-                      </p>
-                    </div>
+              // Just the hostnames now — what to do about them is said once, up
+              // beside the page description.
+              <div className="p-col gap-12">
+                {domain.records.map(r => (
+                  <div key={r.component} className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
+                    <span className="p-muted text-sm" style={{ flexShrink: 0 }}>{componentLabel(r.component)}</span>
+                    <span className="p-mono text-xs" style={{ textAlign: 'right', overflowWrap: 'anywhere', minWidth: 0 }}>
+                      {r.fqdn}
+                    </span>
                   </div>
-                ) : null}
-              </>
+                ))}
+              </div>
             ) : (
               <>
                 {domain.checked && (
