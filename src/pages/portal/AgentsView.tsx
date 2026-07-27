@@ -73,7 +73,12 @@ export function AgentsView() {
                       </span>
                       <div className="p-col">
                         <span className="fw-600">{s.vta_name ?? `session-${s.id}`}</span>
-                        <span className="p-mono text-xs p-muted">{s.mode}</span>
+                        <span className="p-mono text-xs p-muted">
+                          {s.mode}
+                          {/* Only worth naming when it isn't the default — a
+                              "managed" tag on every row is noise. */}
+                          {s.domain_type && s.domain_type !== 'managed' && s.domain && <> · {s.domain}</>}
+                        </span>
                       </div>
                     </div>
                   </td>

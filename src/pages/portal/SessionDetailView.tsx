@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
-import { statusBadge, FULL_STACK_PHASES, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid, domainTypeBadge } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, VtcInstallAlert, VtcInstallConfigRow, useVtcInstall, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow } from './FullStackOutputs'
 import { SessionVersionsCard } from './SessionVersionsCard'
@@ -324,6 +324,24 @@ export function SessionDetailView() {
             <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
               <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">{session.mode}</span></div>
               <hr className="p-sep"/>
+              <div className="p-row between center">
+                <span className="p-muted text-sm">Domain</span>
+                <div className="p-row gap-8 center">
+                  {session.domain && <span className="p-mono text-xs">{session.domain}</span>}
+                  {domainTypeBadge(session.domain_type)}
+                </div>
+              </div>
+              {session.domain_type === 'custom' && (
+                <div className="field-hint" style={{ marginTop: -4 }}>
+                  Your own domain —{' '}
+                  <button type="button" className="btn btn-ghost btn-sm" style={{ padding: 0, height: 'auto' }}
+                    onClick={() => navigate('/portal/domains')}>
+                    manage it under Domains
+                  </button>
+                  . Its hostnames can't be changed: this agent's DIDs embed them permanently.
+                </div>
+              )}
+              <hr className="p-sep"/>
               <div className="p-row between"><span className="p-muted text-sm">Created</span><span className="text-sm">{new Date(session.created_at).toLocaleString()}</span></div>
               {!isFullStack && session.url && (
                 <><hr className="p-sep"/><ConfigLinkRow label="VTA" href={`${session.url}/health`} value={`${session.url}/health`} /></>
@@ -353,7 +371,13 @@ export function SessionDetailView() {
               <hr className="p-sep" style={{ marginBottom: 14 }} />
               <div className="p-col" style={{ gap: 0 }}>
                 <span className="text-sm fw-600">Delete Agent</span>
-                <span className="p-muted text-xs" style={{ margin: '4px 0 14px' }}>Permanently removes the agent, DNS record, and all session data.</span>
+                <span className="p-muted text-xs" style={{ margin: '4px 0 14px' }}>
+                  {/* On a custom domain the records are the user's — we never
+                      created them and can't remove them. */}
+                  {session.domain_type === 'custom'
+                    ? 'Permanently removes the agent and all session data. Your own DNS records are left untouched.'
+                    : 'Permanently removes the agent, DNS record, and all session data.'}
+                </span>
                 <div>
                   <button
                     className="btn btn-destructive btn-sm"
@@ -374,9 +398,26 @@ export function SessionDetailView() {
           <div className="p-dialog">
             <div className="dialog-header">
               <h3 className="dialog-title">Delete this agent?</h3>
-              <p className="dialog-desc">This permanently destroys <span className="p-mono">{name}</span>, its DNS record, and its session data. This cannot be undone.</p>
+              <p className="dialog-desc">
+                {session.domain_type === 'custom'
+                  ? <>This permanently destroys <span className="p-mono">{name}</span> and its session data. This cannot be undone.</>
+                  : <>This permanently destroys <span className="p-mono">{name}</span>, its DNS record, and its session data. This cannot be undone.</>}
+              </p>
             </div>
             <div className="dialog-body">
+              {session.domain_type === 'custom' && (
+                <div className="p-alert alert-warning">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                  <div className="grow">
+                    <p className="alert-title">Your DNS records stay as they are</p>
+                    <p className="alert-desc">
+                      Delete the four CNAMEs at your provider afterwards — a record left
+                      pointing at a service you no longer run is a security risk. Your domain
+                      stays attached and can back a new agent.
+                    </p>
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="p-label">Type <span className="p-mono">{sessionId}</span> to confirm</label>
                 <input className="p-input p-mono" placeholder={sessionId} value={deleteInput} onChange={e => setDeleteInput(e.target.value)} />

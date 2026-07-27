@@ -6,7 +6,8 @@ export type SetupStatus =
   // vta_only
   | 'dns_provisioned' | 'vta_setup_running' | 'vta_setup_complete' | 'provisioning' | 'running'
   // full_stack
-  | 'dns_provision' | 'env_provision' | 'k8s_provision' | 'step_vta_setup'
+  | 'dns_provision' | 'dns_wait' | 'env_provision' | 'k8s_provision' | 'tls_provision'
+  | 'step_vta_setup'
   | 'step_mediator_p1' | 'step_mediator_reprov' | 'step_mediator_p2'
   | 'step_dids_p1' | 'step_dids_provision' | 'step_dids_p2' | 'step_dids_invite'
   | 'step_dids_load_did' | 'deploy_dids' | 'deploy_mediator'

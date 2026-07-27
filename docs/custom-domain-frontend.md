@@ -8,8 +8,9 @@ Backend counterpart (authority on shapes, statuses and rules):
 [`vtafarm-api/docs/custom-domain-design.md`](../../vtafarm-api/docs/custom-domain-design.md).
 References like *(API §6.1)* point there.
 
-> **Status: phases 1, 2, 3 and A shipped; phase 4 is specification.**
-> Architecture is settled. §8 tracks what is built.
+> **Status: shipped.** Every phase is implemented; §8 tracks the detail.
+> The feature stays invisible to users until the API's `CUSTOM_DOMAIN_ENABLED`
+> is turned on, which waits on the cluster prerequisites (API §17 phase 0).
 
 ---
 
@@ -415,7 +416,7 @@ Everything reuses primitives already in `src/styles/portal.css` and
 | ✅ **1** | `domain-info` wiring + `componentHost()` + replace the two hardcoded hints | API phase 1 |
 | ✅ **2** | Domain picker + `label` field | API phase **3**, not 2 — see below |
 | ✅ **3** | `DomainsView` — attach, records table, verify | API phase 3 |
-| **4** | Statuses, agents/detail surfaces | API phase 4 |
+| ✅ **4** | Statuses, agents/detail surfaces | API phase 4 |
 | ✅ **A** | `PlatformStackView` (§6.1) + admin session delete with confirmation (§6.2) + types | API phase 2 — **not** blocked on verification or TLS |
 
 Phase 1 is worth shipping alongside the backend's `dev-` rename: without it the
@@ -444,6 +445,11 @@ whole resource 404ing.** `CUSTOM_DOMAIN_ENABLED` defaults to off, so the first
 thing most instances return from `GET /domains` is a 404 — rendered as "not
 available yet" rather than as a failure. `CreateVTAView` treats the same 404 as
 "no domains", which is exactly the right offer.
+
+Phase 4 added one surface beyond §6: **the delete flow tells a custom-domain
+user their records survive.** Both the Danger Zone copy and the confirmation
+dialog say so — deleting the agent removes nothing from their zone, and that is
+the last moment they will think about four CNAMEs still aimed at us.
 
 ---
 
