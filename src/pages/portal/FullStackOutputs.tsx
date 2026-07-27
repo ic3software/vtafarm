@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type MouseEvent } from 'react'
-import { api, type SetupSession, type SetupSessionUrls, type SetupSessionCollected } from '@/lib/api'
+import { type SetupSession, type SetupSessionUrls, type SetupSessionCollected } from '@/lib/api'
 import { useCopyState } from './portalUtils'
+import { userSessionActions, type SessionActionApi } from './sessionActions'
 
 function CopyIcon({ copied }: { copied: boolean }) {
   return copied
@@ -85,7 +86,7 @@ function SecretRow({
 // Shared state for the single-use DID-hosting admin enrollment link, split
 // across two render sites: DidsEnrollAlert (top banner, actionable state
 // only) and DidsEnrollConfigRow (Configuration card, reissue once used).
-export function useDidsEnroll(session: SetupSession | null) {
+export function useDidsEnroll(session: SetupSession | null, actions: SessionActionApi = userSessionActions) {
   const [enrollUrl, setEnrollUrl] = useState('')
   const [used, setUsed] = useState(false)
   const [reissuing, setReissuing] = useState(false)
@@ -107,7 +108,7 @@ export function useDidsEnroll(session: SetupSession | null) {
     if (!session) return
     touched.current = true
     setUsed(true)
-    api.ackDidsEnroll(session.id).catch(() => {})
+    actions.ackDidsEnroll(session.id).catch(() => {})
   }
 
   async function handleReissue() {
@@ -116,7 +117,7 @@ export function useDidsEnroll(session: SetupSession | null) {
     setReissuing(true)
     setReissueError('')
     try {
-      const r = await api.reissueDidsEnroll(session.id)
+      const r = await actions.reissueDidsEnroll(session.id)
       setEnrollUrl(r.dids_admin_enroll_url)
       setUsed(false)
       setJustReissued(true)
@@ -192,7 +193,7 @@ export function DidsEnrollConfigRow({ used, reissuing, reissueError, justReissue
 // render sites (VtcInstallAlert top banner / VtcInstallConfigRow reissue).
 // The setup-minted install token expires after 15 minutes, so reissuing is
 // the expected path, not an edge case.
-export function useVtcInstall(session: SetupSession | null) {
+export function useVtcInstall(session: SetupSession | null, actions: SessionActionApi = userSessionActions) {
   const [installUrl, setInstallUrl] = useState('')
   const [claimCode, setClaimCode] = useState('')
   const [used, setUsed] = useState(false)
@@ -216,7 +217,7 @@ export function useVtcInstall(session: SetupSession | null) {
     if (!session) return
     touched.current = true
     setUsed(true)
-    api.ackVtcInstall(session.id).catch(() => {})
+    actions.ackVtcInstall(session.id).catch(() => {})
   }
 
   async function handleReissue() {
@@ -225,7 +226,7 @@ export function useVtcInstall(session: SetupSession | null) {
     setReissuing(true)
     setReissueError('')
     try {
-      const r = await api.reissueVtcInstall(session.id)
+      const r = await actions.reissueVtcInstall(session.id)
       setInstallUrl(r.install_url)
       setClaimCode(r.claim_code)
       setUsed(false)

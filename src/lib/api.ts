@@ -302,6 +302,17 @@ export interface PlatformStack {
     DID_HOSTING_CONTROL_URL: string
     DID_HOSTING_DID: string
   }
+  /**
+   * The same post-provisioning outputs a user's session hands back. Not
+   * decoration: without the VTC install URL and its claim code nobody can
+   * claim the platform community, and the two admin keys are shown for
+   * offline backup and reachable nowhere else.
+   */
+  action_required?: SetupSessionActionRequired
+  dids_enroll_used?: boolean
+  vtc_install_used?: boolean
+  mediator_admin_key?: string
+  webvh_admin_key?: string
   error_msg?: string
   created_at?: string
   updated_at?: string
@@ -527,6 +538,17 @@ export const api = {
    */
   adminProvisionAdmin: (id: string, admin_did: string) =>
     req<{ status: string }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/admin`, { admin_did }),
+  // Admin twins of the post-provisioning actions. Without them an admin can see
+  // the platform stack's single-use enrollment and install links but never
+  // acknowledge or reissue one — which is most of finishing the stack.
+  adminReissueDidsEnroll: (id: string) =>
+    req<{ dids_admin_enroll_url: string }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/dids/reissue-enroll`),
+  adminAckDidsEnroll: (id: string) =>
+    req<{ dids_enroll_used: boolean }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/dids/enroll-ack`),
+  adminReissueVtcInstall: (id: string) =>
+    req<{ install_url: string; claim_code: string }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/vtc/reissue-install`),
+  adminAckVtcInstall: (id: string) =>
+    req<{ vtc_install_used: boolean }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/vtc/install-ack`),
   /**
    * Tears down any user's session — irreversible. Gate behind a confirmation.
    *

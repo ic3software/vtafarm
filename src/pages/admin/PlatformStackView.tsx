@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, API_BASE, ALL_COMPONENTS, type PlatformStack, type UpgradeComponent } from '@/lib/api'
+import { api, API_BASE, ALL_COMPONENTS, type PlatformStack, type SetupSession, type UpgradeComponent } from '@/lib/api'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PhaseStepper } from '../portal/PhaseStepper'
 import { FULL_STACK_PHASES, phaseIndex, statusBadge, useCopyState, isValidAdminDid, componentHost, useDomainInfo } from '../portal/portalUtils'
+import {
+  DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll,
+  VtcInstallAlert, VtcInstallConfigRow, useVtcInstall,
+  CollectedDidsCard, EndpointConfigRows, AdminKeysCard,
+} from '../portal/FullStackOutputs'
+import { adminSessionActions } from '../portal/sessionActions'
 
 // The farm's own full_stack, running under our zone's fixed labels —
 // vta.{CLUSTER_DOMAIN}, vtc., mediator., dids. This is the only place it can be
@@ -137,6 +143,30 @@ export function PlatformStackView() {
     const el = consoleBodyRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [logs])
+
+  // The shared output components speak SetupSession — this endpoint returns the
+  // same fields under a different envelope, so adapt rather than fork them.
+  // Built before the early returns below because the two hooks must run on
+  // every render.
+  const sessionLike: SetupSession | null = stack?.exists && stack.id
+    ? {
+        id: stack.id,
+        status: stack.status ?? 'running',
+        mode: 'full_stack',
+        urls: stack.urls,
+        collected: stack.collected,
+        action_required: stack.action_required,
+        dids_enroll_used: stack.dids_enroll_used,
+        vtc_install_used: stack.vtc_install_used,
+        mediator_admin_key: stack.mediator_admin_key,
+        webvh_admin_key: stack.webvh_admin_key,
+        created_at: stack.created_at ?? '',
+      }
+    : null
+  // Admin twins: this stack's owner is a passkey-less account, so the
+  // user-facing ack/reissue routes can never be called for it.
+  const didsEnroll = useDidsEnroll(sessionLike, adminSessionActions)
+  const vtcInstall = useVtcInstall(sessionLike, adminSessionActions)
 
   // Only load the create form's inputs when there's a form to fill.
   const needsForm = !loading && !stack?.exists
@@ -460,44 +490,49 @@ export function PlatformStackView() {
         </div>
       )}
 
-      {stack.urls && (
-        <div className="p-card" style={{ marginBottom: 16 }}>
-          <div className="card-header"><h3 className="card-title">Endpoints</h3></div>
-          <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-            {(['vta', 'mediator', 'dids', 'vtc'] as const).map(component => (
-              <div key={component} className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
-                <span className="p-muted text-sm" style={{ flexShrink: 0 }}>{COMPONENT_LABELS[component]}</span>
-                <a href={stack.urls![component]} target="_blank" rel="noopener" className="p-mono text-xs"
-                  style={{ color: 'hsl(var(--primary))', textAlign: 'right', overflowWrap: 'anywhere', minWidth: 0 }}>
-                  {stack.urls![component]}
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Outputs appear only once the stack is running — the same point a
+          user's session surfaces its own. Before that they are either empty or
+          half-minted, and a half-filled configuration block invites someone to
+          paste it somewhere. */}
+      {running && (
+        <>
+          <DidsEnrollAlert {...didsEnroll} />
+          <VtcInstallAlert {...vtcInstall} />
+          <CollectedDidsCard collected={stack.collected} />
 
-      {cfg && (
-        <div className="p-card">
-          <div className="card-header">
-            <h3 className="card-title">Configuration values</h3>
-            <p className="card-desc">
-              Paste these into the environment. <span className="p-mono">MEDIATOR_DID</span> and{' '}
-              <span className="p-mono">DID_HOSTING_DID</span> are minted by the pipeline, so
-              they stay empty until it reaches that step.
-            </p>
+          <div className="p-card" style={{ marginBottom: 16 }}>
+            <div className="card-header"><h3 className="card-title">Endpoints</h3></div>
+            <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+              <EndpointConfigRows urls={stack.urls} />
+              <DidsEnrollConfigRow {...didsEnroll} />
+              <VtcInstallConfigRow {...vtcInstall} />
+            </div>
           </div>
-          <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-            <CopyRow label="MEDIATOR_DID" value={cfg.MEDIATOR_DID}
-              copyKey="cfg-mediator-did" copiedKey={copiedKey} onCopy={copy} />
-            <CopyRow label="DID_HOSTING_SERVER_URL" value={cfg.DID_HOSTING_SERVER_URL}
-              copyKey="cfg-dids-server" copiedKey={copiedKey} onCopy={copy} />
-            <CopyRow label="DID_HOSTING_CONTROL_URL" value={cfg.DID_HOSTING_CONTROL_URL}
-              copyKey="cfg-dids-control" copiedKey={copiedKey} onCopy={copy} />
-            <CopyRow label="DID_HOSTING_DID" value={cfg.DID_HOSTING_DID}
-              copyKey="cfg-dids-did" copiedKey={copiedKey} onCopy={copy} />
-          </div>
-        </div>
+
+          {cfg && (
+            <div className="p-card" style={{ marginBottom: 16 }}>
+              <div className="card-header">
+                <h3 className="card-title">Configuration values</h3>
+                <p className="card-desc">
+                  Paste these into this server's environment so VTA-only agents point at this
+                  stack instead of a disposable session.
+                </p>
+              </div>
+              <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+                <CopyRow label="MEDIATOR_DID" value={cfg.MEDIATOR_DID}
+                  copyKey="cfg-mediator-did" copiedKey={copiedKey} onCopy={copy} />
+                <CopyRow label="DID_HOSTING_SERVER_URL" value={cfg.DID_HOSTING_SERVER_URL}
+                  copyKey="cfg-dids-server" copiedKey={copiedKey} onCopy={copy} />
+                <CopyRow label="DID_HOSTING_CONTROL_URL" value={cfg.DID_HOSTING_CONTROL_URL}
+                  copyKey="cfg-dids-control" copiedKey={copiedKey} onCopy={copy} />
+                <CopyRow label="DID_HOSTING_DID" value={cfg.DID_HOSTING_DID}
+                  copyKey="cfg-dids-did" copiedKey={copiedKey} onCopy={copy} />
+              </div>
+            </div>
+          )}
+
+          {sessionLike && <AdminKeysCard session={sessionLike} />}
+        </>
       )}
     </section>
   )
