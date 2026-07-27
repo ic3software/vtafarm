@@ -27,7 +27,6 @@ const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   awaiting_admin_did:     { cls: 'badge-warning',   label: 'awaiting admin DID' },
   step_import_admin_did:  { cls: 'badge-warning',   label: 'importing admin DID' },
   deploy_vta:             { cls: 'badge-warning',   label: 'deploying VTA' },
-  // full_stack_with_vtc
   step_vtc_setup_key:     { cls: 'badge-warning',   label: 'VTC setup (1/2)' },
   step_vtc_acl_grant:     { cls: 'badge-warning',   label: 'VTC setup (2/2)' },
   step_vtc_setup:         { cls: 'badge-warning',   label: 'VTC community setup' },
@@ -61,15 +60,6 @@ export function initials(uniqueId: string) {
   return uniqueId.slice(0, 2).toUpperCase() || '??'
 }
 
-// Display names for session modes: full_stack (without VTC) is retired, so
-// full_stack_with_vtc now presents as plain "full_stack" and the legacy mode
-// is marked as such. Raw API values are unchanged.
-export function modeDisplay(mode: string): string {
-  if (mode === 'full_stack') return 'full_stack_legacy'
-  if (mode === 'full_stack_with_vtc') return 'full_stack'
-  return mode
-}
-
 export function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60000)
@@ -97,23 +87,11 @@ export const VTA_ONLY_PHASES: Phase[] = [
   { key: 'running',   label: 'Running',          statuses: ['running'] },
 ]
 
+// The full_stack pipeline. The two offline VTC prep steps (setup key + ACL
+// grant) run right after the admin DID is imported, so they fold into that
+// phase; the live community setup and its deploy get their own phase after
+// the VTA is up.
 export const FULL_STACK_PHASES: Phase[] = [
-  { key: 'create',    label: 'Create session',    statuses: [] },
-  { key: 'dns_env',   label: 'DNS & environment', statuses: ['dns_provision', 'env_provision', 'k8s_provision'] },
-  { key: 'vta_setup', label: 'VTA setup',         statuses: ['step_vta_setup'] },
-  { key: 'mediator',  label: 'Mediator setup',    statuses: ['step_mediator_p1', 'step_mediator_reprov', 'step_mediator_p2'] },
-  { key: 'dids',      label: 'DID hosting setup', statuses: ['step_dids_p1', 'step_dids_provision', 'step_dids_p2', 'step_dids_invite', 'step_dids_load_did'] },
-  { key: 'going_live', label: 'Deploy D+M',       statuses: ['deploy_dids', 'deploy_mediator', 'step_vta_register_dids'] },
-  { key: 'admin_did', label: 'Admin DID',         statuses: ['awaiting_admin_did', 'step_import_admin_did'] },
-  { key: 'deploy_vta', label: 'Deploy VTA',       statuses: ['deploy_vta'] },
-  { key: 'running',   label: 'Running',           statuses: ['running'] },
-]
-
-// full_stack_with_vtc — the full_stack pipeline plus the VTC steps. The two
-// offline prep steps (setup key + ACL grant) run right after the admin DID is
-// imported, so they fold into that phase; the live community setup and its
-// deploy get their own phase after the VTA is up.
-export const FULL_STACK_VTC_PHASES: Phase[] = [
   { key: 'create',    label: 'Create session',    statuses: [] },
   { key: 'dns_env',   label: 'DNS & environment', statuses: ['dns_provision', 'env_provision', 'k8s_provision'] },
   { key: 'vta_setup', label: 'VTA setup',         statuses: ['step_vta_setup'] },
@@ -126,9 +104,6 @@ export const FULL_STACK_VTC_PHASES: Phase[] = [
   { key: 'running',   label: 'Running',           statuses: ['running'] },
 ]
 
-export function fullStackPhases(mode: SetupSession['mode'] | undefined): Phase[] {
-  return mode === 'full_stack_with_vtc' ? FULL_STACK_VTC_PHASES : FULL_STACK_PHASES
-}
 
 export function phaseIndex(phases: Phase[], status: SetupStatus | undefined): number {
   if (!status) return 0

@@ -16,19 +16,14 @@ function statusBadge(status: string) {
   return 'badge-secondary'
 }
 
-// full_stack (without VTC) can no longer be created, but old sessions still
-// carry it — shown as "legacy" to distinguish it from the current Full stack
-// (which is full_stack_with_vtc under the hood).
 const modeLabels: Record<string, string> = {
   vta_only: 'VTA only',
-  full_stack: 'Full stack (legacy)',
-  full_stack_with_vtc: 'Full stack',
+  full_stack: 'Full stack',
 }
 
 const modeComponents: Record<string, UpgradeComponent[]> = {
   vta_only: ['vta'],
-  full_stack: ['vta', 'mediator', 'dids'],
-  full_stack_with_vtc: ['vta', 'mediator', 'dids', 'vtc'],
+  full_stack: ['vta', 'mediator', 'dids', 'vtc'],
 }
 
 function componentImages(s: AdminSetupSession): Array<[string, string]> {

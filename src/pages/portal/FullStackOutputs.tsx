@@ -188,7 +188,7 @@ export function DidsEnrollConfigRow({ used, reissuing, reissueError, justReissue
 }
 
 // Shared state for the one-shot VTC admin install URL + claim code — the
-// full_stack_with_vtc counterpart of useDidsEnroll, split across the same two
+// VTC counterpart of useDidsEnroll, split across the same two
 // render sites (VtcInstallAlert top banner / VtcInstallConfigRow reissue).
 // The setup-minted install token expires after 15 minutes, so reissuing is
 // the expected path, not an edge case.

@@ -18,8 +18,7 @@ const componentLabels: Record<UpgradeComponent, string> = {
 
 /** Components a session of this mode runs — mirrors the backend's UpgradeComponentModes. */
 function modeComponents(mode: SetupMode): UpgradeComponent[] {
-  if (mode === 'full_stack') return ['vta', 'mediator', 'dids']
-  if (mode === 'full_stack_with_vtc') return ['vta', 'mediator', 'dids', 'vtc']
+  if (mode === 'full_stack') return ['vta', 'mediator', 'dids', 'vtc']
   return ['vta']
 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
-import { statusBadge, fullStackPhases, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid, modeDisplay } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, VtcInstallAlert, VtcInstallConfigRow, useVtcInstall, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow } from './FullStackOutputs'
 import { SessionVersionsCard } from './SessionVersionsCard'
@@ -39,7 +39,7 @@ export function SessionDetailView() {
   const [provisionError, setProvisionError] = useState('')
 
   const didsEnroll = useDidsEnroll(session)
-  const vtcInstall = useVtcInstall(session?.mode === 'full_stack_with_vtc' ? session : null)
+  const vtcInstall = useVtcInstall(session?.mode === 'full_stack' ? session : null)
 
   function copyVtaDid(did: string) {
     navigator.clipboard.writeText(did).catch(() => {})
@@ -133,8 +133,7 @@ export function SessionDetailView() {
   if (!session) return <section className="p-content"><p className="p-muted">Session not found.</p></section>
 
   const isFullStack = session.mode !== 'vta_only'
-  const isVtc = session.mode === 'full_stack_with_vtc'
-  const fsPhases = fullStackPhases(session.mode)
+  const fsPhases = FULL_STACK_PHASES
   const vtaDid = isFullStack ? session.collected?.vta_did : session.vta_did
   const isAwaitingAdmin = isFullStack ? session.status === 'awaiting_admin_did' : session.status === 'vta_setup_complete'
   const adminDidStep = (isFullStack
@@ -288,7 +287,7 @@ export function SessionDetailView() {
       {isFullStackCompleted && (
         <>
           <DidsEnrollAlert {...didsEnroll} />
-          {isVtc && <VtcInstallAlert {...vtcInstall} />}
+          <VtcInstallAlert {...vtcInstall} />
           <CollectedDidsCard collected={session.collected} />
         </>
       )}
@@ -323,7 +322,7 @@ export function SessionDetailView() {
           <div className="p-card">
             <div className="card-header"><h3 className="card-title">Configuration</h3></div>
             <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-              <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">{modeDisplay(session.mode)}</span></div>
+              <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">{session.mode}</span></div>
               <hr className="p-sep"/>
               <div className="p-row between"><span className="p-muted text-sm">Created</span><span className="text-sm">{new Date(session.created_at).toLocaleString()}</span></div>
               {!isFullStack && session.url && (
@@ -334,7 +333,7 @@ export function SessionDetailView() {
               )}
               {isFullStackCompleted && <EndpointConfigRows urls={session.urls} />}
               {isFullStackCompleted && <DidsEnrollConfigRow {...didsEnroll} />}
-              {isFullStackCompleted && isVtc && <VtcInstallConfigRow {...vtcInstall} />}
+              {isFullStackCompleted && <VtcInstallConfigRow {...vtcInstall} />}
             </div>
           </div>
           {isFullStackCompleted && <AdminKeysCard session={session} />}
