@@ -49,6 +49,7 @@ export function AdminPanel() {
   const path = location.pathname
   const crumb = path.includes('/settings') ? 'Settings'
     : path.includes('/users') ? 'Users'
+    : path.includes('/platform-stack') ? 'Platform stack'
     : path.includes('/sessions') ? 'Sessions'
     : path.includes('/invitations') ? 'Invitations'
     : path.includes('/admins') ? 'Admins'
@@ -69,8 +70,11 @@ export function AdminPanel() {
 
           <div className="sidebar-section">
             <div className="s-title">Control plane</div>
+            {/* Dashboard is the index route, so match it exactly rather than by
+                excluding every sibling — that list silently goes stale each time
+                a page is added. */}
             <div
-              className={`nav-item ${!path.includes('/admins') && !path.includes('/users') && !path.includes('/sessions') && !path.includes('/settings') && !path.includes('/invitations') ? 'active' : ''}`}
+              className={`nav-item ${path.replace(/\/$/, '') === '/admin' ? 'active' : ''}`}
               onClick={() => goTo('/admin')}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
@@ -96,6 +100,13 @@ export function AdminPanel() {
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg>
               Sessions
+            </div>
+            <div
+              className={`nav-item ${path.includes('/platform-stack') ? 'active' : ''}`}
+              onClick={() => goTo('/admin/platform-stack')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
+              Platform stack
             </div>
             <div
               className={`nav-item ${path.includes('/invitations') ? 'active' : ''}`}

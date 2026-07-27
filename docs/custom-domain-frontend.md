@@ -8,7 +8,8 @@ Backend counterpart (authority on shapes, statuses and rules):
 [`vtafarm-api/docs/custom-domain-design.md`](../../vtafarm-api/docs/custom-domain-design.md).
 References like *(API §6.1)* point there.
 
-> **Status: specification.** Architecture is settled; nothing is implemented.
+> **Status: phases 1 and A shipped; 2–4 are specification.** Architecture is
+> settled. §8 tracks what is built.
 
 ---
 
@@ -411,11 +412,11 @@ Everything reuses primitives already in `src/styles/portal.css` and
 
 | Phase | Contents | Depends on |
 | --- | --- | --- |
-| **1** | `domain-info` wiring + `componentHost()` + replace the two hardcoded hints | API phase 1 |
-| **2** | Domain picker + `label` field + types | API phase 2 |
+| ✅ **1** | `domain-info` wiring + `componentHost()` + replace the two hardcoded hints | API phase 1 |
+| **2** | Domain picker + `label` field | API phase **3**, not 2 — see below |
 | **3** | `DomainsView` — attach, records table, verify | API phase 3 |
 | **4** | Statuses, agents/detail surfaces | API phase 4 |
-| **A** | `PlatformStackView` (§6.1) + admin session delete with confirmation (§6.2) | API phase 2 — **not** blocked on verification or TLS |
+| ✅ **A** | `PlatformStackView` (§6.1) + admin session delete with confirmation (§6.2) + types | API phase 2 — **not** blocked on verification or TLS |
 
 Phase 1 is worth shipping alongside the backend's `dev-` rename: without it the
 portal shows the wrong hostname to anyone running against a local API.
@@ -424,6 +425,26 @@ Phase **A** is deliberately out of the numbered sequence: the platform stack
 needs neither domain verification nor certificates, so it only depends on API
 phase 2. It can ship well before the custom-domain UI exists — and should, since
 it is what makes `vta_only`'s mediator and DID host stable (API §3.3).
+
+> **Correction (2026-07-26): phase 2 depends on API phase 3, not 2.** The domain
+> picker reads `GET /domains` and submits `domain_id` / `label` to `POST /setup`
+> — all of which arrive in API phase 3. API phase 2 ships only the `domains`
+> table and the platform stack, so a picker built against it would have nothing
+> to list and no field to submit. What *did* only need API phase 2 was the
+> types and phase A, so those shipped together; the picker moves alongside
+> `DomainsView` in phase 3, where the two share the same API.
+
+Two gaps phase A left for phase 3, both because the admin panel authenticates
+with a different cookie than the portal:
+
+- **No live log console** on `PlatformStackView`. `GET /setup/{id}/logs` is a
+  user route scoped by `user_id`, and the platform session belongs to the system
+  account — so an admin cannot stream it. The page polls status and renders the
+  `PhaseStepper` instead. Needs an admin-side logs route.
+- **No hostname preview before creation.** `GET /setup/domain-info` is likewise
+  user-only, so the not-yet-created card names the four labels without their
+  zone. Needs an admin-cookie variant, exactly as `/admin/setup/images` mirrors
+  `/setup/images`.
 
 ---
 

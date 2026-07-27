@@ -18,6 +18,22 @@ export type SetupStatus =
 
 export type SetupMode = 'vta_only' | 'full_stack'
 
+/**
+ * Where a session's hostnames come from — orthogonal to its mode.
+ *
+ * `managed` derives the labels from the user's chosen name in our own zone
+ * (`vta-alice.firstperson.dev`); `custom` and `platform` both use the four
+ * fixed labels (`vta.`, `vtc.`, `mediator.`, `dids.`) and differ only in who
+ * owns the zone — theirs vs. ours.
+ */
+export type DomainType = 'managed' | 'custom' | 'platform'
+
+/**
+ * The kind of a `domains` row. Narrower than `DomainType`: a managed session
+ * has no domain row at all, so `managed` is not a kind anything can carry.
+ */
+export type DomainKind = 'custom' | 'platform'
+
 export interface SetupSessionUrls {
   vta: string
   mediator: string
@@ -45,6 +61,10 @@ export interface SetupSession {
   id: string
   status: SetupStatus
   mode: SetupMode
+  /** managed | custom | platform — where this session's hostnames come from. */
+  domain_type?: DomainType
+  /** The zone the hostnames sit under (`firstperson.dev`, `aaa.com`). */
+  domain?: string
   url?: string
   urls?: SetupSessionUrls
   vta_name?: string
@@ -114,6 +134,12 @@ export interface User {
   /** Self-declared at signup (unverified); null for pre-email and admin-invited accounts. */
   email: string | null
   beta_access: boolean
+  /**
+   * The account that owns the platform stack. Not a login — no passkey, no
+   * email — so nothing meant for a person (beta access, recovery links) should
+   * be offered on it.
+   */
+  system?: boolean
   created_at: string
   updated_at: string
 }
@@ -148,6 +174,12 @@ export interface AdminSetupSession {
   vta_name: string
   vtc_name?: string
   mode: SetupMode
+  /**
+   * The `platform` row is the farm's own stack — the one deletion that needs
+   * an explicit `confirm` body, since every `vta_only` session loses its
+   * mediator and DID host with it.
+   */
+  domain_type: DomainType
   status: SetupStatus
   error_msg?: string
   fqdn: string
@@ -156,6 +188,40 @@ export interface AdminSetupSession {
   dids_image?: string
   vtc_image?: string
   created_at: string
+}
+
+/**
+ * The farm's own `full_stack` at `vta.{CLUSTER_DOMAIN}` and friends — the
+ * mediator and DID host every `vta_only` session points at.
+ *
+ * `exists: false` covers both "never created" and "created then torn down":
+ * the `domains` row outlives its session, so `domain` may still be set in the
+ * second case.
+ */
+export interface PlatformStack {
+  exists: boolean
+  /** The session's 8-char unique_id — present only while one exists. */
+  id?: string
+  status?: SetupStatus
+  /** Reaches no hostname; it survives only in `did:webvh` paths. */
+  label?: string
+  domain?: string
+  urls?: SetupSessionUrls
+  images?: { vta: string; mediator: string; dids: string; vtc: string }
+  /**
+   * What to paste into the environment once the stack is running. Empty
+   * strings until the pipeline mints them — `MEDIATOR_DID` in particular
+   * cannot be known before setup completes.
+   */
+  config_values?: {
+    MEDIATOR_DID: string
+    DID_HOSTING_SERVER_URL: string
+    DID_HOSTING_CONTROL_URL: string
+    DID_HOSTING_DID: string
+  }
+  error_msg?: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface AdminSessionsPage {
@@ -368,9 +434,37 @@ export const api = {
     req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?page=${page}${mode ? `&mode=${encodeURIComponent(mode)}` : ''}`),
   adminListImages: (component: UpgradeComponent = 'vta') =>
     req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/admin/setup/images?component=${component}`),
-  /** Tears down any user's session — irreversible. Gate behind a confirmation. */
-  adminDeleteSession: (id: string) =>
-    req<null>('DELETE', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}`),
+  /**
+   * Tears down any user's session — irreversible. Gate behind a confirmation.
+   *
+   * `confirm` is the platform stack's label, and the API *requires* it for
+   * that one session (400 without it): deleting it takes every `vta_only`
+   * session's mediator and DID host with it. Don't reimplement that guard
+   * client-side only.
+   */
+  adminDeleteSession: (id: string, confirm?: string) =>
+    req<null>('DELETE', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}`, confirm ? { confirm } : undefined),
+
+  // ── Admin — platform stack ───────────────────────────────────────────────────
+  // The farm's own full stack under our zone's fixed labels. Created whole —
+  // domain row, DNS, session — by one action; this is the only route that can
+  // mint a domains row for our own zone.
+  getPlatformStack: () => req<PlatformStack>('GET', '/api/v1/admin/platform-stack'),
+  createPlatformStack: (data: {
+    label?: string
+    // Required here, unlike POST /setup: the platform session is owned by a
+    // passkey-less system account, so nothing could ever resume it if the
+    // pipeline parked at awaiting_admin_did.
+    admin_did: string
+    vta_image: string
+    mediator_image: string
+    dids_image: string
+    vtc_image: string
+    portable?: boolean
+    pre_rotation_count?: number
+  }) =>
+    req<{ id: string; status: SetupStatus; label: string; domain: string; urls: SetupSessionUrls }>(
+      'POST', '/api/v1/admin/platform-stack', data),
 
   // ── Admin — upgrade batches ──────────────────────────────────────────────────
   createUpgrade: (data: {
