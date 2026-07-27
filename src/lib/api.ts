@@ -85,6 +85,23 @@ export interface SetupAvailability {
   determinable: boolean
 }
 
+/**
+ * Hostname facts for this environment, so the UI never hardcodes the
+ * production shape (`vta-<name>.firstperson.dev`), which is wrong against a
+ * local API and will be wrong again for custom and platform domains. Route
+ * every displayed hostname through `componentHost()` in `portalUtils`.
+ */
+export interface DomainInfo {
+  /** The zone managed sessions are created under (CLUSTER_DOMAIN). */
+  managed_domain: string
+  /** Prefixed onto every DNS label the API creates — `dev-` locally, `` in production. */
+  env_prefix: string
+  /** External IP of the cluster ingress; empty when the cluster isn't configured. */
+  target_ip: string
+  /** Hostname a custom domain's records point at, e.g. `dev-lb.firstperson.dev`. */
+  target_host?: string
+}
+
 export interface UserInfo {
   id: number
   unique_id: string
@@ -414,6 +431,9 @@ export const api = {
   // Remaining per-mode cluster capacity — the create screen uses this to show
   // "Unavailable" and disable the button before submitting.
   setupAvailability: () => req<SetupAvailability>('GET', '/api/v1/setup/availability'),
+  // Environment hostname facts behind every hostname hint. Static per
+  // deployment — see useDomainInfo() in portalUtils, which caches it.
+  domainInfo: () => req<DomainInfo>('GET', '/api/v1/setup/domain-info'),
   listSessions: () => req<SetupSession[]>('GET', '/api/v1/setup'),
   createSession: (data: {
     mode: SetupMode

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession, type SetupAvailability } from '@/lib/api'
 import type { PortalContext } from './Portal'
-import { statusBadge, FULL_STACK_PHASES, isValidAdminDid } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, isValidAdminDid, componentHost, useDomainInfo } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullStackCreateProgress } from './FullStackCreateProgress'
@@ -16,6 +16,7 @@ export function CreateVTAView() {
 
   const [stage, setStage] = useState<Stage>(0)
   const [mode, setMode] = useState<Mode>('vta_only')
+  const domainInfo = useDomainInfo()
   const [betaAccess, setBetaAccess] = useState(false)
   const [availability, setAvailability] = useState<SetupAvailability | null>(null)
   const [vtaName, setVtaName] = useState('myvta')
@@ -298,6 +299,13 @@ export function CreateVTAView() {
     }
   })()
 
+  // Live hostname previews. Managed domains carry the user-chosen name in the
+  // label, so these track what's typed; an empty field keeps the <name>
+  // placeholder these hints used to hardcode. Null until domain-info resolves —
+  // the hint then renders without a hostname rather than with a guessed one.
+  const vtaHost = domainInfo && componentHost(domainInfo, 'vta', { fixedLabels: false, name: vtaName || '<name>' })
+  const vtcHost = domainInfo && componentHost(domainInfo, 'vtc', { fixedLabels: false, name: vtcName || '<name>' })
+
   // Only block when the backend positively measured "no room" for this mode.
   // determinable=false means capacity is unknown → stay enabled (fail-open).
   const modeUnavailable = availability?.determinable === true && !availability[mode].available
@@ -396,8 +404,8 @@ export function CreateVTAView() {
                   onChange={e => setVtaName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
               </div>
               <div className="field-hint">
-                Must be unique. Your agent will live at{' '}
-                <span className="p-mono">vta-&lt;name&gt;.firstperson.dev</span>.
+                Must be unique.{vtaHost && <> Your agent will live at{' '}
+                <span className="p-mono">{vtaHost}</span>.</>}
               </div>
             </div>
             <div>
@@ -473,8 +481,8 @@ export function CreateVTAView() {
                       onChange={e => setVtcName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
                   </div>
                   <div className="field-hint">
-                    Must be unique. Your community will live at{' '}
-                    <span className="p-mono">vtc-&lt;name&gt;.firstperson.dev</span>.
+                    Must be unique.{vtcHost && <> Your community will live at{' '}
+                    <span className="p-mono">{vtcHost}</span>.</>}
                   </div>
                 </div>
                 <div>

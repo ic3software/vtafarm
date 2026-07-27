@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import type { SetupSession, SetupStatus } from '@/lib/api'
+import { useState, useEffect } from 'react'
+import { api, type DomainInfo, type SetupSession, type SetupStatus } from '@/lib/api'
 
 const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   // vta_only
@@ -120,6 +120,52 @@ export function useCopyState(timeoutMs = 2000) {
     setTimeout(() => setCopiedKey(k => (k === key ? null : k)), timeoutMs)
   }
   return { copiedKey, copy }
+}
+
+// ── Hostnames ────────────────────────────────────────────────────────────────
+
+export type HostComponent = 'vta' | 'vtc' | 'mediator' | 'dids'
+
+/**
+ * The hostname one component of a session gets — the single place the UI is
+ * allowed to compose one, mirroring the API's own derivation.
+ *
+ * `fixedLabels` selects the form custom and platform domains use, where the
+ * four labels are the same for every session (`vta.aaa.com`) because the
+ * domain already identifies the owner; managed domains carry the user-chosen
+ * name in the label (`vta-alice.firstperson.dev`). Note the VTC's name is its
+ * own `vtc_name`, not the session's `vta_name`.
+ *
+ * `env_prefix` is applied for us, so `dev-` appears automatically against a
+ * local API.
+ */
+export function componentHost(
+  info: DomainInfo,
+  component: HostComponent,
+  opts: { fixedLabels: boolean; name?: string; domain?: string },
+): string {
+  const label = opts.fixedLabels
+    ? `${info.env_prefix}${component}`
+    : `${info.env_prefix}${component}-${opts.name}`
+  return `${label}.${opts.domain ?? info.managed_domain}`
+}
+
+// Environment-static, so one fetch serves every view for the lifetime of the
+// page. Returns null until it resolves — render the surrounding copy without
+// the hostname rather than guessing at one.
+let domainInfoCache: Promise<DomainInfo> | null = null
+
+export function useDomainInfo(): DomainInfo | null {
+  const [info, setInfo] = useState<DomainInfo | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    domainInfoCache ??= api.domainInfo()
+    domainInfoCache
+      .then(d => { if (!cancelled) setInfo(d) })
+      .catch(() => { domainInfoCache = null })
+    return () => { cancelled = true }
+  }, [])
+  return info
 }
 
 // ── Shared admin-DID (did:key) validation ────────────────────────────────────
