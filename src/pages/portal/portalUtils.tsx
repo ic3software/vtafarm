@@ -153,18 +153,22 @@ export function componentHost(
 // Environment-static, so one fetch serves every view for the lifetime of the
 // page. Returns null until it resolves — render the surrounding copy without
 // the hostname rather than guessing at one.
-let domainInfoCache: Promise<DomainInfo> | null = null
+//
+// Two caches because there are two endpoints: the portal and the admin panel
+// authenticate with different cookies, so each has its own route returning the
+// identical payload.
+const domainInfoCache: Record<'user' | 'admin', Promise<DomainInfo> | null> = { user: null, admin: null }
 
-export function useDomainInfo(): DomainInfo | null {
+export function useDomainInfo(variant: 'user' | 'admin' = 'user'): DomainInfo | null {
   const [info, setInfo] = useState<DomainInfo | null>(null)
   useEffect(() => {
     let cancelled = false
-    domainInfoCache ??= api.domainInfo()
-    domainInfoCache
+    domainInfoCache[variant] ??= variant === 'admin' ? api.adminDomainInfo() : api.domainInfo()
+    domainInfoCache[variant]!
       .then(d => { if (!cancelled) setInfo(d) })
-      .catch(() => { domainInfoCache = null })
+      .catch(() => { domainInfoCache[variant] = null })
     return () => { cancelled = true }
-  }, [])
+  }, [variant])
   return info
 }
 

@@ -12,6 +12,7 @@ import { AdminLogin } from '@/pages/AdminLogin'
 import { Portal } from '@/pages/portal/Portal'
 import { AgentsView } from '@/pages/portal/AgentsView'
 import { CreateVTAView } from '@/pages/portal/CreateVTAView'
+import { DomainsView } from '@/pages/portal/DomainsView'
 import { SessionDetailView } from '@/pages/portal/SessionDetailView'
 import { SettingsView } from '@/pages/portal/SettingsView'
 import { AdminPanel } from '@/pages/admin/AdminPanel'
@@ -179,6 +180,7 @@ export default function App() {
           <Route path="/portal" element={<Portal />}>
             <Route index element={<AgentsView />} />
             <Route path="create" element={<CreateVTAView />} />
+            <Route path="domains" element={<DomainsView />} />
             <Route path="session/:id" element={<SessionDetailView />} />
             <Route path="settings" element={<SettingsView />} />
           </Route>

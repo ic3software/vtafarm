@@ -8,8 +8,8 @@ Backend counterpart (authority on shapes, statuses and rules):
 [`vtafarm-api/docs/custom-domain-design.md`](../../vtafarm-api/docs/custom-domain-design.md).
 References like *(API §6.1)* point there.
 
-> **Status: phases 1 and A shipped; 2–4 are specification.** Architecture is
-> settled. §8 tracks what is built.
+> **Status: phases 1, 2, 3 and A shipped; phase 4 is specification.**
+> Architecture is settled. §8 tracks what is built.
 
 ---
 
@@ -413,8 +413,8 @@ Everything reuses primitives already in `src/styles/portal.css` and
 | Phase | Contents | Depends on |
 | --- | --- | --- |
 | ✅ **1** | `domain-info` wiring + `componentHost()` + replace the two hardcoded hints | API phase 1 |
-| **2** | Domain picker + `label` field | API phase **3**, not 2 — see below |
-| **3** | `DomainsView` — attach, records table, verify | API phase 3 |
+| ✅ **2** | Domain picker + `label` field | API phase **3**, not 2 — see below |
+| ✅ **3** | `DomainsView` — attach, records table, verify | API phase 3 |
 | **4** | Statuses, agents/detail surfaces | API phase 4 |
 | ✅ **A** | `PlatformStackView` (§6.1) + admin session delete with confirmation (§6.2) + types | API phase 2 — **not** blocked on verification or TLS |
 
@@ -434,17 +434,16 @@ it is what makes `vta_only`'s mediator and DID host stable (API §3.3).
 > types and phase A, so those shipped together; the picker moves alongside
 > `DomainsView` in phase 3, where the two share the same API.
 
-Two gaps phase A left for phase 3, both because the admin panel authenticates
-with a different cookie than the portal:
+Both gaps phase A left behind are now closed, by the two admin-cookie twins API
+phase 3 added: `PlatformStackView` streams the pipeline through
+`GET /admin/setup-sessions/{id}/logs`, and names the four hostnames it will
+claim from `GET /admin/setup/domain-info` before any of them exist.
 
-- **No live log console** on `PlatformStackView`. `GET /setup/{id}/logs` is a
-  user route scoped by `user_id`, and the platform session belongs to the system
-  account — so an admin cannot stream it. The page polls status and renders the
-  `PhaseStepper` instead. Needs an admin-side logs route.
-- **No hostname preview before creation.** `GET /setup/domain-info` is likewise
-  user-only, so the not-yet-created card names the four labels without their
-  zone. Needs an admin-cookie variant, exactly as `/admin/setup/images` mirrors
-  `/setup/images`.
+One thing phase 3 does that the spec didn't ask for: **`DomainsView` handles the
+whole resource 404ing.** `CUSTOM_DOMAIN_ENABLED` defaults to off, so the first
+thing most instances return from `GET /domains` is a 404 — rendered as "not
+available yet" rather than as a failure. `CreateVTAView` treats the same 404 as
+"no domains", which is exactly the right offer.
 
 ---
 

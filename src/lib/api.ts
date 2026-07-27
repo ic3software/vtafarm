@@ -122,6 +122,61 @@ export interface DomainInfo {
   target_host?: string
 }
 
+export type HostComponentName = 'vta' | 'mediator' | 'dids' | 'vtc'
+
+/**
+ * One hostname the user must point at us, plus its last resolution.
+ *
+ * `expected_value` is always the CNAME target, never an IP: the user's records
+ * are effectively permanent — their DID-hosting hostname is embedded in every
+ * `did:webvh` the session mints — so they point at a name we can repoint later
+ * without anyone editing their DNS again.
+ */
+export interface DnsRecordStatus {
+  component: HostComponentName
+  fqdn: string
+  expected_type: 'CNAME'
+  expected_value: string
+  resolved: string[]
+  cname?: string
+  ok: boolean
+  /**
+   * Why it failed, in words meant for the user. **Render this rather than
+   * composing DNS advice in the UI** — one source of truth, and it stays
+   * correct as the checker improves.
+   */
+  detail?: string
+}
+
+/** The control challenge. Accepted at the `_vtafarm-challenge` name or the apex. */
+export interface TxtRecordStatus {
+  name: string
+  expected: string
+  /** Every value found at either name; a match on any one passes. */
+  found: string[]
+  ok: boolean
+  detail?: string
+}
+
+export interface Domain {
+  id: number
+  domain: string
+  kind: DomainKind
+  verified: boolean
+  verified_at: string | null
+  /** unique_id of the session running on this domain, when there is one. */
+  in_use_by?: string
+  /** What all four CNAMEs point at. */
+  target: string
+  /**
+   * Whether this response performed live lookups. False on the list endpoint,
+   * which never resolves — show a neutral "not checked" state, not a failure.
+   */
+  checked: boolean
+  txt?: TxtRecordStatus
+  records: DnsRecordStatus[]
+}
+
 export interface UserInfo {
   id: number
   unique_id: string
@@ -434,6 +489,8 @@ export const api = {
     req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?page=${page}${mode ? `&mode=${encodeURIComponent(mode)}` : ''}`),
   adminListImages: (component: UpgradeComponent = 'vta') =>
     req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/admin/setup/images?component=${component}`),
+  /** Admin-cookie twin of `domainInfo` — the admin panel holds a different cookie. */
+  adminDomainInfo: () => req<DomainInfo>('GET', '/api/v1/admin/setup/domain-info'),
   /**
    * Tears down any user's session — irreversible. Gate behind a confirmation.
    *
@@ -540,7 +597,28 @@ export const api = {
     dids_image?: string
     vtc_image?: string
     vtc_name?: string
+    /** A verified custom domain. Omitted → managed. full_stack only. */
+    domain_id?: number
+    /**
+     * Replaces vta_name/vtc_name on a custom domain, where the four labels are
+     * fixed and no user-chosen name reaches a hostname. Mutually exclusive
+     * with them — sending both is a 400.
+     */
+    label?: string
   }) => req<{ id: string; status: string; url?: string; urls?: SetupSessionUrls }>('POST', '/api/v1/setup', data),
+
+  // ── Domains ──────────────────────────────────────────────────────────────────
+  // A zone the user owns, verified on its own page before any session exists.
+  // Every route 404s while CUSTOM_DOMAIN_ENABLED is off on the API.
+  listDomains: () => req<Domain[]>('GET', '/api/v1/domains'),
+  attachDomain: (domain: string) => req<Domain>('POST', '/api/v1/domains', { domain }),
+  // Resolves live and promotes to verified when everything passes, so polling
+  // it surfaces a fix made in another tab. Cheap once verified — no lookups.
+  getDomain: (id: number) => req<Domain>('GET', `/api/v1/domains/${id}`),
+  // A failing check is a 200 with per-record detail, not an error — it's the
+  // normal path and must not be rendered as one.
+  verifyDomain: (id: number) => req<Domain>('POST', `/api/v1/domains/${id}/verify`),
+  deleteDomain: (id: number) => req<null>('DELETE', `/api/v1/domains/${id}`),
   getSession: (id: string) => req<SetupSession>('GET', `/api/v1/setup/${id}`),
   deleteSession: (id: string) => req<null>('DELETE', `/api/v1/setup/${id}`),
   provisionAdmin: (id: string, admin_did: string) =>

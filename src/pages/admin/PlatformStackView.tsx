@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, ALL_COMPONENTS, type PlatformStack, type UpgradeComponent } from '@/lib/api'
+import { api, API_BASE, ALL_COMPONENTS, type PlatformStack, type UpgradeComponent } from '@/lib/api'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PhaseStepper } from '../portal/PhaseStepper'
-import { FULL_STACK_PHASES, phaseIndex, statusBadge, useCopyState, isValidAdminDid } from '../portal/portalUtils'
+import { FULL_STACK_PHASES, phaseIndex, statusBadge, useCopyState, isValidAdminDid, componentHost, useDomainInfo } from '../portal/portalUtils'
 
 // The farm's own full_stack, running under our zone's fixed labels —
 // vta.{CLUSTER_DOMAIN}, vtc., mediator., dids. This is the only place it can be
@@ -71,9 +71,14 @@ function CopyRow({
 export function PlatformStackView() {
   const navigate = useNavigate()
   const { copiedKey, copy } = useCopyState()
+  // The admin-cookie twin of the portal's route: this panel authenticates
+  // differently, and the hostnames have to be nameable before they exist.
+  const domainInfo = useDomainInfo('admin')
 
   const [stack, setStack] = useState<PlatformStack | null>(null)
   const [loading, setLoading] = useState(true)
+  const [logs, setLogs] = useState<string[]>([])
+  const consoleBodyRef = useRef<HTMLDivElement>(null)
 
   const [label, setLabel] = useState('firstperson')
   const [adminDid, setAdminDid] = useState('')
@@ -104,6 +109,30 @@ export function PlatformStackView() {
     const iv = setInterval(() => { void load() }, 3000)
     return () => clearInterval(iv)
   }, [settled, load])
+
+  // Reconnect the log stream on every status change — each pipeline step is
+  // its own Job and its own pod, so the previous stream has already ended.
+  const sessionId = stack?.id
+  useEffect(() => {
+    if (!sessionId || settled || status === 'awaiting_admin_did') return
+    const es = new EventSource(`${API_BASE}/api/v1/admin/setup-sessions/${sessionId}/logs`, { withCredentials: true })
+    // Clear when the new stream actually opens rather than up front, so the
+    // previous step's output stays on screen instead of blanking during the
+    // reconnect between two Jobs.
+    let cleared = false
+    const clearOnce = () => { if (!cleared) { cleared = true; setLogs([]) } }
+    es.onopen = clearOnce
+    es.onmessage = e => { clearOnce(); setLogs(prev => [...prev, e.data]) }
+    es.addEventListener('done', () => es.close())
+    es.onerror = () => es.close()
+    return () => es.close()
+  }, [sessionId, status, settled])
+
+  // Scroll the console body, not the page.
+  useEffect(() => {
+    const el = consoleBodyRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [logs])
 
   // Only load the create form's inputs when there's a form to fill.
   const needsForm = !loading && !stack?.exists
@@ -208,16 +237,25 @@ export function PlatformStackView() {
             <div className="p-alert alert-info">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
               <div className="grow">
-                <p className="alert-title">Hostnames are fixed</p>
-                <p className="alert-desc">
-                  It claims <span className="p-mono">vta.</span>, <span className="p-mono">vtc.</span>,{' '}
-                  <span className="p-mono">mediator.</span> and <span className="p-mono">dids.</span>
-                  {stack?.domain
-                    ? <> on <span className="p-mono">{stack.domain}</span></>
-                    : <> on the farm's own zone</>}
-                  {' '}(each prefixed <span className="p-mono">dev-</span> against a local API).
-                  The label below reaches none of them.
-                </p>
+                <p className="alert-title">Hostnames it will claim</p>
+                <div className="alert-desc">
+                  {domainInfo ? (
+                    <div className="p-col" style={{ gap: 2, marginTop: 4 }}>
+                      {ALL_COMPONENTS.map(component => (
+                        <span key={component} className="p-mono" style={{ fontSize: 12 }}>
+                          {componentHost(domainInfo, component, { fixedLabels: true })}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <span className="p-mono">vta.</span>, <span className="p-mono">vtc.</span>,{' '}
+                      <span className="p-mono">mediator.</span> and <span className="p-mono">dids.</span>{' '}
+                      on the farm's own zone.
+                    </>
+                  )}
+                  <p style={{ margin: '6px 0 0' }}>The label below reaches none of them.</p>
+                </div>
               </div>
             </div>
 
@@ -351,7 +389,26 @@ export function PlatformStackView() {
                 minutes — the page refreshes itself.
               </p>
             </div>
-            <span className="p-badge badge-warning"><span className="dot pulse-dot"/>provisioning</span>
+            <span className="p-badge badge-warning"><span className="dot pulse-dot"/>streaming</span>
+          </div>
+          <div className="card-content">
+            <div className="p-console">
+              <div className="console-head">
+                <div className="dots"><span/><span/><span/></div>
+                <span className="p-mono">vtafarm · platform-stack {stack.label}</span>
+                <span className="grow"/>
+                <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
+                  <span className="dot pulse-dot"/>streaming
+                </span>
+              </div>
+              <div className="console-body" ref={consoleBodyRef}>
+                {logs.length === 0 ? (
+                  <div className="ln"><span className="p-muted text-xs">Waiting for output…<span className="caret"/></span></div>
+                ) : logs.map((line, i) => (
+                  <div key={i} className="ln"><span className="msg">{line}</span></div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
