@@ -86,17 +86,38 @@ export interface SetupSession {
   updated_at?: string
 }
 
-/** Remaining create capacity for one mode. `available` is `count > 0`. */
+/**
+ * Why a mode can't be created right now.
+ *
+ * `at_capacity` is transient. The three `platform_stack_*` /
+ * `shared_infra_*` reasons are `vta_only`-only: that mode is just the VTA,
+ * wired to the mediator and DID hosting the **platform stack** provides, so it
+ * cannot be created before an admin has stood that up and pointed this server
+ * at it. `full_stack` runs its own and is never gated on it.
+ */
+export type UnavailableReason =
+  | 'at_capacity'
+  | 'platform_stack_missing'
+  | 'platform_stack_not_ready'
+  | 'shared_infra_unconfigured'
+
+/** Whether one mode can be created, and if not, why. */
 export interface ModeAvailability {
   count: number
   available: boolean
+  reason?: UnavailableReason
+  /** A sentence to show the user. Prefer it over composing copy client-side. */
+  detail?: string
 }
 
 /**
- * Per-mode remaining cluster capacity, used by the create screen to show
- * "Unavailable" and disable the button before submitting. Fails open: when the
- * cluster can't be measured, `determinable` is false and every mode reports
- * `available: true`, so a transient outage never wrongly blocks creation.
+ * Per-mode createability, used by the create screen to disable the button
+ * before submitting.
+ *
+ * Capacity fails open: when the cluster can't be measured, `determinable` is
+ * false and no mode is blocked on capacity, so a transient outage never wrongly
+ * stops creation. The platform-stack dependency is not capacity and does not
+ * fail open — it's a hard prerequisite, so `available` already accounts for it.
  */
 export interface SetupAvailability {
   vta_only: ModeAvailability

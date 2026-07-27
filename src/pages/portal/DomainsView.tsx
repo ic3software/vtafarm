@@ -96,8 +96,7 @@ export function DomainsView() {
 
   const [domain, setDomain] = useState<Domain | null>(null)
   const [loading, setLoading] = useState(true)
-  // The whole resource 404s while the API has custom domains switched off.
-  const [unavailable, setUnavailable] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   const [attachOpen, setAttachOpen] = useState(false)
   const [attachInput, setAttachInput] = useState('')
@@ -116,9 +115,7 @@ export function DomainsView() {
   const load = useCallback(() => (
     api.listDomains()
       .then(list => setDomain(list[0] ?? null))
-      .catch((err: { status?: number }) => {
-        if (err.status === 404) setUnavailable(true)
-      })
+      .catch(err => setLoadError(err instanceof Error ? err.message : 'Failed to load domains'))
       .finally(() => setLoading(false))
   ), [])
 
@@ -215,20 +212,17 @@ export function DomainsView() {
     )
   }
 
-  if (unavailable) {
+  if (loadError) {
     return (
       <section className="p-content">
         {head}
         <div className="p-card">
           <div className="card-content">
-            <div className="p-alert alert-info" style={{ margin: 0 }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <div className="p-alert alert-destructive" style={{ margin: 0 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6 6 18M6 6l12 12"/></svg>
               <div className="grow">
-                <p className="alert-title">Not available yet</p>
-                <p className="alert-desc">
-                  Custom domains aren't switched on for this instance. Your agents will use
-                  generated hostnames in the VTA Farm zone in the meantime.
-                </p>
+                <p className="alert-title">Couldn't load your domains</p>
+                <p className="alert-desc">{loadError}</p>
               </div>
             </div>
           </div>

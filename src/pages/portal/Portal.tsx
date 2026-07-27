@@ -12,6 +12,8 @@ export interface PortalContext {
   loadSessions: () => void
   uniqueId: string
   email: string | null
+  /** Gates the full_stack mode. Read fresh from the DB, not the JWT. */
+  betaAccess: boolean
 }
 
 export function Portal() {
@@ -25,6 +27,7 @@ export function Portal() {
   const [sessions, setSessions] = useState<SetupSession[]>([])
   const [sessionsLoading, setSessionsLoading] = useState(true)
   const [email, setEmail] = useState<string | null>(null)
+  const [betaAccess, setBetaAccess] = useState(false)
 
   const loadSessions = useCallback(() => {
     setSessionsLoading(true)
@@ -45,7 +48,11 @@ export function Portal() {
   }, [user, loadSessions])
 
   useEffect(() => {
-    if (user) api.getMe().then(me => setEmail(me.email)).catch(() => {})
+    if (user) {
+      api.getMe()
+        .then(me => { setEmail(me.email); setBetaAccess(me.beta_access) })
+        .catch(() => {})
+    }
   }, [user])
 
   useEffect(() => {
@@ -161,7 +168,7 @@ export function Portal() {
             </button>
           </header>
 
-          <Outlet context={{ sessions, sessionsLoading, loadSessions, uniqueId: user.unique_id, email } satisfies PortalContext} />
+          <Outlet context={{ sessions, sessionsLoading, loadSessions, uniqueId: user.unique_id, email, betaAccess } satisfies PortalContext} />
         </div>
       </div>
     </div>

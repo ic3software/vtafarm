@@ -11,13 +11,14 @@ type Stage = 0 | 1 | 2 | 3
 type Mode = 'vta_only' | 'full_stack'
 
 export function CreateVTAView() {
-  const { loadSessions } = useOutletContext<PortalContext>()
+  // betaAccess comes from the portal shell, which already reads it fresh from
+  // the DB — the JWT doesn't carry it, and an admin can flip it at any time.
+  const { loadSessions, betaAccess } = useOutletContext<PortalContext>()
   const navigate = useNavigate()
 
   const [stage, setStage] = useState<Stage>(0)
   const [mode, setMode] = useState<Mode>('vta_only')
   const domainInfo = useDomainInfo()
-  const [betaAccess, setBetaAccess] = useState(false)
   const [availability, setAvailability] = useState<SetupAvailability | null>(null)
   const [vtaName, setVtaName] = useState('myvta')
   const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
@@ -73,13 +74,6 @@ export function CreateVTAView() {
       .catch(() => {})
   }, [])
 
-  // full_stack requires beta_access — fetched fresh from
-  // the DB since the login session/JWT doesn't carry it (an admin can flip it
-  // at any time).
-  useEffect(() => {
-    api.getMe().then(me => setBetaAccess(me.beta_access)).catch(() => {})
-  }, [])
-
   // Remaining cluster capacity per mode, so we can show "Unavailable" and block
   // creation before the user submits. Fails open: on any error (or when the
   // backend can't measure) we leave the form enabled — POST /setup is the
@@ -108,8 +102,8 @@ export function CreateVTAView() {
   }, [mode, mediatorImages.length])
 
   // The caller's domains, for the picker. Only full_stack can use one, so this
-  // waits for that mode. A 404 means the API has custom domains switched off —
-  // the picker then shows managed alone, which is the correct offer.
+  // waits for that mode. On failure the picker shows managed alone, which is
+  // the correct offer for someone with no verified domain anyway.
   const domainsLoaded = useRef(false)
   useEffect(() => {
     if (mode !== 'full_stack' || domainsLoaded.current) return
@@ -342,9 +336,14 @@ export function CreateVTAView() {
   // session, because its four labels are fixed.
   const selectableDomains = domains.filter(d => d.verified)
 
-  // Only block when the backend positively measured "no room" for this mode.
-  // determinable=false means capacity is unknown → stay enabled (fail-open).
-  const modeUnavailable = availability?.determinable === true && !availability[mode].available
+  // The backend already folds capacity (fail-open) and the platform-stack
+  // prerequisite (hard) into one `available`, and says which applies — so the
+  // screen reads one field and shows the server's own sentence rather than
+  // guessing at a reason.
+  const modeAvailability = availability?.[mode]
+  const modeUnavailable = modeAvailability ? !modeAvailability.available : false
+  const blockedOnPlatformStack = modeAvailability?.reason?.startsWith('platform_stack') === true ||
+    modeAvailability?.reason === 'shared_infra_unconfigured'
 
   const showingSetupLogs = stage === 1 && setupStreamStarted && !setupLogsDone
   // Only use status as fallback when we never entered the log-streaming phase
@@ -407,10 +406,24 @@ export function CreateVTAView() {
               <div className="p-alert alert-warning">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
                 <div className="grow">
-                  <p className="alert-title">Unavailable</p>
+                  <p className="alert-title">
+                    {blockedOnPlatformStack ? 'Not ready yet' : 'Unavailable'}
+                  </p>
                   <p className="alert-desc">
-                    The cluster is currently at capacity and can't provision a new{' '}
-                    {mode === 'vta_only' ? 'VTA' : 'Full Stack'} agent right now. Please try again later or contact an admin.
+                    {modeAvailability?.detail ?? (
+                      <>
+                        The cluster is currently at capacity and can't provision a new{' '}
+                        {mode === 'vta_only' ? 'VTA' : 'Full Stack'} agent right now. Please try again later or contact an admin.
+                      </>
+                    )}
+                    {/* A VTA-only user whose only blocker is the missing shared
+                        infrastructure can't do anything about it themselves —
+                        point at the one mode that doesn't depend on it, but only
+                        when they can actually pick it. */}
+                    {blockedOnPlatformStack && betaAccess && mode === 'vta_only' &&
+                      availability?.full_stack.available && (
+                        <> A Full Stack agent runs its own mediator and DID hosting, so it can be created now.</>
+                      )}
                   </p>
                 </div>
               </div>
