@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, type Domain, type DnsRecordStatus, type TxtRecordStatus } from '@/lib/api'
 import { useCopyState } from './portalUtils'
@@ -12,11 +12,24 @@ import { useCopyState } from './portalUtils'
 // A user may hold at most one custom domain, so this is a single card rather
 // than a list — no pagination, no bulk actions, no empty-list scaffolding.
 
-/** How often the page re-checks by itself. Deliberately far slower than the 3s
- *  session polls elsewhere: every call does real DNS lookups. */
-const POLL_MS = 30_000
-/** Keeps an impatient user off the endpoint's own rate limit. */
-const COOLDOWN_MS = 5_000
+/** The API refuses a second check inside this window with a 429, so the button
+ *  counts down rather than offering a press that can only fail. Keep in step
+ *  with handler.VerifyCooldown on the server — that one is the actual rule. */
+const COOLDOWN_MS = 60_000
+
+/** "just now" / "3 minutes ago" — a clock time tells nobody whether the check
+ *  they are looking at is the one they just ran. */
+function relativeTime(fromMs: number, nowMs: number): string {
+  const secs = Math.max(0, Math.round((nowMs - fromMs) / 1000))
+  if (secs < 10) return 'just now'
+  if (secs < 60) return `${secs}s ago`
+  const mins = Math.floor(secs / 60)
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.floor(hours / 24)
+  return `${days} day${days === 1 ? '' : 's'} ago`
+}
 
 function CopyButton({ value, copyKey, copiedKey, onCopy }: {
   value: string
@@ -36,13 +49,11 @@ function CopyButton({ value, copyKey, copiedKey, onCopy }: {
   )
 }
 
-// ✓ passing, ✗ failing, … not looked at yet. The third is not a failure and
-// must not look like one: a domain the user just attached has no records to
-// find, and colouring that red reads as "you did it wrong".
+// ✓ passing, ✗ failing, nothing at all before the user has pressed Verify. A
+// domain the user just attached has no records to find, and neither a red cross
+// nor a placeholder belongs there — there is no result to report yet.
 function StatusGlyph({ ok, checked }: { ok: boolean; checked: boolean }) {
-  if (!checked) {
-    return <span className="p-muted" style={{ fontSize: 15, lineHeight: 1, flexShrink: 0 }} title="Not checked yet">…</span>
-  }
+  if (!checked) return null
   return ok
     ? <svg viewBox="0 0 24 24" fill="none" stroke="hsl(var(--success))" strokeWidth={3} style={{ width: 15, height: 15, flexShrink: 0 }}><title>Resolving correctly</title><path d="M20 6 9 17l-5-5"/></svg>
     : <svg viewBox="0 0 24 24" fill="none" stroke="hsl(var(--destructive))" strokeWidth={2.5} style={{ width: 15, height: 15, flexShrink: 0 }}><title>Not resolving yet</title><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -104,8 +115,10 @@ export function DomainsView() {
   const [attachError, setAttachError] = useState('')
 
   const [verifying, setVerifying] = useState(false)
-  const [cooldown, setCooldown] = useState(false)
-  const [lastChecked, setLastChecked] = useState<Date | null>(null)
+  const [verifyError, setVerifyError] = useState('')
+  // A ticking clock, so the countdown and the "last checked" label stay honest
+  // while the user just sits there.
+  const [nowMs, setNowMs] = useState(() => Date.now())
 
   const [removing, setRemoving] = useState(false)
   const [removeError, setRemoveError] = useState('')
@@ -121,23 +134,23 @@ export function DomainsView() {
 
   useEffect(() => { void load() }, [load])
 
-  // Background re-check while the page is open, so a user who fixes DNS in
-  // another tab sees the ✓ appear on its own. Stops once verified: the API
-  // performs no lookups after that, and neither should we ask it to.
-  const domainId = domain?.id
-  const settled = !domainId || domain?.verified
-  useEffect(() => {
-    if (settled || !domainId) return
-    const iv = setInterval(() => {
-      api.getDomain(domainId)
-        .then(d => { setDomain(d); setLastChecked(new Date()) })
-        .catch(() => {})
-    }, POLL_MS)
-    return () => clearInterval(iv)
-  }, [settled, domainId])
+  // No background re-check. DNS is resolved only when the user presses Verify
+  // DNS: every lookup is real work against public resolvers, and a page that
+  // quietly re-checks would keep announcing "not verified yet" at someone who
+  // is still in the middle of editing their zone.
 
-  const cooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => () => { if (cooldownTimer.current) clearTimeout(cooldownTimer.current) }, [])
+  const lastCheckedMs = domain?.last_checked_at ? new Date(domain.last_checked_at).getTime() : null
+  const cooldownLeft = lastCheckedMs === null ? 0 : Math.max(0, COOLDOWN_MS - (nowMs - lastCheckedMs))
+  const cooling = cooldownLeft > 0
+
+  // One second while the countdown is running, then slow to a tick that only
+  // has to keep "3 minutes ago" from going stale. Nothing to run at all once
+  // verified — that label is a fixed date.
+  useEffect(() => {
+    if (lastCheckedMs === null || domain?.verified) return
+    const iv = setInterval(() => setNowMs(Date.now()), cooling ? 1_000 : 30_000)
+    return () => clearInterval(iv)
+  }, [lastCheckedMs, cooling, domain?.verified])
 
   async function handleAttach() {
     const value = normalizeInput(attachInput)
@@ -160,17 +173,18 @@ export function DomainsView() {
   async function handleVerify() {
     if (!domain) return
     setVerifying(true)
+    setVerifyError('')
     try {
       const d = await api.verifyDomain(domain.id)
       setDomain(d)
-      setLastChecked(new Date())
-    } catch {
-      // A failing check is a 200 with per-record detail; reaching here means
-      // the request itself failed, and the next press can retry.
+      setNowMs(Date.now())
+    } catch (err) {
+      // A failing check is a 200 with per-record detail, so reaching here means
+      // the request itself failed — including the 429 the server answers if a
+      // press somehow outran the countdown. Say so rather than looking idle.
+      setVerifyError(err instanceof Error ? err.message : 'Verification request failed')
     } finally {
       setVerifying(false)
-      setCooldown(true)
-      cooldownTimer.current = setTimeout(() => setCooldown(false), COOLDOWN_MS)
     }
   }
 
@@ -235,6 +249,38 @@ export function DomainsView() {
     <section className="p-content">
       {head}
 
+      {/* Directly under the page's own description, not down in the card: both
+          are the answer to "it's verified, now what?", and what the user does
+          next about either happens on another page entirely. They stay a pair
+          here — one slot, two mutually exclusive states — so the page doesn't
+          reshuffle depending on which one applies. */}
+      {domain?.verified && (domain.in_use_by ? (
+        <div className="p-alert alert-info" style={{ marginBottom: 16 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div className="grow">
+            <p className="alert-title">In use</p>
+            <p className="alert-desc">
+              <button className="btn btn-ghost btn-sm" style={{ padding: 0, height: 'auto' }}
+                onClick={() => navigate(`/portal/session/${domain.in_use_by}`)}>
+                Open the agent running on it
+              </button>
+              {' '}— a domain backs one agent at a time, because its hostnames are fixed.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="p-alert alert-success" style={{ marginBottom: 16 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M20 6 9 17l-5-5"/></svg>
+          <div className="grow">
+            <p className="alert-title">Ready to use</p>
+            <p className="alert-desc">
+              Pick it under <strong>Domain</strong> when you create a Full Stack agent.
+              You can delete the TXT record now — it's only checked at verification.
+            </p>
+          </div>
+        </div>
+      ))}
+
       {removedNotice && (
         <div className="p-alert alert-warning" style={{ marginBottom: 16 }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
@@ -288,44 +334,18 @@ export function DomainsView() {
 
           <div className="card-content p-col gap-12">
             {domain.verified ? (
-              <>
-                <div className="p-col gap-12">
-                  {domain.records.map(r => (
-                    <div key={r.component} className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
-                      <span className="p-muted text-sm" style={{ flexShrink: 0 }}>{componentLabel(r.component)}</span>
-                      <span className="p-mono text-xs" style={{ textAlign: 'right', overflowWrap: 'anywhere', minWidth: 0 }}>
-                        {r.fqdn}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                {domain.in_use_by ? (
-                  <div className="p-alert alert-info">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                    <div className="grow">
-                      <p className="alert-title">In use</p>
-                      <p className="alert-desc">
-                        <button className="btn btn-ghost btn-sm" style={{ padding: 0, height: 'auto' }}
-                          onClick={() => navigate(`/portal/session/${domain.in_use_by}`)}>
-                          Open the agent running on it
-                        </button>
-                        {' '}— a domain backs one agent at a time, because its hostnames are fixed.
-                      </p>
-                    </div>
+              // Just the hostnames now — what to do about them is said once, up
+              // beside the page description.
+              <div className="p-col gap-12">
+                {domain.records.map(r => (
+                  <div key={r.component} className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
+                    <span className="p-muted text-sm" style={{ flexShrink: 0 }}>{componentLabel(r.component)}</span>
+                    <span className="p-mono text-xs" style={{ textAlign: 'right', overflowWrap: 'anywhere', minWidth: 0 }}>
+                      {r.fqdn}
+                    </span>
                   </div>
-                ) : (
-                  <div className="p-alert alert-success">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M20 6 9 17l-5-5"/></svg>
-                    <div className="grow">
-                      <p className="alert-title">Ready to use</p>
-                      <p className="alert-desc">
-                        Pick it under <strong>Domain</strong> when you create a Full Stack agent.
-                        You can delete the TXT record now — it's only checked at verification.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </>
+                ))}
+              </div>
             ) : (
               <>
                 {domain.checked && (
@@ -359,7 +379,11 @@ export function DomainsView() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                   <div className="grow">
                     <p className="alert-title">Before you check</p>
-                    <ul className="alert-desc" style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+                    {/* No markers and no indent, so each item starts flush with
+                        the title above it. A bullet would have to either push
+                        the text right of "Before" or hang out into the alert's
+                        icon gutter; the gap carries the separation instead. */}
+                    <ul className="alert-desc" style={{ margin: '4px 0 0', padding: 0, listStyle: 'none', display: 'grid', gap: 4 }}>
                       <li>Create these at your DNS provider (your registrar, Cloudflare, Route 53…), not here.</li>
                       <li>
                         <strong>If your domain is on Cloudflare, all four CNAMEs must be
@@ -375,6 +399,7 @@ export function DomainsView() {
                   </div>
                 </div>
 
+                {verifyError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{verifyError}</p>}
                 {removeError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{removeError}</p>}
               </>
             )}
@@ -382,11 +407,11 @@ export function DomainsView() {
 
           <div className="card-footer between">
             <span className="field-hint" style={{ marginTop: 0 }}>
-              {lastChecked
-                ? `Last checked ${lastChecked.toLocaleTimeString()}`
-                : domain.verified
-                  ? `Verified${domain.verified_at ? ` ${new Date(domain.verified_at).toLocaleDateString()}` : ''}`
-                  : 'Not checked yet'}
+              {domain.verified
+                ? `Verified${domain.verified_at ? ` ${new Date(domain.verified_at).toLocaleDateString()}` : ''}`
+                : lastCheckedMs === null
+                  ? 'Not checked yet'
+                  : `Last checked ${relativeTime(lastCheckedMs, nowMs)}`}
             </span>
             <div className="p-row gap-12">
               <button className="btn btn-ghost" style={{ color: 'hsl(var(--destructive))' }}
@@ -394,8 +419,12 @@ export function DomainsView() {
                 Remove domain
               </button>
               {!domain.verified && (
-                <button className="btn btn-default" onClick={handleVerify} disabled={verifying || cooldown}>
-                  {verifying ? 'Verifying…' : cooldown ? 'Just checked' : 'Verify DNS'}
+                // Disabled *and* counting down: "Verify in 41s" says when to
+                // come back, where a greyed button with no number reads as
+                // broken. The server enforces the same minute regardless.
+                <button className="btn btn-default" onClick={handleVerify} disabled={verifying || cooling}
+                  title={cooling ? 'DNS was just checked — a second check this soon would return the same answer' : undefined}>
+                  {verifying ? 'Verifying…' : cooling ? `Verify in ${Math.ceil(cooldownLeft / 1000)}s` : 'Verify DNS'}
                 </button>
               )}
             </div>

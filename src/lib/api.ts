@@ -192,9 +192,17 @@ export interface Domain {
   target: string
   /**
    * Whether this response performed live lookups. False on the list endpoint,
-   * which never resolves — show a neutral "not checked" state, not a failure.
+   * which never resolves — show no per-record status at all, not a failure.
    */
   checked: boolean
+  /**
+   * When a check last resolved this domain, null if never. The server refuses
+   * another inside a minute of it (429), so this — not local state — is what
+   * the Verify countdown must be derived from: it survives a reload and is the
+   * same answer the API is enforcing.
+   */
+  last_checked_at: string | null
+  /** The TXT challenge to create. Present while pending, absent once verified. */
   txt?: TxtRecordStatus
   records: DnsRecordStatus[]
 }
