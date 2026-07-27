@@ -2,15 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession, type SetupAvailability } from '@/lib/api'
 import type { PortalContext } from './Portal'
-import { statusBadge, fullStackPhases, isValidAdminDid } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, isValidAdminDid } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullStackCreateProgress } from './FullStackCreateProgress'
 
 type Stage = 0 | 1 | 2 | 3
-// full_stack (without VTC) still exists in old sessions but can no longer be
-// created — the UI offers only these two modes.
-type Mode = 'vta_only' | 'full_stack_with_vtc'
+type Mode = 'vta_only' | 'full_stack'
 
 export function CreateVTAView() {
   const { loadSessions } = useOutletContext<PortalContext>()
@@ -66,7 +64,7 @@ export function CreateVTAView() {
       .catch(() => {})
   }, [])
 
-  // full_stack / full_stack_with_vtc require beta_access — fetched fresh from
+  // full_stack requires beta_access — fetched fresh from
   // the DB since the login session/JWT doesn't carry it (an admin can flip it
   // at any time).
   useEffect(() => {
@@ -100,9 +98,9 @@ export function CreateVTAView() {
       .catch(() => {})
   }, [mode, mediatorImages.length])
 
-  // Lazily fetch vtc images the first time full_stack_with_vtc is selected.
+  // Lazily fetch vtc images the first time full_stack is selected.
   useEffect(() => {
-    if (mode !== 'full_stack_with_vtc' || vtcImages.length > 0) return
+    if (mode !== 'full_stack' || vtcImages.length > 0) return
     api.listImages('vtc')
       .then(imgs => {
         setVtcImages(imgs)
@@ -240,7 +238,7 @@ export function CreateVTAView() {
     if (mode !== 'vta_only' && (!selectedMediatorImage || !selectedDidsImage)) {
       setCreateError('Select a mediator and DID hosting image'); return
     }
-    if (mode === 'full_stack_with_vtc' && !selectedVtcImage) {
+    if (mode === 'full_stack' && !selectedVtcImage) {
       setCreateError('Select a VTC image'); return
     }
     setCreateError(''); setCreating(true)
@@ -250,7 +248,7 @@ export function CreateVTAView() {
         vta_image: selectedImage,
         vta_name: vtaName,
         ...(mode !== 'vta_only' ? { mediator_image: selectedMediatorImage, dids_image: selectedDidsImage } : {}),
-        ...(mode === 'full_stack_with_vtc' ? { vtc_image: selectedVtcImage, vtc_name: vtcName } : {}),
+        ...(mode === 'full_stack' ? { vtc_image: selectedVtcImage, vtc_name: vtcName } : {}),
       })
       setSessionId(r.id)
       setStage(1)
@@ -350,7 +348,7 @@ export function CreateVTAView() {
         </div>
       </div>
       ) : stage === 0 && (
-        <PhaseStepper phases={fullStackPhases(mode)} currentIndex={0} spinning={false} />
+        <PhaseStepper phases={FULL_STACK_PHASES} currentIndex={0} spinning={false} />
       )}
 
       {/* Stage 0 */}
@@ -378,7 +376,7 @@ export function CreateVTAView() {
               {betaAccess ? (
                 <div className="p-tabs full">
                   <button type="button" className="p-tab" data-active={mode === 'vta_only'} onClick={() => setMode('vta_only')}>VTA Only</button>
-                  <button type="button" className="p-tab" data-active={mode === 'full_stack_with_vtc'} onClick={() => setMode('full_stack_with_vtc')}>Full Stack</button>
+                  <button type="button" className="p-tab" data-active={mode === 'full_stack'} onClick={() => setMode('full_stack')}>Full Stack</button>
                 </div>
               ) : (
                 <span className="p-badge badge-secondary">VTA Only</span>
@@ -463,7 +461,7 @@ export function CreateVTAView() {
                 </div>
               </>
             )}
-            {mode === 'full_stack_with_vtc' && (
+            {mode === 'full_stack' && (
               <>
                 <hr className="p-sep" style={{ marginTop: 12, marginBottom: 8 }} />
                 <div className="p-section-title">Community setup</div>
@@ -504,7 +502,7 @@ export function CreateVTAView() {
           </div>
           <div className="card-footer between">
             <span className="field-hint" style={{ marginTop: 0 }}>
-              {mode === 'full_stack_with_vtc'
+              {mode === 'full_stack'
                 ? '4 DNS records are created immediately after session creation.'
                 : 'A DNS record is created immediately after session creation.'}
             </span>
@@ -515,9 +513,9 @@ export function CreateVTAView() {
         </div>
       )}
 
-      {/* full_stack / full_stack_with_vtc progress — owns everything after session creation for these modes */}
-      {mode !== 'vta_only' && stage === 1 && sessionId && (
-        <FullStackCreateProgress sessionId={sessionId} vtaName={vtaName} mode={mode} />
+      {/* full_stack progress — owns everything after session creation for that mode */}
+      {mode === 'full_stack' && stage === 1 && sessionId && (
+        <FullStackCreateProgress sessionId={sessionId} vtaName={vtaName} />
       )}
 
       {/* Failure state (vta_only) */}

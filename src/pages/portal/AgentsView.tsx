@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { PortalContext } from './Portal'
-import { statusBadge, timeAgo, modeDisplay } from './portalUtils'
+import { statusBadge, timeAgo } from './portalUtils'
 
 export function AgentsView() {
   const { sessions, sessionsLoading, loadSessions } = useOutletContext<PortalContext>()
@@ -73,7 +73,7 @@ export function AgentsView() {
                       </span>
                       <div className="p-col">
                         <span className="fw-600">{s.vta_name ?? `session-${s.id}`}</span>
-                        <span className="p-mono text-xs p-muted">{modeDisplay(s.mode)}</span>
+                        <span className="p-mono text-xs p-muted">{s.mode}</span>
                       </div>
                     </div>
                   </td>

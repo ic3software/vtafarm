@@ -10,19 +10,19 @@ export type SetupStatus =
   | 'step_mediator_p1' | 'step_mediator_reprov' | 'step_mediator_p2'
   | 'step_dids_p1' | 'step_dids_provision' | 'step_dids_p2' | 'step_dids_invite'
   | 'step_dids_load_did' | 'deploy_dids' | 'deploy_mediator'
-  | 'step_vta_register_dids' | 'awaiting_admin_did' | 'step_import_admin_did' | 'deploy_vta'
-  // full_stack_with_vtc
-  | 'step_vtc_setup_key' | 'step_vtc_acl_grant' | 'step_vtc_setup' | 'deploy_vtc'
+  | 'step_vta_register_dids' | 'awaiting_admin_did' | 'step_import_admin_did'
+  | 'step_vtc_setup_key' | 'step_vtc_acl_grant' | 'deploy_vta'
+  | 'step_vtc_setup' | 'deploy_vtc'
   // shared
   | 'failed'
 
-export type SetupMode = 'vta_only' | 'full_stack' | 'full_stack_with_vtc'
+export type SetupMode = 'vta_only' | 'full_stack'
 
 export interface SetupSessionUrls {
   vta: string
   mediator: string
   dids: string
-  vtc?: string
+  vtc: string
 }
 
 export interface SetupSessionCollected {
@@ -79,7 +79,7 @@ export interface ModeAvailability {
  */
 export interface SetupAvailability {
   vta_only: ModeAvailability
-  full_stack_with_vtc: ModeAvailability
+  full_stack: ModeAvailability
   metrics_available: boolean
   storage_available: boolean
   determinable: boolean
@@ -207,7 +207,6 @@ export interface AdminDashboard {
   storage_nodes: DashboardStorageNode[] | null
   metrics_available: boolean
   storage_available: boolean
-  /** full_stack refers to full_stack_with_vtc — plain full_stack is retired. */
   estimates: { vta_only: DashboardEstimate; full_stack: DashboardEstimate }
 }
 
