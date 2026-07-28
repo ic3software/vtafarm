@@ -160,7 +160,8 @@ export function Portal() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 12h18M3 6h18M3 18h18"/></svg>
             </button>
             <div className="crumb">
-              <span>Portal</span><span className="sep">/</span>
+              <button type="button" className="root" onClick={() => goTo('/portal')}>Portal</button>
+              <span className="sep">/</span>
               <span className="cur">{crumb}</span>
             </div>
             <div className="spacer"/>
