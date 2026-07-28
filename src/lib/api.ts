@@ -300,15 +300,25 @@ export interface PlatformStack {
    */
   collected?: SetupSessionCollected
   /**
-   * What to paste into the environment once the stack is running. Empty
-   * strings until the pipeline mints them — `MEDIATOR_DID` in particular
-   * cannot be known before setup completes.
+   * What every VTA-only agent is wired to at creation, read off this stack
+   * directly. `mediator_did` is empty until the pipeline mints it. These were
+   * environment values an admin pasted in; nothing is copied any more, so this
+   * block is reporting, not instructions.
    */
-  config_values?: {
-    MEDIATOR_DID: string
-    DID_HOSTING_SERVER_URL: string
-    DID_HOSTING_CONTROL_URL: string
-    DID_HOSTING_DID: string
+  provides?: {
+    mediator_did: string
+    did_hosting_server_url: string
+    did_hosting_control_url: string
+  }
+  /**
+   * The one manual step left. This server authenticates to the daemon with its
+   * own keypair (`DID_HOSTING_DID`), which has to be enrolled in that daemon's
+   * ACL with role=admin — and a rebuilt stack is a fresh daemon with an empty
+   * ACL, so the same keypair has to be enrolled again.
+   */
+  acl_enrollment_required?: {
+    server_did: string
+    enroll: string
   }
   /**
    * The same post-provisioning outputs a user's session hands back. Not
