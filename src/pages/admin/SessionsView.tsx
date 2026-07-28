@@ -385,23 +385,27 @@ export function SessionsView() {
               <h3 className="dialog-title">
                 {isPlatform(deleteTarget) ? 'Delete the platform stack?' : 'Delete this session?'}
               </h3>
+              {/* No FQDN: a name identifies a session on its own now that
+                  vta_name is globally unique, and the hostname is in the row
+                  behind this dialog. No owner on the platform stack either —
+                  "user platform" is the system account, which says nothing. */}
               <p className="dialog-desc">
-                This permanently destroys <span className="p-mono">{deleteTarget.vta_name}</span>
-                {' '}(<span className="p-mono">{deleteTarget.fqdn}</span>), owned by user{' '}
-                <span className="p-mono">{deleteTarget.user_unique_id}</span> — its DNS records,
-                Kubernetes resources, stored secrets, and session data. This cannot be undone.
+                Permanently destroys <span className="p-mono">{deleteTarget.vta_name}</span>
+                {!isPlatform(deleteTarget) && <>
+                  {' '}(user <span className="p-mono">{deleteTarget.user_unique_id}</span>)
+                </>}
+                {' '}— DNS, cluster resources, secrets and data. Cannot be undone.
               </p>
             </div>
             <div className="dialog-body">
               {isPlatform(deleteTarget) && (
                 <div className="p-alert alert-destructive">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                  {/* Only the consequence. That this is the farm's own stack is
+                      already the dialog's title, and repeating it here pushed
+                      the one thing an admin cannot infer further down. */}
                   <div className="grow">
                     <p className="alert-title">Every VTA-only session loses its mediator and DID hosting.</p>
-                    <p className="alert-desc">
-                      This is the farm's own stack — the shared infrastructure other users'
-                      agents point at, not one customer's agent.
-                    </p>
                   </div>
                 </div>
               )}
