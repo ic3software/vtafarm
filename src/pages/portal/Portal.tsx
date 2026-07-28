@@ -83,7 +83,9 @@ export function Portal() {
   const path = location.pathname
   const sessionId = matchSession?.params.id ?? null
   const crumb = path.includes('/create') ? 'Create VTA'
-    : matchSession ? (sessions.find(s => s.id === sessionId)?.vta_name ?? 'Detail')
+    // The route param is the agent's name, so the breadcrumb no longer has to
+    // find the session to read one off it — and it is right before the list loads.
+    : matchSession ? (sessionId ?? 'Detail')
     : path.includes('/domains') ? 'Domains'
     : path.includes('/settings') ? 'Settings'
     : 'Agents'

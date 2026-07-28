@@ -186,7 +186,7 @@ export interface Domain {
   kind: DomainKind
   verified: boolean
   verified_at: string | null
-  /** unique_id of the session running on this domain, when there is one. */
+  /** vta_name of the session running on this domain, when there is one. */
   in_use_by?: string
   /** What all four CNAMEs point at. */
   target: string
@@ -253,9 +253,10 @@ export interface Invitation {
 }
 
 export interface AdminSetupSession {
+  /** Numeric PK — the sort key, never an address. Routes take `vta_name`. */
   id: number
-  unique_id: string
   user_unique_id: string
+  /** The session's name AND its identifier: globally unique, and what the routes take. */
   vta_name: string
   vtc_name?: string
   mode: SetupMode
@@ -285,7 +286,7 @@ export interface AdminSetupSession {
  */
 export interface PlatformStack {
   exists: boolean
-  /** The session's 8-char unique_id — present only while one exists. */
+  /** The session's `vta_name` — present only while one exists. */
   id?: string
   status?: SetupStatus
   /** Reaches no hostname; it survives only in `did:webvh` paths. */
@@ -311,14 +312,16 @@ export interface PlatformStack {
     did_hosting_control_url: string
   }
   /**
-   * The one manual step left. This server authenticates to the daemon with its
-   * own keypair (`DID_HOSTING_DID`), which has to be enrolled in that daemon's
-   * ACL with role=admin — and a rebuilt stack is a fresh daemon with an empty
-   * ACL, so the same keypair has to be enrolled again.
+   * This server uploads every VTA-only agent's DID log to this daemon under its
+   * own keypair (`DID_HOSTING_DID`), so that DID needs an admin ACL entry here.
+   * The stack enrolls it offline while provisioning — this reports the result
+   * rather than asking for anything, and `granted: false` means no keypair was
+   * configured when the stack was built.
    */
-  acl_enrollment_required?: {
+  farm_acl?: {
     server_did: string
-    enroll: string
+    client_did: string
+    granted: boolean
   }
   /**
    * The same post-provisioning outputs a user's session hands back. Not

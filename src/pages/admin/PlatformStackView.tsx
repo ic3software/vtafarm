@@ -362,7 +362,7 @@ export function PlatformStackView() {
   const awaitingAdminDid = status === 'awaiting_admin_did'
   const currentIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, status))
   const provides = stack.provides
-  const acl = stack.acl_enrollment_required
+  const acl = stack.farm_acl
   const vtaDid = stack.collected?.vta_did
 
   return (
@@ -533,17 +533,24 @@ export function PlatformStackView() {
           {acl && (
             <div className="p-card" style={{ marginBottom: 16 }}>
               <div className="card-header">
-                <h3 className="card-title">ACL enrollment</h3>
+                <h3 className="card-title">DID upload access</h3>
                 <p className="card-desc">
-                  The one step still done by hand. This server uploads DID logs using its own
-                  keypair (<span className="p-mono">DID_HOSTING_DID</span>), which has to be in
-                  this daemon's ACL with <span className="p-mono">role=admin</span>. A rebuilt
-                  stack is a fresh daemon with an empty ACL — enroll the same keypair again.
+                  {acl.granted
+                    ? <>This server uploads every VTA-only agent's DID log here using its own
+                        keypair, which the stack enrolled in this daemon's ACL as{' '}
+                        <span className="p-mono">role=admin</span> while provisioning. Nothing to do.</>
+                    : <>No keypair is configured (<span className="p-mono">DID_HOSTING_DID</span>),
+                        so nothing was enrolled — VTA-only agents will provision and then fail to
+                        publish their DID. Set it and rebuild the stack.</>}
                 </p>
               </div>
               <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
                 <CopyRow label="This daemon's DID" value={acl.server_did}
                   copyKey="acl-server-did" copiedKey={copiedKey} onCopy={copy} />
+                {acl.client_did && (
+                  <CopyRow label="Enrolled client DID" value={acl.client_did}
+                    copyKey="acl-client-did" copiedKey={copiedKey} onCopy={copy} />
+                )}
               </div>
             </div>
           )}
