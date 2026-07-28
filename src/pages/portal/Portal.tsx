@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { Outlet, useNavigate, useLocation, useMatch } from 'react-router-dom'
 import '@/styles/portal.css'
 import { useUserAuth } from '@/contexts/UserAuthContext'
@@ -82,13 +82,18 @@ export function Portal() {
 
   const path = location.pathname
   const sessionId = matchSession?.params.id ?? null
-  const crumb = path.includes('/create') ? 'Create VTA'
-    // The route param is the agent's name, so the breadcrumb no longer has to
-    // find the session to read one off it — and it is right before the list loads.
-    : matchSession ? (sessionId ?? 'Detail')
-    : path.includes('/domains') ? 'Domains'
-    : path.includes('/settings') ? 'Settings'
-    : 'Agents'
+  // The trail below "Portal". Every entry but the last is a link, so a page
+  // that sits inside a section can name the section and go back to it — an
+  // agent's detail page is reached from the list and belongs under it.
+  //
+  // The agent's name comes straight from the route param, so this is right
+  // before the session list has loaded rather than after.
+  const trail: Array<{ label: string; path?: string }> =
+    path.includes('/create') ? [{ label: 'Create VTA' }]
+    : matchSession ? [{ label: 'Agents', path: '/portal' }, { label: sessionId ?? 'Detail' }]
+    : path.includes('/domains') ? [{ label: 'Domains' }]
+    : path.includes('/settings') ? [{ label: 'Settings' }]
+    : [{ label: 'Agents' }]
   const isDomains = path.includes('/domains')
   const isAgents = path.replace(/\/$/, '') === '/portal' ||
     (!path.includes('/create') && !matchSession && !path.includes('/settings') && !isDomains)
@@ -161,8 +166,16 @@ export function Portal() {
             </button>
             <div className="crumb">
               <button type="button" className="root" onClick={() => goTo('/portal')}>Portal</button>
-              <span className="sep">/</span>
-              <span className="cur">{crumb}</span>
+              {/* Positional key: the trail is fixed-length per route, and the
+                  leaf label is user-chosen, so it is not a safe id. */}
+              {trail.map((c, i) => (
+                <Fragment key={i}>
+                  <span className="sep">/</span>
+                  {i < trail.length - 1 && c.path
+                    ? <button type="button" className="root" onClick={() => goTo(c.path!)}>{c.label}</button>
+                    : <span className="cur">{c.label}</span>}
+                </Fragment>
+              ))}
             </div>
             <div className="spacer"/>
             <button className="btn btn-ghost btn-icon btn-sm theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
