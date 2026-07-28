@@ -9,6 +9,23 @@ function fmt(iso: string) {
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: browserTz })
 }
 
+// What an admin reads off this column is how old a session is, not the minute
+// it was created — and the full timestamp was the widest thing in the table.
+// The exact value stays one hover away, on the cell's title.
+const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
+const RELATIVE_UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+  ['year', 31536000], ['month', 2592000], ['week', 604800],
+  ['day', 86400], ['hour', 3600], ['minute', 60],
+]
+
+function relTime(iso: string) {
+  const secs = (Date.now() - new Date(iso).getTime()) / 1000
+  for (const [unit, size] of RELATIVE_UNITS) {
+    if (Math.abs(secs) >= size) return rtf.format(-Math.round(secs / size), unit)
+  }
+  return rtf.format(-Math.round(secs), 'second')
+}
+
 function statusBadge(status: string) {
   if (status === 'running') return 'badge-success'
   if (status === 'failed') return 'badge-destructive'
@@ -41,6 +58,50 @@ function componentImages(s: AdminSetupSession): Array<[string, string]> {
   if (s.dids_image) rows.push(['dids', s.dids_image])
   if (s.vtc_image) rows.push(['vtc', s.vtc_image])
   return rows
+}
+
+const tagStyle = { fontSize: 11.5, lineHeight: 1.7, whiteSpace: 'nowrap' } as const
+
+function imageLine([component, image]: [string, string]) {
+  return (
+    <div key={component} className="p-mono" title={image} style={tagStyle}>
+      <span style={{ color: 'hsl(var(--muted-foreground))' }}>{component} </span>
+      {imageTag(image)}
+    </div>
+  )
+}
+
+// A full-stack session lists four components, which wrapped to eight lines and
+// made its row nearly twice as tall as a VTA-only one. Since every session
+// normally runs the same versions, that repetition earns very little per row —
+// so only the VTA tag and a count show until asked.
+function ImagesCell({ session }: { session: AdminSetupSession }) {
+  const [open, setOpen] = useState(false)
+  const rows = componentImages(session)
+  if (rows.length === 0) return null
+  if (rows.length === 1) return imageLine(rows[0])
+
+  return (
+    <>
+      <button
+        type="button"
+        className="p-mono"
+        aria-expanded={open}
+        onClick={() => setOpen(o => !o)}
+        title={rows.map(([c, image]) => `${c} ${image}`).join('\n')}
+        style={{ ...tagStyle, background: 'none', border: 0, padding: 0, cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
+      >
+        {/* Labelled like every other line — expanded, this is the first row of
+            a labelled list, and a bare tag there reads as a missing name. The
+            full tag stays, sha and all: two builds of the same version must not
+            look identical in a table whose purpose is deciding what to upgrade. */}
+        <span style={{ color: 'hsl(var(--muted-foreground))' }}>{rows[0][0]} </span>
+        {imageTag(rows[0][1])}
+        <span style={{ color: 'hsl(var(--muted-foreground))' }}> {open ? '−' : `+${rows.length - 1}`}</span>
+      </button>
+      {open && rows.slice(1).map(imageLine)}
+    </>
+  )
 }
 
 function isPlatform(s: AdminSetupSession) {
@@ -262,7 +323,6 @@ export function SessionsView() {
               </th>
               <th>Session</th>
               <th>User</th>
-              <th>Name</th>
               <th>Mode</th>
               <th>Domain</th>
               <th>Status</th>
@@ -274,13 +334,13 @@ export function SessionsView() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={10} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={9} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : sessions.length === 0 ? (
               <tr>
-                <td colSpan={10} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={9} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   No sessions yet.
                 </td>
               </tr>
@@ -290,19 +350,25 @@ export function SessionsView() {
                   <input type="checkbox" checked={selected.has(s.vta_name)} disabled={s.status !== 'running'}
                     onChange={() => toggleSelected(s)} aria-label={`Select session ${s.vta_name}`} />
                 </td>
-                <td>
-                  <div className="p-row gap-8" style={{ alignItems: 'baseline' }}>
+                {/* Session and Name were two columns rendering the same
+                    vta_name — a reader reasonably assumes two columns mean two
+                    different things. One column, with the vtc name as the
+                    suffix it always was. */}
+                {/* The id sits centred against the name block rather than on
+                    the first line, so a two-line row reads as one unit and the
+                    vtc name lines up under the vta name it belongs to. */}
+                <td title={s.fqdn}>
+                  <div className="p-row gap-8">
                     <span className="p-mono" style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>#{s.id}</span>
-                    <span className="p-mono" style={{ fontSize: 12 }}>{s.vta_name}</span>
+                    <div>
+                      <div className="p-mono" style={{ fontSize: 12 }}>{s.vta_name}</div>
+                      {s.vtc_name && (
+                        <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>vtc: {s.vtc_name}</div>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td><span className="p-mono" style={{ fontSize: 12 }}>{s.user_unique_id}</span></td>
-                <td title={s.fqdn}>
-                  <span style={{ fontSize: 13 }}>{s.vta_name}</span>
-                  {s.vtc_name && (
-                    <span style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}> · vtc: {s.vtc_name}</span>
-                  )}
-                </td>
                 <td><span className="p-badge badge-default">{modeLabels[s.mode] ?? s.mode}</span></td>
                 <td>
                   <span className={`p-badge ${domainBadge[s.domain_type] ?? 'badge-secondary'}`}>
@@ -312,15 +378,10 @@ export function SessionsView() {
                 <td title={s.error_msg || undefined}>
                   <span className={`p-badge ${statusBadge(s.status)}`}>{s.status}</span>
                 </td>
-                <td>
-                  {componentImages(s).map(([component, image]) => (
-                    <div key={component} className="p-mono" title={image} style={{ fontSize: 11.5, lineHeight: 1.7 }}>
-                      <span style={{ color: 'hsl(var(--muted-foreground))' }}>{component} </span>
-                      {imageTag(image)}
-                    </div>
-                  ))}
+                <td><ImagesCell session={s} /></td>
+                <td title={fmt(s.created_at)} style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap' }}>
+                  {relTime(s.created_at)}
                 </td>
-                <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap' }}>{fmt(s.created_at)}</td>
                 <td className="col-actions">
                   <button
                     className="btn btn-ghost btn-sm"
