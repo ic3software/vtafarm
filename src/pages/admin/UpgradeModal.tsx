@@ -40,7 +40,7 @@ interface ComponentRow {
 }
 
 interface UpgradeModalProps {
-  /** Session unique_ids to upgrade, or 'all' for every eligible session. */
+  /** Session names to upgrade, or 'all' for every eligible session. */
   selection: string[] | 'all'
   /** Components pre-checked in the configure step. */
   defaultComponents?: UpgradeComponent[]

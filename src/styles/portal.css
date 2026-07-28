@@ -348,6 +348,12 @@
 .portal-root .p-topbar .crumb { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: hsl(var(--muted-foreground)); }
 .portal-root .p-topbar .crumb .cur { color: hsl(var(--foreground)); font-weight: 500; white-space: nowrap; }
 .portal-root .p-topbar .crumb .sep { color: hsl(var(--border)); }
+/* The ancestor crumb is a real button — a breadcrumb that names a place you can
+   go should take you there. Stripped back to the span it replaced so the row
+   keeps its exact metrics, with hover/focus as the only added affordance. */
+.portal-root .p-topbar .crumb .root { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.portal-root .p-topbar .crumb .root:hover { color: hsl(var(--foreground)); text-decoration: underline; }
+.portal-root .p-topbar .crumb .root:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 2px; }
 .portal-root .p-topbar .spacer { flex: 1; }
 .portal-root .menu-btn { display: none; }
 
@@ -408,7 +414,11 @@
   .portal-root .card-footer { padding-left: 18px; padding-right: 18px; flex-wrap: wrap; }
 }
 @media (max-width: 460px) {
-  .portal-root .p-topbar .crumb span:not(.cur):not(.sep) { display: none; }
+  /* .root as well as the bare span it used to be — this rule is what collapses
+     the crumb to just the current page on a narrow screen, and it would
+     silently stop doing that for an element it no longer matches. */
+  .portal-root .p-topbar .crumb span:not(.cur):not(.sep),
+  .portal-root .p-topbar .crumb .root { display: none; }
   .portal-root .p-topbar .crumb .sep { display: none; }
 }
 

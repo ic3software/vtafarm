@@ -117,7 +117,7 @@ export function SessionDetailView() {
   }
 
   async function handleDelete() {
-    if (deleteInput !== sessionId) return
+    if (deleteInput !== name) return
     setDeleting(true)
     try {
       await api.deleteSession(sessionId)
@@ -127,7 +127,9 @@ export function SessionDetailView() {
     setDeleting(false)
   }
 
-  const name = session?.vta_name ?? `session-${sessionId}`
+  // The route param is the agent's name — there is no opaque id any more — so
+  // this stays right even before the session has loaded.
+  const name = session?.vta_name ?? sessionId
 
   if (loading) return <section className="p-content"><p className="p-muted">Loading…</p></section>
   if (!session) return <section className="p-content"><p className="p-muted">Session not found.</p></section>
@@ -419,13 +421,13 @@ export function SessionDetailView() {
                 </div>
               )}
               <div>
-                <label className="p-label">Type <span className="p-mono">{sessionId}</span> to confirm</label>
-                <input className="p-input p-mono" placeholder={sessionId} value={deleteInput} onChange={e => setDeleteInput(e.target.value)} />
+                <label className="p-label">Type the agent's name <span className="p-mono">{name}</span> to confirm</label>
+                <input className="p-input p-mono" placeholder={name} value={deleteInput} onChange={e => setDeleteInput(e.target.value)} />
               </div>
             </div>
             <div className="dialog-footer">
               <button className="btn btn-ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-              <button className="btn btn-destructive" onClick={handleDelete} disabled={deleting || deleteInput !== sessionId}>
+              <button className="btn btn-destructive" onClick={handleDelete} disabled={deleting || deleteInput !== name}>
                 {deleting ? 'Deleting…' : 'Delete Agent'}
               </button>
             </div>

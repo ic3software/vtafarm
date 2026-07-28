@@ -47,11 +47,12 @@ function isPlatform(s: AdminSetupSession) {
   return s.domain_type === 'platform'
 }
 
-// What the admin has to type to enable the delete button. The platform stack
-// asks for its label because that is the value the API itself demands in the
-// request body; every other session asks for its session id.
+// What the admin has to type to enable the delete button — the session's name,
+// for every session. The platform stack used to be the exception, asking for
+// its label while everything else asked for an opaque 8-char id; now that the
+// name IS the identifier, the two are the same value and the exception is gone.
 function confirmWord(s: AdminSetupSession) {
-  return isPlatform(s) ? s.vta_name : s.unique_id
+  return s.vta_name
 }
 
 type ModalState =
@@ -65,7 +66,7 @@ export function SessionsView() {
   const [total, setTotal] = useState(0)
   const [pageSize, setPageSize] = useState(20)
   const [loading, setLoading] = useState(true)
-  // unique_id → mode, so the upgrade modal can pre-check the right components
+  // vta_name → mode, so the upgrade modal can pre-check the right components
   const [selected, setSelected] = useState<Map<string, string>>(new Map())
   const [modal, setModal] = useState<ModalState>(null)
   const [activeBatch, setActiveBatch] = useState<UpgradeBatchSummary | null>(null)
@@ -73,7 +74,7 @@ export function SessionsView() {
   const [modeFilter, setModeFilter] = useState<string | null>(null)
   const [counts, setCounts] = useState<AdminSessionsPage['counts'] | null>(null)
   // Delete is irreversible and reaches another user's session, so it's gated
-  // behind a dialog that requires typing the session's unique_id.
+  // behind a dialog that requires typing the session's name.
   const [deleteTarget, setDeleteTarget] = useState<AdminSetupSession | null>(null)
   const [deleteInput, setDeleteInput] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -134,18 +135,18 @@ export function SessionsView() {
 
   async function handleDelete() {
     if (!deleteTarget || deleteInput !== confirmWord(deleteTarget)) return
-    const { unique_id } = deleteTarget
+    const { vta_name } = deleteTarget
     setDeleting(true)
     setDeleteError('')
     try {
       // The platform stack's confirm word is its label, and the API requires it
       // in the body — this input is what makes the request valid, not just a
       // client-side speed bump.
-      await api.adminDeleteSession(unique_id, isPlatform(deleteTarget) ? deleteTarget.vta_name : undefined)
+      await api.adminDeleteSession(vta_name, isPlatform(deleteTarget) ? deleteTarget.vta_name : undefined)
       setSelected(prev => {
-        if (!prev.has(unique_id)) return prev
+        if (!prev.has(vta_name)) return prev
         const next = new Map(prev)
-        next.delete(unique_id)
+        next.delete(vta_name)
         return next
       })
       setDeleteTarget(null)
@@ -161,20 +162,20 @@ export function SessionsView() {
   function toggleSelected(s: AdminSetupSession) {
     setSelected(prev => {
       const next = new Map(prev)
-      if (next.has(s.unique_id)) next.delete(s.unique_id)
-      else next.set(s.unique_id, s.mode)
+      if (next.has(s.vta_name)) next.delete(s.vta_name)
+      else next.set(s.vta_name, s.mode)
       return next
     })
   }
 
   const eligibleOnPage = sessions.filter(s => s.status === 'running')
-  const allPageSelected = eligibleOnPage.length > 0 && eligibleOnPage.every(s => selected.has(s.unique_id))
+  const allPageSelected = eligibleOnPage.length > 0 && eligibleOnPage.every(s => selected.has(s.vta_name))
 
   function togglePageSelection() {
     setSelected(prev => {
       const next = new Map(prev)
-      if (allPageSelected) eligibleOnPage.forEach(s => next.delete(s.unique_id))
-      else eligibleOnPage.forEach(s => next.set(s.unique_id, s.mode))
+      if (allPageSelected) eligibleOnPage.forEach(s => next.delete(s.vta_name))
+      else eligibleOnPage.forEach(s => next.set(s.vta_name, s.mode))
       return next
     })
   }
@@ -286,13 +287,13 @@ export function SessionsView() {
             ) : sessions.map(s => (
               <tr key={s.id}>
                 <td>
-                  <input type="checkbox" checked={selected.has(s.unique_id)} disabled={s.status !== 'running'}
-                    onChange={() => toggleSelected(s)} aria-label={`Select session ${s.unique_id}`} />
+                  <input type="checkbox" checked={selected.has(s.vta_name)} disabled={s.status !== 'running'}
+                    onChange={() => toggleSelected(s)} aria-label={`Select session ${s.vta_name}`} />
                 </td>
                 <td>
                   <div className="p-row gap-8" style={{ alignItems: 'baseline' }}>
                     <span className="p-mono" style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>#{s.id}</span>
-                    <span className="p-mono" style={{ fontSize: 12 }}>{s.unique_id}</span>
+                    <span className="p-mono" style={{ fontSize: 12 }}>{s.vta_name}</span>
                   </div>
                 </td>
                 <td><span className="p-mono" style={{ fontSize: 12 }}>{s.user_unique_id}</span></td>
@@ -325,7 +326,7 @@ export function SessionsView() {
                     className="btn btn-ghost btn-sm"
                     style={{ color: 'hsl(var(--destructive))' }}
                     onClick={() => askDelete(s)}
-                    aria-label={`Delete session ${s.unique_id}`}
+                    aria-label={`Delete session ${s.vta_name}`}
                   >
                     Delete
                   </button>
@@ -384,23 +385,27 @@ export function SessionsView() {
               <h3 className="dialog-title">
                 {isPlatform(deleteTarget) ? 'Delete the platform stack?' : 'Delete this session?'}
               </h3>
+              {/* No FQDN: a name identifies a session on its own now that
+                  vta_name is globally unique, and the hostname is in the row
+                  behind this dialog. No owner on the platform stack either —
+                  "user platform" is the system account, which says nothing. */}
               <p className="dialog-desc">
-                This permanently destroys <span className="p-mono">{deleteTarget.vta_name}</span>
-                {' '}(<span className="p-mono">{deleteTarget.fqdn}</span>), owned by user{' '}
-                <span className="p-mono">{deleteTarget.user_unique_id}</span> — its DNS records,
-                Kubernetes resources, stored secrets, and session data. This cannot be undone.
+                Permanently destroys <span className="p-mono">{deleteTarget.vta_name}</span>
+                {!isPlatform(deleteTarget) && <>
+                  {' '}(user <span className="p-mono">{deleteTarget.user_unique_id}</span>)
+                </>}
+                {' '}— DNS, cluster resources, secrets and data. Cannot be undone.
               </p>
             </div>
             <div className="dialog-body">
               {isPlatform(deleteTarget) && (
                 <div className="p-alert alert-destructive">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                  {/* Only the consequence. That this is the farm's own stack is
+                      already the dialog's title, and repeating it here pushed
+                      the one thing an admin cannot infer further down. */}
                   <div className="grow">
                     <p className="alert-title">Every VTA-only session loses its mediator and DID hosting.</p>
-                    <p className="alert-desc">
-                      This is the farm's own stack — the shared infrastructure other users'
-                      agents point at, not one customer's agent.
-                    </p>
                   </div>
                 </div>
               )}

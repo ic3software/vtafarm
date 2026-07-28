@@ -361,7 +361,8 @@ export function PlatformStackView() {
   const running = status === 'running'
   const awaitingAdminDid = status === 'awaiting_admin_did'
   const currentIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, status))
-  const cfg = stack.config_values
+  const provides = stack.provides
+  const acl = stack.farm_acl
   const vtaDid = stack.collected?.vta_did
 
   return (
@@ -509,24 +510,47 @@ export function PlatformStackView() {
             </div>
           </div>
 
-          {cfg && (
+          {provides && (
             <div className="p-card" style={{ marginBottom: 16 }}>
               <div className="card-header">
-                <h3 className="card-title">Configuration values</h3>
+                <h3 className="card-title">What this stack provides</h3>
                 <p className="card-desc">
-                  Paste these into this server's environment so VTA-only agents point at this
-                  stack instead of a disposable session.
+                  Every VTA-only agent is wired to these when it's created — read from this
+                  stack directly, so there is nothing to copy anywhere.
                 </p>
               </div>
               <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-                <CopyRow label="MEDIATOR_DID" value={cfg.MEDIATOR_DID}
-                  copyKey="cfg-mediator-did" copiedKey={copiedKey} onCopy={copy} />
-                <CopyRow label="DID_HOSTING_SERVER_URL" value={cfg.DID_HOSTING_SERVER_URL}
-                  copyKey="cfg-dids-server" copiedKey={copiedKey} onCopy={copy} />
-                <CopyRow label="DID_HOSTING_CONTROL_URL" value={cfg.DID_HOSTING_CONTROL_URL}
-                  copyKey="cfg-dids-control" copiedKey={copiedKey} onCopy={copy} />
-                <CopyRow label="DID_HOSTING_DID" value={cfg.DID_HOSTING_DID}
-                  copyKey="cfg-dids-did" copiedKey={copiedKey} onCopy={copy} />
+                <CopyRow label="Mediator DID" value={provides.mediator_did}
+                  copyKey="prov-mediator-did" copiedKey={copiedKey} onCopy={copy} />
+                <CopyRow label="DID hosting — resolution" value={provides.did_hosting_server_url}
+                  copyKey="prov-dids-server" copiedKey={copiedKey} onCopy={copy} />
+                <CopyRow label="DID hosting — control API" value={provides.did_hosting_control_url}
+                  copyKey="prov-dids-control" copiedKey={copiedKey} onCopy={copy} />
+              </div>
+            </div>
+          )}
+
+          {acl && (
+            <div className="p-card" style={{ marginBottom: 16 }}>
+              <div className="card-header">
+                <h3 className="card-title">DID upload access</h3>
+                <p className="card-desc">
+                  {acl.granted
+                    ? <>This server uploads every VTA-only agent's DID log here using its own
+                        keypair, which the stack enrolled in this daemon's ACL as{' '}
+                        <span className="p-mono">role=admin</span> while provisioning. Nothing to do.</>
+                    : <>No keypair is configured (<span className="p-mono">DID_HOSTING_DID</span>),
+                        so nothing was enrolled — VTA-only agents will provision and then fail to
+                        publish their DID. Set it and rebuild the stack.</>}
+                </p>
+              </div>
+              <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+                <CopyRow label="This daemon's DID" value={acl.server_did}
+                  copyKey="acl-server-did" copiedKey={copiedKey} onCopy={copy} />
+                {acl.client_did && (
+                  <CopyRow label="Enrolled client DID" value={acl.client_did}
+                    copyKey="acl-client-did" copiedKey={copiedKey} onCopy={copy} />
+                )}
               </div>
             </div>
           )}
