@@ -1,6 +1,14 @@
 import { useState, useEffect, useRef, type MouseEvent } from 'react'
-import { type SetupSession, type SetupSessionUrls, type SetupSessionCollected } from '@/lib/api'
-import { useCopyState } from './portalUtils'
+import {
+  api,
+  type SetupSession,
+  type SetupSessionUrls,
+  type SetupSessionCollected,
+  type SharingResponse,
+  type StackConnection,
+  type StackConnectionSummary,
+} from '@/lib/api'
+import { useCopyState, statusBadge } from './portalUtils'
 import { userSessionActions, type SessionActionApi } from './sessionActions'
 
 function CopyIcon({ copied }: { copied: boolean }) {
@@ -454,6 +462,212 @@ export function AdminKeysCard({ session }: { session: SetupSession }) {
           <SecretRow label="WebVH admin key" value={session.webvh_admin_key} hint="Multibase private key for the DID hosting admin DID." copyKey="key-webvh" copiedKey={copiedKey} onCopy={copy} />
         )}
       </div>
+    </div>
+  )
+}
+
+// ── Sharing ──────────────────────────────────────────────────────────────────
+
+/**
+ * Lets the owner of a full stack hand out a connection bundle, so somebody
+ * else's VTA-only agent can use this stack's mediator and DID hosting.
+ *
+ * The switch is the grant. There is no separate "generate" step: turning
+ * sharing on mints the code, turning it off clears it, and New code replaces
+ * it.
+ *
+ * All three gate *joining*, never membership — which is the one thing people
+ * will get wrong, so both confirms say it. There is no way to remove a single
+ * connection; the stronger lever is deleting the stack, which stops everyone.
+ */
+export function ShareStackCard({
+  session, onChanged,
+}: {
+  session: SetupSession
+  onChanged?: (r: SharingResponse) => void
+}) {
+  const { copiedKey, copy } = useCopyState()
+  const [shared, setShared] = useState(!!session.shared)
+  const [bundle, setBundle] = useState<StackConnection | undefined>(session.connection)
+  const [connections, setConnections] = useState<StackConnectionSummary[]>(session.connections ?? [])
+  const [busy, setBusy] = useState<'enable' | 'rotate' | 'disable' | null>(null)
+  const [error, setError] = useState('')
+  const [confirming, setConfirming] = useState<'rotate' | 'disable' | null>(null)
+
+  // Adopt fresh server state when the polled session changes, without
+  // clobbering an in-flight action (React "adjust state on prop change").
+  const [seen, setSeen] = useState(session)
+  if (seen !== session && !busy) {
+    setSeen(session)
+    setShared(!!session.shared)
+    setBundle(session.connection)
+    setConnections(session.connections ?? [])
+  }
+
+  // Only a running stack can serve a connection, so offering the panel earlier
+  // would only ever produce a bundle that gets refused on arrival.
+  if (session.mode !== 'full_stack' || session.status !== 'running') return null
+
+  async function run(action: 'enable' | 'rotate' | 'disable') {
+    setBusy(action)
+    setError('')
+    setConfirming(null)
+    try {
+      const r = await api.setSharing(session.id, action)
+      setShared(r.shared)
+      setBundle(r.connection)
+      setConnections(r.connections ?? [])
+      onChanged?.(r)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not update sharing')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const bundleText = bundle ? JSON.stringify(bundle, null, 2) : ''
+
+  return (
+    <div className="p-card" style={{ marginBottom: 16 }}>
+      <div className="card-header">
+        <h3 className="card-title">Share this stack</h3>
+        <p className="card-desc">
+          Anyone you send the bundle to can point a VTA-only agent at this stack's mediator and
+          DID hosting. They paste it when they create their agent.
+        </p>
+      </div>
+
+      <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+        <div className="p-row between center" style={{ gap: 12 }}>
+          <div className="p-col" style={{ minWidth: 0 }}>
+            <span className="text-sm" style={{ fontWeight: 600 }}>
+              {shared ? 'Sharing is on' : 'Sharing is off'}
+            </span>
+            <span className="field-hint" style={{ marginTop: 2 }}>
+              {shared
+                ? 'Anyone with the current bundle can connect a new agent.'
+                : 'No one new can connect. Turn it on to get a bundle you can send.'}
+            </span>
+          </div>
+          <div className="p-row gap-8" style={{ flexShrink: 0 }}>
+            {shared && (
+              <button
+                className="btn btn-outline btn-sm"
+                disabled={!!busy}
+                onClick={() => setConfirming('rotate')}
+              >
+                {busy === 'rotate' ? 'Working…' : 'New code'}
+              </button>
+            )}
+            <button
+              className={shared ? 'btn btn-outline btn-sm' : 'btn btn-sm'}
+              disabled={!!busy}
+              onClick={() => (shared ? setConfirming('disable') : run('enable'))}
+            >
+              {busy === 'enable' || busy === 'disable'
+                ? 'Working…'
+                : shared ? 'Turn off' : 'Turn on sharing'}
+            </button>
+          </div>
+        </div>
+
+        {/* Both confirms repeat the same distinction, because it is the one
+            people get wrong: the code controls who may join, not who is
+            already in. */}
+        {confirming && (
+          <div className="p-alert alert-warning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+            <div className="grow">
+              <p className="alert-title">{confirming === 'rotate' ? 'Issue a new code?' : 'Turn sharing off?'}</p>
+              <p className="alert-desc">
+                {confirming === 'rotate'
+                  ? 'The bundle you have already shared stops working. Agents already connected keep running.'
+                  : 'No one new can connect. Agents already connected keep running — you cannot remove one; deleting this stack is what stops everyone.'}
+              </p>
+              <div className="p-row gap-8" style={{ marginTop: 10 }}>
+                <button className="btn btn-sm" onClick={() => run(confirming)}>
+                  {confirming === 'rotate' ? 'Issue new code' : 'Turn off'}
+                </button>
+                <button className="btn btn-outline btn-sm" onClick={() => setConfirming(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <p className="text-sm" style={{ color: 'hsl(var(--destructive))', margin: 0 }}>{error}</p>
+        )}
+
+        {shared && bundle && (
+          <>
+            <div className="p-col gap-8">
+              <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+                Connection bundle
+              </span>
+              <pre
+                className="p-mono"
+                style={{
+                  margin: 0, padding: 12, fontSize: 11, lineHeight: 1.5,
+                  background: 'hsl(var(--muted)/.4)', borderRadius: 8,
+                  overflowX: 'auto', whiteSpace: 'pre', color: 'hsl(var(--foreground))',
+                }}
+              >{bundleText}</pre>
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ alignSelf: 'flex-start', gap: 6 }}
+                onClick={() => copy('share-bundle', bundleText)}
+              >
+                <CopyIcon copied={copiedKey === 'share-bundle'} />
+                {copiedKey === 'share-bundle' ? 'Copied!' : 'Copy bundle'}
+              </button>
+            </div>
+
+            {/* The same values individually, for configuring by hand. The code
+                is short enough to read over a phone call, which is why the
+                format has a check character. */}
+            <Row label="Share code" value={bundle.code} copyKey="share-code" copiedKey={copiedKey} onCopy={copy} />
+            <Row label="Mediator DID" value={bundle.mediator_did} copyKey="share-mediator" copiedKey={copiedKey} onCopy={copy} />
+            <Row label="DID host" value={bundle.did_hosting_server_url} copyKey="share-dids" copiedKey={copiedKey} onCopy={copy} />
+          </>
+        )}
+
+        <ConnectedAgents connections={connections} />
+
+        <p className="field-hint" style={{ margin: 0 }}>
+          <strong>Before you share:</strong> connected agents store their DIDs on your DID host and
+          route their messages through your mediator. Once someone is connected you cannot remove
+          them individually — you can stop new ones with a new code, or delete the stack, which
+          stops everyone.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Other people's agents connected to this stack.
+ *
+ * Read-only: there is no per-connection action because there is no
+ * per-connection API. The list exists because deleting this stack is allowed
+ * and breaks every agent on it, so the owner has to be able to see that from
+ * the page where Delete lives.
+ */
+export function ConnectedAgents({ connections }: { connections?: StackConnectionSummary[] }) {
+  if (!connections || connections.length === 0) return null
+  return (
+    <div className="p-col gap-8">
+      <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+        Connected agents · {connections.length}
+      </span>
+      <div className="p-col gap-4">
+        {connections.map(c => (
+          <div key={c.vta_name} className="p-row between center" style={{ gap: 12 }}>
+            <span className="p-mono text-xs" style={{ wordBreak: 'break-all' }}>{c.vta_name}</span>
+            {statusBadge(c.status)}
+          </div>
+        ))}
+      </div>
+      <span className="field-hint">Deleting this stack will stop these agents working.</span>
     </div>
   )
 }

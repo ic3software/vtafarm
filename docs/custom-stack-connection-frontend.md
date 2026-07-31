@@ -8,7 +8,7 @@ Backend counterpart (authority on shapes, statuses and rules):
 [`vtafarm-api/docs/custom-stack-connection-design.md`](../../vtafarm-api/docs/custom-stack-connection-design.md).
 References like *(API §5.1)* point there.
 
-> **Status: specification. Nothing is built.** §10 tracks it.
+> **Status: Share panel built (phase 5); Customize outstanding.** §10 tracks it.
 > Only stacks running on this farm can be connected to (API §1) — the UI never
 > offers to add an arbitrary URL, and §3.3 spells out how it says so when
 > somebody tries.
@@ -402,10 +402,10 @@ Nothing yet.
 
 | Item | Status |
 | --- | --- |
-| API types + `setSharing()` + `validateConnection()` | ☐ |
-| Share panel: switch, rotate, bundle (§2.1–2.2) | ☐ |
-| Connected agents, read-only (§2.3) | ☐ |
-| Connected-agents block in the delete confirm (§2.4) | ☐ |
+| API types + `setSharing()` + `validateConnection()` | ✅ phase 5 |
+| Share panel: switch, rotate, bundle (§2.1–2.2) | ✅ phase 5 |
+| Connected agents, read-only (§2.3) | ✅ phase 5 |
+| Connected-agents block in the delete confirm (§2.4) | ✅ phase 5 |
 | Platform/Customize control + paste/parse (§3) | ☐ |
 | Check-symbol test + server-verified ✓ card (§3.2) | ☐ |
 | Availability split + Customize preselect (§3.1) | ☐ |
