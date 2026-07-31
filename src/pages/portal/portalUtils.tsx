@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { api, type DomainInfo, type DomainType, type SetupSession, type SetupStatus, type StackConnection } from '@/lib/api'
+import { api, type DomainInfo, type DomainType, type SetupSession, type SetupStatus } from '@/lib/api'
 
 const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   // vta_only
@@ -254,65 +254,23 @@ export function isWellFormedShareCode(code: string): boolean {
   return n[SHARE_CODE_DATA_LEN] === crockfordCheckSymbol(data)
 }
 
-export type BundleParse =
-  | { ok: true; bundle: StackConnection }
-  | { ok: false; error: string }
-
-/**
- * Parses pasted text into a connection bundle, without deciding whether it
- * opens anything — that answer only the server has.
- *
- * Everything here is shape: is this the right kind of document, and is the code
- * even worth sending. A parsed bundle must still be confirmed with
- * `api.validateConnection` before anything is shown as a fact about a stack.
- */
-export function parseConnectionBundle(text: string): BundleParse {
-  const trimmed = text.trim()
-  if (!trimmed) return { ok: false, error: '' }
-
-  let raw: unknown
-  try {
-    raw = JSON.parse(trimmed)
-  } catch {
-    return { ok: false, error: "That doesn't look like a connection bundle. Ask for the text from the stack's Share panel." }
-  }
-  if (typeof raw !== 'object' || raw === null) {
-    return { ok: false, error: "That doesn't look like a connection bundle. Ask for the text from the stack's Share panel." }
-  }
-
-  const b = raw as Partial<StackConnection>
-  if (b.kind !== 'vtafarm.stack-connection') {
-    return { ok: false, error: "That doesn't look like a connection bundle. Ask for the text from the stack's Share panel." }
-  }
-  if (!b.stack || !b.code || !b.farm) {
-    return { ok: false, error: "That connection bundle is incomplete. Ask for the text from the stack's Share panel." }
-  }
-  if (!isWellFormedShareCode(b.code)) {
-    return { ok: false, error: 'The share code looks mistyped — check it against what you were sent.' }
-  }
-  return { ok: true, bundle: b as StackConnection }
-}
-
 /**
  * Turns the API's refusal reason into a sentence.
  *
- * `invalid_bundle` covers five different server-side situations on purpose
- * (API §5.1) and this copy must not try to narrow it — guessing would mislead,
- * and anything more specific would turn the field into a way to discover which
- * stacks exist and which are shared.
+ * `invalid_bundle` covers five different server-side situations on purpose and
+ * this copy must not try to narrow it — guessing would mislead, and anything
+ * more specific would turn the field into a way to discover which stacks exist
+ * and which are shared. `isWellFormedShareCode` is what keeps an ordinary typo
+ * out of that message, which is the one a user cannot act on.
  */
 export function connectionRefusalMessage(reason: string | undefined, fallback: string): string {
   switch (reason) {
     case 'bad_bundle':
-      return "That doesn't look like a connection bundle. Ask for the text from the stack's Share panel."
-    case 'wrong_farm':
-      return 'This bundle is for a different VTA Farm. You can only connect to stacks running here.'
+      return "That doesn't look like a share code — check it against what you were sent."
     case 'invalid_bundle':
-      return 'This bundle doesn’t open anything here. It may have been deleted, or its owner may have turned sharing off or issued a new code — ask them for a current one.'
+      return 'That code doesn’t open anything here. The stack may have been deleted, or its owner may have turned sharing off or issued a new code — ask them for a current one.'
     case 'stack_not_running':
-      return "That stack isn't running right now. Ask its owner to check it, then try again."
-    case 'stack_changed':
-      return 'This bundle is out of date — the stack has changed since it was copied. Ask for a fresh one.'
+      return "That stack isn't ready right now. Ask its owner to check it, then try again."
     case 'stack_at_connection_limit':
       return 'That stack has reached its limit of connected agents. Ask an admin to raise the limit, or use a different stack.'
     default:

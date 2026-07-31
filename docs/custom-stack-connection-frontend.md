@@ -1,7 +1,7 @@
 # Custom Stack Connection — Frontend Design
 
 Portal UI for two connected things: a **Share** panel on a Full Stack session
-that mints and displays a connection bundle, and a **Customize** path in the VTA
+that mints and displays a share code, and a **Customize** path in the VTA
 Only create flow that accepts one.
 
 Backend counterpart (authority on shapes, statuses and rules):
@@ -31,15 +31,15 @@ Portal → Agents → alice (Full Stack, running)
      ┌─────────────────────────────────────────────────────────┐
      │  Share this stack                                       │
      │                                                         │
-     │  Someone with the bundle below can point a VTA Only     │
+     │  Someone with the code below can point a VTA Only     │
      │  agent at this stack's mediator and DID hosting.        │
      │                                                         │
      │  Sharing            [ ●───  ] on      [ New code ]      │
      │                                                         │
      │  ┌─────────────────────────────────────────────────┐    │
-     │  │ {"v":1,"kind":"vtafarm.stack-connection", …     │    │
+     │  │  K7M2-9XQP-4B8W-3NRT                            │    │
      │  └─────────────────────────────────────────────────┘    │
-     │                                        [ Copy bundle ]  │
+     │                                        [ Copy code ]  │
      │                                                         │
      │  Connected agents · 2                                   │
      │    bob-vta     running                                  │
@@ -57,7 +57,7 @@ Portal → Create agent → Mode: [ VTA Only | Full Stack ]
                                     │
                                     ▼
      ┌─────────────────────────────────────────────────────────┐
-     │  Paste a connection bundle                              │
+     │  Paste a share code                              │
      │  ┌─────────────────────────────────────────────────┐    │
      │  │                                                 │    │
      │  └─────────────────────────────────────────────────┘    │
@@ -93,7 +93,7 @@ clears it (API §4.1). **New code** rotates.
 | --- | --- | --- |
 | Sharing → on | — | no |
 | Sharing → off | *"No one new can connect. Agents already connected keep working."* | yes |
-| New code | *"The bundle you've already shared stops working. Agents already connected keep working."* | yes |
+| New code | *"The code you've already shared stops working. Agents already connected keep working."* | yes |
 
 Both confirms state the same distinction twice, because it is the one thing
 people will get wrong: **the code controls who may join, never who is already
@@ -101,11 +101,11 @@ in.** There is no way to remove one connection (API §7.4) — the only stronger
 lever is deleting the stack, which stops everyone (§2.4). The confirms must not
 imply otherwise.
 
-While sharing is off the bundle area is replaced by a single line —
-*"Sharing is off. Turn it on to get a bundle you can send."* Rendering a bundle
+While sharing is off the code area is replaced by a single line —
+*"Sharing is off. Turn it on to get a code you can send."* Rendering a code
 that would be refused on arrival is worse than rendering nothing.
 
-### 2.2 The bundle
+### 2.2 The code
 
 A read-only `<pre>` of the pretty-printed JSON plus a Copy button, reusing
 `Row` / `CopyIcon` / `useCopyState` already in `FullStackOutputs.tsx`.
@@ -191,30 +191,29 @@ preselected** — the user's only working path should not also be the one they
 have to find. When `custom_target_allowed === false` (capacity exhausted) the
 whole mode is disabled as it is today, because then neither path can succeed.
 
-### 3.2 Parse locally, then verify with the server
+### 3.2 Check locally, then verify with the server
 
-Two steps, and **the second is not optional**.
+Two steps, and **the second is where everything shown comes from**.
 
 ```
-paste → parse JSON + check symbol (local, instant)
+paste → check character (local, instant)
       → POST /api/v1/setup/connection/validate (API §5.2)
       → ✓ card rendered from the SERVER's response
 ```
 
 | State | Render |
 | --- | --- |
-| not JSON, or `kind` ≠ `vtafarm.stack-connection` | ✗ *"That doesn't look like a connection bundle. Ask for the text from the stack's Share panel."* |
-| parses, but the code fails its check symbol (API §4.1.1) | ✗ *"The share code looks mistyped — check it against what you were sent."* |
+| fails its check character (API §4.1.1) | ✗ *"That doesn't look like a share code — check it against what you were sent."* |
 | validating | spinner; create stays disabled |
 | validate passed | ✓ card — stack name, mediator DID, DID host, `2 of 10 agents connected` — **all from the response**; create enables |
 | validate failed | the `reason` mapped to a sentence — §3.3 |
 
-**Never render the ✓ card from the pasted JSON.** It would be trivial to — every
-field is right there — and it would be a lie: the card would show a confident
-"connecting to **alice**" for a bundle whose code is pure garbage, and the user
-would find out only after naming their agent, choosing an image and pressing
-Create. The card's whole job is to be true at the moment it is shown, so its
-values come from the server or it does not appear.
+**The card can only come from the server**, and that is now structural rather
+than a rule to remember: a share code carries no stack name, no mediator DID and
+no host, so there is nothing else to build it from. That is precisely why the
+JSON bundle went — with one, a client *could* render a confident "connecting to
+**alice**" for a code that is garbage, and the user would find out only after
+naming their agent, choosing an image and pressing Create.
 
 Two consequences to hold onto:
 
@@ -236,17 +235,17 @@ The API returns machine reasons (API §5.1). Map every one — a bare
 
 | Reason | Sentence |
 | --- | --- |
-| `bad_bundle` | That doesn't look like a connection bundle. Ask for the text from the stack's Share panel. |
-| `wrong_farm` | This bundle is for a different VTA Farm. You can only connect to stacks running here. |
-| `invalid_bundle` | This bundle doesn't open anything here. It may have been deleted, or its owner may have turned sharing off or issued a new code — ask them for a current one. |
+| `bad_code` | That doesn't look like a share code. Ask for the text from the stack's Share panel. |
+| `wrong_farm` | This code is for a different VTA Farm. You can only connect to stacks running here. |
+| `invalid_code` | This code doesn't open anything here. It may have been deleted, or its owner may have turned sharing off or issued a new code — ask them for a current one. |
 | `stack_not_running` | That stack isn't running right now. Ask its owner to check it, then try again. |
-| `stack_changed` | This bundle is out of date — the stack has changed since it was copied. Ask for a fresh one. |
+| `stack_changed` | This code is out of date — the stack has changed since it was copied. Ask for a fresh one. |
 | `stack_at_connection_limit` | That stack has reached its limit of connected agents. Ask an admin to raise the limit, or use a different stack. |
 | `vta_name_taken` | That name is already taken. Names are unique across the whole farm, not just your account or your stack. |
 
 Three notes on the wording.
 
-`invalid_bundle` covers five different server-side situations on purpose
+`invalid_code` covers five different server-side situations on purpose
 (API §5.1 tier 1) and the copy must not try to narrow them. Guessing —
 *"that stack may not exist"* — would both mislead and undo the reason the API
 collapses them: anything more specific turns this field into a way to discover
@@ -322,7 +321,7 @@ must not imply one exists (API §11.3).
 Draft strings, to keep tone consistent with the rest of the portal:
 
 > **Share this stack**
-> Anyone you send the bundle to can point a VTA Only agent at this stack's
+> Anyone you send the code to can point a VTA Only agent at this stack's
 > mediator and DID hosting. They paste it when they create their agent.
 >
 > **Before you share:** connected agents store their DIDs on your DID host and
@@ -387,7 +386,7 @@ destructive dialog in `sessionActions.ts` rather than replacing it. Consult
 | `src/pages/portal/FullStackOutputs.tsx` | the Share panel — §2 |
 | `src/pages/portal/CreateVTAView.tsx` | Platform/Customize control, paste + parse, reason mapping, availability split — §3 |
 | `src/pages/portal/SessionDetailView.tsx` | "Connected to" block, orphan warning — §4 |
-| `src/pages/portal/portalUtils.tsx` | bundle parse helper + Crockford check-symbol verify (API §4.1.1), shared by create and share |
+| `src/pages/portal/portalUtils.tsx` | Crockford check-character verify (API §4.1.1) + refusal-reason copy |
 | `src/pages/portal/AgentsView.tsx` | orphan marker on affected rows — §4.1 |
 | `src/pages/portal/sessionActions.ts` | the connected-agents block in the delete confirm — §2.4 |
 | `src/pages/admin/SessionsView.tsx` | provider column; same delete confirm — §6 |
@@ -403,7 +402,7 @@ Nothing yet.
 | Item | Status |
 | --- | --- |
 | API types + `setSharing()` + `validateConnection()` | ✅ phase 5 |
-| Share panel: switch, rotate, bundle (§2.1–2.2) | ✅ phase 5 |
+| Share panel: switch, rotate, code (§2.1–2.2) | ✅ phase 5 |
 | Connected agents, read-only (§2.3) | ✅ phase 5 |
 | Connected-agents block in the delete confirm (§2.4) | ✅ phase 5 |
 | Platform/Customize control + paste/parse (§3) | ✅ phase 6 |

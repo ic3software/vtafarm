@@ -58,29 +58,6 @@ export interface SetupSessionActionRequired {
   claim_code?: string
 }
 
-/**
- * What a full-stack owner copies and hands to somebody else, and what that
- * person pastes into the VTA-only create form.
- *
- * Only `stack` and `code` are load-bearing: the API finds the stack in its own
- * records and checks the code against it, and the values a new agent is built
- * from come from that row — never from this object. The rest is here so the
- * recipient can see whose stack they are joining, and is compared on arrival so
- * a bundle showing values the stack no longer has is refused rather than
- * quietly connecting to different ones.
- */
-export interface StackConnection {
-  v: number
-  kind: string
-  farm: string
-  stack: string
-  /** Grouped for display (`K7M2-9XQP-…`). Never render it outside the Share panel. */
-  code: string
-  mediator_did: string
-  did_hosting_server_url: string
-  did_hosting_did: string
-}
-
 /** One agent connected to a stack. Name and status only — it belongs to someone else. */
 export interface StackConnectionSummary {
   vta_name: string
@@ -92,8 +69,8 @@ export type ConnectionSource = 'platform' | 'in_farm'
 
 export interface SharingResponse {
   shared: boolean
-  /** Absent when the stack isn't shareable — never offer a bundle that would be refused. */
-  connection?: StackConnection
+  /** Absent when the stack isn't shareable — never offer a code that would be refused. */
+  share_code?: string
   connections?: StackConnectionSummary[]
 }
 
@@ -103,8 +80,8 @@ export interface SetupSession {
   mode: SetupMode
   /** full_stack: whether this stack currently accepts new connections. */
   shared?: boolean
-  /** full_stack: the bundle to hand out. Absent unless `shared`. */
-  connection?: StackConnection
+  /** full_stack: the code to hand out, grouped for display. Absent unless `shared`. */
+  share_code?: string
   /** full_stack: other people's agents connected here. Deleting the stack breaks all of them. */
   connections?: StackConnectionSummary[]
   /** full_stack, list view: how many agents depend on this stack. */
@@ -780,7 +757,7 @@ export const api = {
      * they are joining; this call re-runs every check regardless, and can still
      * fail with the same reasons if the stack changed in between.
      */
-    connection?: StackConnection
+    share_code?: string
   }) => req<{ id: string; status: string; url?: string; urls?: SetupSessionUrls }>('POST', '/api/v1/setup', data),
 
   // ── Domains ──────────────────────────────────────────────────────────────────
@@ -824,15 +801,18 @@ export const api = {
   setSharing: (id: string, action: 'enable' | 'rotate' | 'disable') =>
     req<SharingResponse>('PUT', `/api/v1/setup/${id}/sharing`, { action }),
   /**
-   * Check a pasted bundle without creating anything, so the create form can
-   * confirm which stack it names from values the server read rather than from
-   * the pasted text.
+   * Check a share code without creating anything, so the create form can tell
+   * the user which stack it opens.
+   *
+   * This is the only way that confirmation can exist: a code carries no
+   * information, so there is nothing to render from except this response — which
+   * makes presenting the sender's claims as facts structurally impossible.
    *
    * Not authoritative — `createSession` re-runs every check, and can still
    * refuse if the stack stopped running, rotated its code or filled up in
    * between.
    */
-  validateConnection: (connection: StackConnection) =>
+  validateConnection: (code: string) =>
     req<{
       stack: string
       farm: string
@@ -840,5 +820,5 @@ export const api = {
       did_hosting_server_url: string
       connections_used?: number
       connections_max?: number
-    }>('POST', '/api/v1/setup/connection/validate', connection),
+    }>('POST', '/api/v1/setup/connection/validate', { code }),
 }

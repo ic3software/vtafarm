@@ -5,7 +5,6 @@ import {
   type SetupSessionUrls,
   type SetupSessionCollected,
   type SharingResponse,
-  type StackConnection,
   type StackConnectionSummary,
 } from '@/lib/api'
 import { useCopyState, statusBadge } from './portalUtils'
@@ -488,7 +487,7 @@ export function ShareStackCard({
 }) {
   const { copiedKey, copy } = useCopyState()
   const [shared, setShared] = useState(!!session.shared)
-  const [bundle, setBundle] = useState<StackConnection | undefined>(session.connection)
+  const [code, setCode] = useState<string | undefined>(session.share_code)
   const [connections, setConnections] = useState<StackConnectionSummary[]>(session.connections ?? [])
   const [busy, setBusy] = useState<'enable' | 'rotate' | 'disable' | null>(null)
   const [error, setError] = useState('')
@@ -500,7 +499,7 @@ export function ShareStackCard({
   if (seen !== session && !busy) {
     setSeen(session)
     setShared(!!session.shared)
-    setBundle(session.connection)
+    setCode(session.share_code)
     setConnections(session.connections ?? [])
   }
 
@@ -515,7 +514,7 @@ export function ShareStackCard({
     try {
       const r = await api.setSharing(session.id, action)
       setShared(r.shared)
-      setBundle(r.connection)
+      setCode(r.share_code)
       setConnections(r.connections ?? [])
       onChanged?.(r)
     } catch (e) {
@@ -525,14 +524,12 @@ export function ShareStackCard({
     }
   }
 
-  const bundleText = bundle ? JSON.stringify(bundle, null, 2) : ''
-
   return (
     <div className="p-card" style={{ marginBottom: 16 }}>
       <div className="card-header">
         <h3 className="card-title">Share this stack</h3>
         <p className="card-desc">
-          Anyone you send the bundle to can point a VTA-only agent at this stack's mediator and
+          Anyone you send the code to can point a VTA-only agent at this stack's mediator and
           DID hosting. They paste it when they create their agent.
         </p>
       </div>
@@ -545,8 +542,8 @@ export function ShareStackCard({
             </span>
             <span className="field-hint" style={{ marginTop: 2 }}>
               {shared
-                ? 'Anyone with the current bundle can connect a new agent.'
-                : 'No one new can connect. Turn it on to get a bundle you can send.'}
+                ? 'Anyone with the current code can connect a new agent.'
+                : 'No one new can connect. Turn it on to get a code you can send.'}
             </span>
           </div>
           <div className="p-row gap-8" style={{ flexShrink: 0 }}>
@@ -581,7 +578,7 @@ export function ShareStackCard({
               <p className="alert-title">{confirming === 'rotate' ? 'Issue a new code?' : 'Turn sharing off?'}</p>
               <p className="alert-desc">
                 {confirming === 'rotate'
-                  ? 'The bundle you have already shared stops working. Agents already connected keep running.'
+                  ? 'The code you have already shared stops working. Agents already connected keep running.'
                   : 'No one new can connect. Agents already connected keep running — you cannot remove one; deleting this stack is what stops everyone.'}
               </p>
               <div className="p-row gap-8" style={{ marginTop: 10 }}>
@@ -598,36 +595,36 @@ export function ShareStackCard({
           <p className="text-sm" style={{ color: 'hsl(var(--destructive))', margin: 0 }}>{error}</p>
         )}
 
-        {shared && bundle && (
+        {shared && code && (
           <>
+            {/* The whole handover. Big and monospaced because it is meant to be
+                read aloud as much as copied — which is also why the format
+                carries a check character. */}
             <div className="p-col gap-8">
               <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
-                Connection bundle
+                Share code
               </span>
-              <pre
-                className="p-mono"
-                style={{
-                  margin: 0, padding: 12, fontSize: 11, lineHeight: 1.5,
-                  background: 'hsl(var(--muted)/.4)', borderRadius: 8,
-                  overflowX: 'auto', whiteSpace: 'pre', color: 'hsl(var(--foreground))',
-                }}
-              >{bundleText}</pre>
-              <button
-                className="btn btn-outline btn-sm"
-                style={{ alignSelf: 'flex-start', gap: 6 }}
-                onClick={() => copy('share-bundle', bundleText)}
-              >
-                <CopyIcon copied={copiedKey === 'share-bundle'} />
-                {copiedKey === 'share-bundle' ? 'Copied!' : 'Copy bundle'}
-              </button>
+              <div className="p-row between center" style={{ gap: 12 }}>
+                <span
+                  className="p-mono"
+                  style={{ fontSize: 20, fontWeight: 600, letterSpacing: '.08em', wordBreak: 'break-all' }}
+                >
+                  {code}
+                </span>
+                <button
+                  className="btn btn-outline btn-sm"
+                  style={{ flexShrink: 0, gap: 6 }}
+                  onClick={() => copy('share-code', code)}
+                >
+                  <CopyIcon copied={copiedKey === 'share-code'} />
+                  {copiedKey === 'share-code' ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              <span className="field-hint">
+                Send just this. Nothing else needs to travel with it — whoever pastes it will be
+                shown which stack it opens before they commit.
+              </span>
             </div>
-
-            {/* The same values individually, for configuring by hand. The code
-                is short enough to read over a phone call, which is why the
-                format has a check character. */}
-            <Row label="Share code" value={bundle.code} copyKey="share-code" copiedKey={copiedKey} onCopy={copy} />
-            <Row label="Mediator DID" value={bundle.mediator_did} copyKey="share-mediator" copiedKey={copiedKey} onCopy={copy} />
-            <Row label="DID host" value={bundle.did_hosting_server_url} copyKey="share-dids" copiedKey={copiedKey} onCopy={copy} />
           </>
         )}
 

@@ -4,9 +4,8 @@ import { api, API_BASE, type SetupSession, type SetupAvailability, type Domain }
 import type { PortalContext } from './Portal'
 import {
   statusBadge, FULL_STACK_PHASES, isValidAdminDid, componentHost, useDomainInfo,
-  parseConnectionBundle, connectionRefusalMessage,
+  isWellFormedShareCode, connectionRefusalMessage,
 } from './portalUtils'
-import type { StackConnection } from '@/lib/api'
 import { PhaseStepper } from './PhaseStepper'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullStackCreateProgress } from './FullStackCreateProgress'
@@ -45,8 +44,7 @@ export function CreateVTAView() {
   // Which stack a VTA-only agent connects to. 'platform' is the default and
   // today's behaviour; 'custom' points it at a stack somebody shared.
   const [target, setTarget] = useState<'platform' | 'custom'>('platform')
-  const [bundleText, setBundleText] = useState('')
-  const [bundle, setBundle] = useState<StackConnection | null>(null)
+  const [shareCode, setShareCode] = useState('')
   const [bundleError, setBundleError] = useState('')
   const [checking, setChecking] = useState(false)
   // Rendered from the SERVER's answer, never from the pasted text — see the
@@ -270,26 +268,30 @@ export function CreateVTAView() {
     : null
 
   /**
-   * Parses the pasted text locally, then asks the server to confirm it.
+   * Checks the shape locally, then asks the server which stack the code opens.
    *
-   * The second step is not optional. Every field in the bundle came out of the
-   * pasted text, so a confirmation card built from it would show a confident
-   * "connecting to alice" for a bundle whose code is pure garbage — and the
-   * user would find out only after naming their agent, choosing an image and
-   * pressing Create. The card's whole job is to be true at the moment it is
-   * shown, so its values come from the server or it does not appear.
+   * The second step is the only source of anything shown about that stack — a
+   * code carries no information, so there is nothing to render from except this
+   * response. That is deliberate: it makes presenting the sender's claims as
+   * facts structurally impossible rather than merely discouraged.
+   *
+   * The local step is worth having anyway. The check character turns an
+   * ordinary typo into an instant, certain answer instead of a round trip that
+   * ends in the deliberately vague "that code doesn't open anything here".
    */
   async function checkBundle(text: string) {
     setConfirmed(null)
-    setBundle(null)
-    const parsed = parseConnectionBundle(text)
-    if (!parsed.ok) { setBundleError(parsed.error); return }
+    const trimmed = text.trim()
+    if (!trimmed) { setBundleError(''); return }
+    if (!isWellFormedShareCode(trimmed)) {
+      setBundleError("That doesn't look like a share code — check it against what you were sent.")
+      return
+    }
 
-    setBundle(parsed.bundle)
     setBundleError('')
     setChecking(true)
     try {
-      setConfirmed(await api.validateConnection(parsed.bundle))
+      setConfirmed(await api.validateConnection(trimmed))
     } catch (err) {
       const reason = (err as { reason?: string })?.reason
       setBundleError(connectionRefusalMessage(
@@ -304,7 +306,7 @@ export function CreateVTAView() {
   async function handleCreate() {
     if (!selectedImage) { setCreateError('Select a VTA image'); return }
     if (mode === 'vta_only' && target === 'custom' && !confirmed) {
-      setCreateError('Paste a connection bundle for the stack you want to use'); return
+      setCreateError('Enter the share code for the stack you want to use'); return
     }
     if (mode !== 'vta_only' && (!selectedMediatorImage || !selectedDidsImage)) {
       setCreateError('Select a mediator and DID hosting image'); return
@@ -325,7 +327,7 @@ export function CreateVTAView() {
         ...(mode !== 'vta_only' ? { mediator_image: selectedMediatorImage, dids_image: selectedDidsImage } : {}),
         ...(mode === 'full_stack' ? { vtc_image: selectedVtcImage } : {}),
         ...(mode === 'full_stack' && !selectedDomain ? { vtc_name: vtcName } : {}),
-        ...(mode === 'vta_only' && target === 'custom' && bundle ? { connection: bundle } : {}),
+        ...(mode === 'vta_only' && target === 'custom' && shareCode ? { share_code: shareCode.trim() } : {}),
       })
       setSessionId(r.id)
       setStage(1)
@@ -560,22 +562,21 @@ export function CreateVTAView() {
 
             {mode === 'vta_only' && target === 'custom' && (
               <div>
-                <label className="p-label" htmlFor="cv-bundle">Connection bundle <span className="req">*</span></label>
-                <textarea
+                <label className="p-label" htmlFor="cv-bundle">Share code <span className="req">*</span></label>
+                <input
                   id="cv-bundle"
                   className="p-input p-mono"
-                  rows={4}
-                  style={{ resize: 'vertical', fontSize: 12 }}
-                  placeholder='{"v":1,"kind":"vtafarm.stack-connection", …}'
-                  value={bundleText}
-                  onChange={e => { setBundleText(e.target.value); setConfirmed(null); setBundleError('') }}
+                  style={{ letterSpacing: '.06em' }}
+                  placeholder="K7M2-9XQP-4B8W-3NRT"
+                  value={shareCode}
+                  onChange={e => { setShareCode(e.target.value); setConfirmed(null); setBundleError('') }}
                   onBlur={e => checkBundle(e.target.value)}
                   onPaste={e => {
                     const text = e.clipboardData.getData('text')
                     if (text) setTimeout(() => checkBundle(text), 0)
                   }}
                 />
-                <div className="field-hint">Paste the whole bundle from the stack owner's Share panel.</div>
+                <div className="field-hint">The code the stack's owner sent you — that's all you need.</div>
 
                 {checking && <div className="field-hint" style={{ marginTop: 6 }}>Checking…</div>}
 
@@ -583,11 +584,10 @@ export function CreateVTAView() {
                   <p className="text-sm" style={{ color: 'hsl(var(--destructive))', margin: '8px 0 0' }}>{bundleError}</p>
                 )}
 
-                {/* Rendered only from the server's answer. Building this from
-                    the pasted JSON would show a confident tick for a bundle
-                    whose code is garbage — see checkBundle. The share code is
-                    never echoed here: it is a credential on a screen somebody
-                    may be sharing. */}
+                {/* Every value here came from the server. A code carries none
+                    of it, so there is nothing else this could be built from —
+                    which is the point. The code itself is never echoed back: it
+                    is a credential on a screen somebody may be sharing. */}
                 {confirmed && !checking && (
                   <div className="p-card" style={{ marginTop: 10, background: 'hsl(var(--muted)/.4)', border: 'none' }}>
                     <div className="card-content p-col gap-8" style={{ padding: '12px 16px' }}>
