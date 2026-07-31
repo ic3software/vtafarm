@@ -550,10 +550,17 @@ export interface SessionUpgrade {
 
 interface ApiError extends Error {
   status: number
+  /**
+   * The API's machine-readable refusal code, where it sends one (connection
+   * bundles, create availability). Carried alongside `message` so callers can
+   * map to their own copy — the server's `detail` sentence is the fallback, not
+   * the only option.
+   */
+  reason?: string
 }
 
-function apiError(msg: string, status: number): ApiError {
-  return Object.assign(new Error(msg), { status }) as ApiError
+function apiError(msg: string, status: number, reason?: string): ApiError {
+  return Object.assign(new Error(msg), { status, reason }) as ApiError
 }
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -567,7 +574,7 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   const data = await res.json().catch(() => ({ error: res.statusText }))
   if (!res.ok) {
     if (res.status === 401) window.dispatchEvent(new Event('vtafarm:unauthorized'))
-    throw apiError(data.error ?? 'Request failed', res.status)
+    throw apiError(data.error ?? 'Request failed', res.status, data.reason)
   }
   return data as T
 }
