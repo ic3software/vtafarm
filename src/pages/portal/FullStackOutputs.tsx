@@ -671,3 +671,63 @@ export function ConnectedAgents({ connections }: { connections?: StackConnection
     </div>
   )
 }
+
+/**
+ * Which stack a VTA-only agent is connected to.
+ *
+ * The first question when an agent misbehaves is whose infrastructure it is on,
+ * and until now the answer was a bare mediator DID.
+ *
+ * There is no `disconnected` status and the badge deliberately still reads
+ * `running` when the provider is gone — the agent **is** running, since nothing
+ * in a provider teardown touches the consumer's namespace. What it cannot do is
+ * resolve its own DID or reach a mediator, and that belongs here rather than in
+ * a status that would claim the pod had stopped.
+ */
+export function ConnectedToCard({ session }: { session: SetupSession }) {
+  if (session.mode !== 'vta_only' || !session.connection_source) return null
+
+  const orphaned = !!session.provider_gone
+  const platform = session.connection_source === 'platform'
+
+  return (
+    <div className="p-card" style={{ marginBottom: 16, ...(orphaned ? { borderColor: 'hsl(var(--destructive)/.4)' } : {}) }}>
+      <div className="card-header">
+        <h3 className="card-title">Connected to</h3>
+      </div>
+      <div className="card-content p-col gap-8" style={{ paddingTop: 14 }}>
+        {orphaned ? (
+          <>
+            <span className="text-sm" style={{ fontWeight: 600, color: 'hsl(var(--destructive))' }}>
+              This stack no longer exists
+            </span>
+            {/* Not "reconnect" and not "move": the agent's did:webvh contains
+                its host, so relocating it would mint a different identity.
+                There is no path back, and the copy must not imply one. */}
+            <span className="field-hint">
+              The stack this agent connected to has been deleted. The agent is still running, but it
+              can't resolve its DID or deliver messages. Create a new agent against a stack that's
+              running, then delete this one.
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="text-sm" style={{ fontWeight: 600 }}>
+              {platform ? 'Platform stack' : session.provider ?? 'A stack on this farm'}
+            </span>
+            <span className="field-hint">
+              {platform
+                ? 'The shared mediator and DID hosting this farm runs.'
+                : "Another user's Full Stack. If its owner deletes it, this agent stops working."}
+            </span>
+          </>
+        )}
+        {session.mediator_did && (
+          <span className="p-mono text-xs p-muted" style={{ wordBreak: 'break-all', marginTop: 4 }}>
+            mediator&nbsp; {session.mediator_did}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}

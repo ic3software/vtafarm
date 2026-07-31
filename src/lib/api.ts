@@ -107,6 +107,8 @@ export interface SetupSession {
   connection?: StackConnection
   /** full_stack: other people's agents connected here. Deleting the stack breaks all of them. */
   connections?: StackConnectionSummary[]
+  /** full_stack, list view: how many agents depend on this stack. */
+  connection_count?: number
   /** vta_only: where its mediator and DID hosting came from. */
   connection_source?: ConnectionSource
   /** vta_only + in_farm: the stack it connected to. */
@@ -344,6 +346,16 @@ export interface AdminSetupSession {
   dids_image?: string
   vtc_image?: string
   created_at: string
+  /** vta_only: where its mediator and DID hosting came from. */
+  connection_source?: ConnectionSource
+  /** vta_only + in_farm: the stack it connected to. */
+  provider?: string
+  /** vta_only + in_farm: that stack has been deleted. */
+  provider_gone?: boolean
+  /** full_stack: whether it currently accepts new connections. */
+  shared?: boolean
+  /** full_stack: how many agents depend on it. Both matter before deleting one. */
+  connection_count?: number
 }
 
 /**

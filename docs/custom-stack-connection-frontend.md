@@ -8,7 +8,7 @@ Backend counterpart (authority on shapes, statuses and rules):
 [`vtafarm-api/docs/custom-stack-connection-design.md`](../../vtafarm-api/docs/custom-stack-connection-design.md).
 References like *(API §5.1)* point there.
 
-> **Status: Share and Customize built (phases 5–6); detail/admin surfaces outstanding.** §10 tracks it.
+> **Status: built (phases 5–7); end-to-end verification outstanding.** §10 tracks it.
 > Only stacks running on this farm can be connected to (API §1) — the UI never
 > offers to add an arbitrary URL, and §3.3 spells out how it says so when
 > somebody tries.
@@ -410,5 +410,5 @@ Nothing yet.
 | Check-symbol test + server-verified ✓ card (§3.2) | ✅ phase 6 |
 | Availability split + Customize preselect (§3.1) | ✅ phase 6 |
 | Reason → sentence mapping (§3.3) | ✅ phase 6 |
-| "Connected to" block + orphan warning (§4, §4.1) | ☐ |
-| Admin surfaces (§6) | ☐ |
+| "Connected to" block + orphan warning (§4, §4.1) | ✅ phase 7 |
+| Admin surfaces (§6) | ✅ phase 7 |

@@ -3,7 +3,7 @@ import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
 import { statusBadge, FULL_STACK_PHASES, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid, domainTypeBadge } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, VtcInstallAlert, VtcInstallConfigRow, useVtcInstall, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ShareStackCard } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, VtcInstallAlert, VtcInstallConfigRow, useVtcInstall, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ShareStackCard, ConnectedToCard } from './FullStackOutputs'
 import { SessionVersionsCard } from './SessionVersionsCard'
 import type { PortalContext } from './Portal'
 
@@ -202,6 +202,10 @@ export function SessionDetailView() {
           </div>
         </div>
       )}
+
+      {/* Which stack this agent runs against — the first question when it
+          misbehaves, and where an orphaned agent is told its stack is gone. */}
+      {!isFullStack && <ConnectedToCard session={session} />}
 
       {/* DID block (vta_only — full_stack's DIDs live in the Endpoints/DIDs cards below) */}
       {!isFullStack && session.vta_did && (
