@@ -264,10 +264,13 @@
 /* --- Dialog overlay --- */
 .portal-root .p-overlay { position: fixed; inset: 0; background: hsl(0 0% 0% / 0.5); backdrop-filter: blur(2px); display: grid; place-items: center; padding: 24px; z-index: 100; }
 .portal-root .p-dialog { width: 100%; max-width: 460px; background: hsl(var(--popover)); color: hsl(var(--popover-foreground)); border: 1px solid hsl(var(--border)); border-radius: var(--radius); box-shadow: var(--shadow-lg); overflow: hidden; }
-.portal-root .dialog-header { padding: 22px 24px 0; }
+/* The gap below the header lives on the header, not on the body's top: a
+   confirm dialog with no body would otherwise sit its description straight on
+   the footer. Totals are unchanged for dialogs that do have a body. */
+.portal-root .dialog-header { padding: 22px 24px 20px; }
 .portal-root .dialog-title { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 4px; }
 .portal-root .dialog-desc { font-size: 13px; color: hsl(var(--muted-foreground)); margin: 0; line-height: 1.5; }
-.portal-root .dialog-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+.portal-root .dialog-body { padding: 0 24px 20px; display: flex; flex-direction: column; gap: 16px; }
 .portal-root .dialog-footer { padding: 16px 24px; background: hsl(var(--muted) / 0.4); border-top: 1px solid hsl(var(--border)); display: flex; justify-content: flex-end; gap: 10px; }
 
 /* --- Tabs --- */

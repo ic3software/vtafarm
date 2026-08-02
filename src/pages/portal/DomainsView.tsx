@@ -412,9 +412,15 @@ export function DomainsView() {
                 : lastCheckedMs === null
                   ? 'Not checked yet'
                   : `Last checked ${relativeTime(lastCheckedMs, nowMs)}`}
+              {/* Says why the button next to it is dead. A `title` can't: a
+                  disabled .btn sets pointer-events: none, so it never hovers. */}
+              {domain.in_use_by && ' · delete the agent to remove this domain'}
             </span>
             <div className="p-row gap-12">
+              {/* DELETE /domains/:id answers 409 while a session runs on it, so
+                  offering this would only ever be a dead end. */}
               <button className="btn btn-ghost" style={{ color: 'hsl(var(--destructive))' }}
+                disabled={!!domain.in_use_by}
                 onClick={() => { setConfirmRemove(true); setRemoveError('') }}>
                 Remove domain
               </button>
@@ -471,10 +477,9 @@ export function DomainsView() {
             <div className="dialog-header">
               <h3 className="dialog-title">Remove this domain?</h3>
               <p className="dialog-desc">
-                <span className="p-mono">{domain.domain}</span> is detached from your account.
-                Nothing at your DNS provider changes — you'll want to delete the records
-                yourself afterwards.
-                {domain.verified && ' Re-attaching later issues a new verification token, so you would verify it again.'}
+                <span className="p-mono">{domain.domain}</span> leaves your account. Your DNS
+                records stay — delete them at your provider afterwards.
+                {domain.verified && ' Re-attaching means verifying again.'}
               </p>
             </div>
             {removeError && (
