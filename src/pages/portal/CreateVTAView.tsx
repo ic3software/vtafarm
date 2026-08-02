@@ -305,9 +305,9 @@ export function CreateVTAView() {
 
   async function handleCreate() {
     if (!selectedImage) { setCreateError('Select a VTA image'); return }
-    if (mode === 'vta_only' && target === 'custom' && !confirmed) {
-      setCreateError('Enter the share code for the stack you want to use'); return
-    }
+    // No share-code check here: `needsShareCode` disables the button, so a
+    // second message down here could only ever duplicate the refusal already
+    // sitting under the field.
     if (mode !== 'vta_only' && (!selectedMediatorImage || !selectedDidsImage)) {
       setCreateError('Select a mediator and DID hosting image'); return
     }
@@ -415,6 +415,11 @@ export function CreateVTAView() {
       ? !modeAvailability.available && !(modeAvailability.custom_target_allowed && target === 'custom')
       : !modeAvailability.available
     : false
+
+  // Nothing to create until a code has resolved to a stack. The reason is
+  // already on screen under the field — a refusal message, or "Checking…" —
+  // so the dead button never needs to explain itself.
+  const needsShareCode = mode === 'vta_only' && target === 'custom' && (!confirmed || checking)
 
   // When the default path is closed but Customize is open, select it: the only
   // working path should not also be the one the user has to go find.
@@ -569,14 +574,23 @@ export function CreateVTAView() {
                   style={{ letterSpacing: '.06em' }}
                   placeholder="K7M2-9XQP-4B8W-3NRT"
                   value={shareCode}
-                  onChange={e => { setShareCode(e.target.value); setConfirmed(null); setBundleError('') }}
+                  onChange={e => {
+                    const v = e.target.value
+                    setShareCode(v); setConfirmed(null); setBundleError('')
+                    // Check as soon as the code is structurally complete. The
+                    // Create button is disabled until one resolves, and a
+                    // disabled button takes no pointer events — so waiting for
+                    // the blur its click used to cause would strand anyone who
+                    // types the code instead of pasting it. The check character
+                    // is what makes this one call rather than one per keystroke.
+                    if (isWellFormedShareCode(v.trim())) checkBundle(v)
+                  }}
                   onBlur={e => checkBundle(e.target.value)}
                   onPaste={e => {
                     const text = e.clipboardData.getData('text')
                     if (text) setTimeout(() => checkBundle(text), 0)
                   }}
                 />
-                <div className="field-hint">The code the stack's owner sent you — that's all you need.</div>
 
                 {checking && <div className="field-hint" style={{ marginTop: 6 }}>Checking…</div>}
 
@@ -591,9 +605,6 @@ export function CreateVTAView() {
                 {confirmed && !checking && (
                   <div className="p-card" style={{ marginTop: 10, background: 'hsl(var(--muted)/.4)', border: 'none' }}>
                     <div className="card-content p-col gap-8" style={{ padding: '12px 16px' }}>
-                      <span className="text-sm" style={{ fontWeight: 600 }}>
-                        ✓ {confirmed.stack} · {confirmed.farm}
-                      </span>
                       <div className="p-col gap-4">
                         <span className="p-mono text-xs p-muted" style={{ wordBreak: 'break-all' }}>
                           mediator&nbsp; {confirmed.mediator_did}
@@ -602,15 +613,9 @@ export function CreateVTAView() {
                           DID host&nbsp; {confirmed.did_hosting_server_url}
                         </span>
                       </div>
-                      {confirmed.connections_max != null && (
-                        <span className="field-hint">
-                          {confirmed.connections_used ?? 0} of {confirmed.connections_max} agents connected
-                        </span>
-                      )}
-                      <span className="field-hint">
-                        Your agent will depend on this stack. If its owner deletes it, your agent
-                        stops working and can't be reconnected.
-                      </span>
+                      {/* The stack's remaining capacity is the owner's number,
+                          shown on their page. Create either succeeds or is
+                          refused with `stack_at_conn_limit`. */}
                     </div>
                   </div>
                 )}
@@ -818,7 +823,7 @@ export function CreateVTAView() {
                   ? '4 DNS records are created immediately after session creation.'
                   : 'A DNS record is created immediately after session creation.'}
             </span>
-            <button className="btn btn-default" onClick={handleCreate} disabled={creating || modeUnavailable}>
+            <button className="btn btn-default" onClick={handleCreate} disabled={creating || modeUnavailable || needsShareCode}>
               {creating ? 'Creating…' : modeUnavailable ? 'Unavailable' : <>Create session <span className="arrow">→</span></>}
             </button>
           </div>
