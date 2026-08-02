@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type MouseEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   api,
   type SetupSession,
@@ -442,9 +443,8 @@ export function AdminKeysCard({ session }: { session: SetupSession }) {
       <div className="card-header">
         <h3 className="card-title">Admin DIDs &amp; Private Keys</h3>
         <p className="card-desc">
-          Mediator and DID hosting admin identities, plus the private keys backing them — shown
-          once for offline backup (e.g. a password manager). They stay visible here until you
-          delete this agent, so remove the keys from view once you've saved them.
+          Mediator and DID hosting admin identities and their private keys. Save them in a password
+          manager, then hide them again — they stay here until you delete this agent.
         </p>
       </div>
       <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
@@ -489,6 +489,7 @@ export function ShareStackCard({
   const [shared, setShared] = useState(!!session.shared)
   const [code, setCode] = useState<string | undefined>(session.share_code)
   const [connections, setConnections] = useState<StackConnectionSummary[]>(session.connections ?? [])
+  const [max, setMax] = useState(session.connections_max)
   const [busy, setBusy] = useState<'enable' | 'rotate' | 'disable' | null>(null)
   const [error, setError] = useState('')
   const [confirming, setConfirming] = useState<'rotate' | 'disable' | null>(null)
@@ -501,6 +502,7 @@ export function ShareStackCard({
     setShared(!!session.shared)
     setCode(session.share_code)
     setConnections(session.connections ?? [])
+    setMax(session.connections_max)
   }
 
   // Only a running stack can serve a connection, so offering the panel earlier
@@ -516,6 +518,7 @@ export function ShareStackCard({
       setShared(r.shared)
       setCode(r.share_code)
       setConnections(r.connections ?? [])
+      setMax(r.connections_max)
       onChanged?.(r)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not update sharing')
@@ -529,8 +532,7 @@ export function ShareStackCard({
       <div className="card-header">
         <h3 className="card-title">Share this stack</h3>
         <p className="card-desc">
-          Anyone you send the code to can point a VTA-only agent at this stack's mediator and
-          DID hosting. They paste it when they create their agent.
+          Send someone a code and their VTA-only agent can use this stack's mediator and DID hosting.
         </p>
       </div>
 
@@ -540,11 +542,11 @@ export function ShareStackCard({
             <span className="text-sm" style={{ fontWeight: 600 }}>
               {shared ? 'Sharing is on' : 'Sharing is off'}
             </span>
-            <span className="field-hint" style={{ marginTop: 2 }}>
-              {shared
-                ? 'Anyone with the current code can connect a new agent.'
-                : 'No one new can connect. Turn it on to get a code you can send.'}
-            </span>
+            {/* Only while off. Once the code is on screen under its own label,
+                saying that people can connect with it is restating it. */}
+            {!shared && (
+              <span className="field-hint" style={{ marginTop: 2 }}>No one new can connect.</span>
+            )}
           </div>
           <div className="p-row gap-8" style={{ flexShrink: 0 }}>
             {shared && (
@@ -556,8 +558,10 @@ export function ShareStackCard({
                 {busy === 'rotate' ? 'Working…' : 'New code'}
               </button>
             )}
+            {/* Primary while off — turning sharing on is the whole point of the
+                card, and a bare `btn` has no background or border at all. */}
             <button
-              className={shared ? 'btn btn-outline btn-sm' : 'btn btn-sm'}
+              className={shared ? 'btn btn-outline btn-sm' : 'btn btn-default'}
               disabled={!!busy}
               onClick={() => (shared ? setConfirming('disable') : run('enable'))}
             >
@@ -578,11 +582,11 @@ export function ShareStackCard({
               <p className="alert-title">{confirming === 'rotate' ? 'Issue a new code?' : 'Turn sharing off?'}</p>
               <p className="alert-desc">
                 {confirming === 'rotate'
-                  ? 'The code you have already shared stops working. Agents already connected keep running.'
-                  : 'No one new can connect. Agents already connected keep running — you cannot remove one; deleting this stack is what stops everyone.'}
+                  ? 'The code you already shared stops working. Agents already connected keep running.'
+                  : 'No one new can connect. Agents already connected keep running.'}
               </p>
               <div className="p-row gap-8" style={{ marginTop: 10 }}>
-                <button className="btn btn-sm" onClick={() => run(confirming)}>
+                <button className="btn btn-default btn-sm" onClick={() => run(confirming)}>
                   {confirming === 'rotate' ? 'Issue new code' : 'Turn off'}
                 </button>
                 <button className="btn btn-outline btn-sm" onClick={() => setConfirming(null)}>Cancel</button>
@@ -595,47 +599,47 @@ export function ShareStackCard({
           <p className="text-sm" style={{ color: 'hsl(var(--destructive))', margin: 0 }}>{error}</p>
         )}
 
+        {/* The whole handover. Big and monospaced because it is meant to be
+            read aloud as much as copied — which is also why the format
+            carries a check character. */}
         {shared && code && (
-          <>
-            {/* The whole handover. Big and monospaced because it is meant to be
-                read aloud as much as copied — which is also why the format
-                carries a check character. */}
-            <div className="p-col gap-8">
-              <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
-                Share code
+          <div className="p-col gap-8">
+            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+              Share code
+            </span>
+            <div className="p-row between center" style={{ gap: 12 }}>
+              <span
+                className="p-mono"
+                style={{ fontSize: 20, fontWeight: 600, letterSpacing: '.08em', wordBreak: 'break-all' }}
+              >
+                {code}
               </span>
-              <div className="p-row between center" style={{ gap: 12 }}>
-                <span
-                  className="p-mono"
-                  style={{ fontSize: 20, fontWeight: 600, letterSpacing: '.08em', wordBreak: 'break-all' }}
-                >
-                  {code}
-                </span>
-                <button
-                  className="btn btn-outline btn-sm"
-                  style={{ flexShrink: 0, gap: 6 }}
-                  onClick={() => copy('share-code', code)}
-                >
-                  <CopyIcon copied={copiedKey === 'share-code'} />
-                  {copiedKey === 'share-code' ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-              <span className="field-hint">
-                Send just this. Nothing else needs to travel with it — whoever pastes it will be
-                shown which stack it opens before they commit.
-              </span>
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ flexShrink: 0, gap: 6 }}
+                onClick={() => copy('share-code', code)}
+              >
+                <CopyIcon copied={copiedKey === 'share-code'} />
+                {copiedKey === 'share-code' ? 'Copied!' : 'Copy'}
+              </button>
             </div>
-          </>
+          </div>
         )}
 
-        <ConnectedAgents connections={connections} />
+        {/* Where "you can't remove one of these" is said, if it needs saying:
+            in the confirms that act on the code, and above the Delete button —
+            not as a standing caveat on the card. */}
+        <ConnectedAgents connections={connections} max={max} />
 
-        <p className="field-hint" style={{ margin: 0 }}>
-          <strong>Before you share:</strong> connected agents store their DIDs on your DID host and
-          route their messages through your mediator. Once someone is connected you cannot remove
-          them individually — you can stop new ones with a new code, or delete the stack, which
-          stops everyone.
-        </p>
+        {/* The capacity being spent is the owner's, so the number lives here
+            rather than on the page of the person spending it. Only once
+            sharing is on: "0 of 10" against a closed stack is a budget for
+            something that cannot happen. */}
+        {shared && connections.length === 0 && max != null && (
+          <span className="field-hint" style={{ margin: 0 }}>
+            0 of {max} agents connected
+          </span>
+        )}
       </div>
     </div>
   )
@@ -649,12 +653,16 @@ export function ShareStackCard({
  * and breaks every agent on it, so the owner has to be able to see that from
  * the page where Delete lives.
  */
-export function ConnectedAgents({ connections }: { connections?: StackConnectionSummary[] }) {
+export function ConnectedAgents({ connections, max }: {
+  connections?: StackConnectionSummary[]
+  /** The per-stack cap, when one is configured. Renders "3 of 10". */
+  max?: number
+}) {
   if (!connections || connections.length === 0) return null
   return (
     <div className="p-col gap-8">
       <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
-        Connected agents · {connections.length}
+        Connected agents · {connections.length}{max != null && ` of ${max}`}
       </span>
       <div className="p-col gap-4">
         {connections.map(c => (
@@ -682,6 +690,7 @@ export function ConnectedAgents({ connections }: { connections?: StackConnection
  * a status that would claim the pod had stopped.
  */
 export function ConnectedToCard({ session }: { session: SetupSession }) {
+  const navigate = useNavigate()
   if (session.mode !== 'vta_only' || !session.connection_source) return null
 
   const orphaned = !!session.provider_gone
@@ -690,22 +699,29 @@ export function ConnectedToCard({ session }: { session: SetupSession }) {
   return (
     <div className="p-card" style={{ marginBottom: 16, ...(orphaned ? { borderColor: 'hsl(var(--destructive)/.4)' } : {}) }}>
       <div className="card-header">
-        <h3 className="card-title">Connected to</h3>
+        {/* "Connected to" would contradict the body once the stack is gone. */}
+        <h3 className="card-title">{orphaned ? 'Stack connection' : 'Connected to'}</h3>
       </div>
       <div className="card-content p-col gap-8" style={{ paddingTop: 14 }}>
         {orphaned ? (
           <>
             <span className="text-sm" style={{ fontWeight: 600, color: 'hsl(var(--destructive))' }}>
-              This stack no longer exists
+              Disconnected — this stack was deleted
             </span>
             {/* Not "reconnect" and not "move": the agent's did:webvh contains
                 its host, so relocating it would mint a different identity.
-                There is no path back, and the copy must not imply one. */}
+                There is no path back, and the copy must not imply one — which
+                is why the button below creates an agent rather than fixing
+                this one. */}
             <span className="field-hint">
-              The stack this agent connected to has been deleted. The agent is still running, but it
-              can't resolve its DID or deliver messages. Create a new agent against a stack that's
-              running, then delete this one.
+              The agent is still running, but it can't resolve its DID or deliver messages. Create a
+              new agent on a running stack, then delete this one.
             </span>
+            <div style={{ marginTop: 4 }}>
+              <button className="btn btn-default btn-sm" onClick={() => navigate('/portal/create')}>
+                Create a new agent <span className="arrow">→</span>
+              </button>
+            </div>
           </>
         ) : (
           <>

@@ -72,6 +72,8 @@ export interface SharingResponse {
   /** Absent when the stack isn't shareable — never offer a code that would be refused. */
   share_code?: string
   connections?: StackConnectionSummary[]
+  /** How many agents this stack may host. Absent when the cap is off. */
+  connections_max?: number
 }
 
 export interface SetupSession {
@@ -84,6 +86,8 @@ export interface SetupSession {
   share_code?: string
   /** full_stack: other people's agents connected here. Deleting the stack breaks all of them. */
   connections?: StackConnectionSummary[]
+  /** full_stack: how many agents this stack may host. Absent when the cap is off. */
+  connections_max?: number
   /** full_stack, list view: how many agents depend on this stack. */
   connection_count?: number
   /** vta_only: where its mediator and DID hosting came from. */

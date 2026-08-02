@@ -360,7 +360,6 @@ export function SessionDetailView() {
               {isFullStackCompleted && <VtcInstallConfigRow {...vtcInstall} />}
             </div>
           </div>
-          {isFullStackCompleted && <AdminKeysCard session={session} />}
           {/* Hand this stack's mediator and DID hosting to someone else's
               VTA-only agent. Refetches so the delete confirm below sees the
               connection list the moment it changes. */}
@@ -375,6 +374,9 @@ export function SessionDetailView() {
               onUpgraded={() => api.getSession(sessionId).then(setSession).catch(() => {})}
             />
           )}
+          {/* Secrets sit last before Danger Zone — both are things you visit
+              deliberately, not while reading the page top to bottom. */}
+          {isFullStackCompleted && <AdminKeysCard session={session} />}
           {/* Danger Zone */}
           <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
             <div className="card-header">
