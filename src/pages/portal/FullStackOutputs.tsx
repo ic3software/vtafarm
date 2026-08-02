@@ -8,7 +8,7 @@ import {
   type SharingResponse,
   type StackConnectionSummary,
 } from '@/lib/api'
-import { useCopyState, statusBadge } from './portalUtils'
+import { useCopyState } from './portalUtils'
 import { userSessionActions, type SessionActionApi } from './sessionActions'
 
 function CopyIcon({ copied }: { copied: boolean }) {
@@ -664,15 +664,20 @@ export function ConnectedAgents({ connections, max }: {
       <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
         Connected agents · {connections.length}{max != null && ` of ${max}`}
       </span>
-      <div className="p-col gap-4">
+      {/* Names only. A status badge would report someone else's agent, which
+          the owner can neither act on nor is owed; what deleting this stack
+          costs them is spelled out in the delete confirm, agent by agent.
+
+          list-style and padding are restated because Tailwind's preflight
+          strips both, and spacing rides on line-height rather than a flex gap
+          — flex items drop their ::marker. */}
+      <ol style={{ margin: 0, paddingLeft: 22, listStyle: 'decimal' }}>
         {connections.map(c => (
-          <div key={c.vta_name} className="p-row between center" style={{ gap: 12 }}>
-            <span className="p-mono text-xs" style={{ wordBreak: 'break-all' }}>{c.vta_name}</span>
-            {statusBadge(c.status)}
-          </div>
+          <li key={c.vta_name} className="p-mono text-xs" style={{ wordBreak: 'break-all', lineHeight: 1.7 }}>
+            {c.vta_name}
+          </li>
         ))}
-      </div>
-      <span className="field-hint">Deleting this stack will stop these agents working.</span>
+      </ol>
     </div>
   )
 }
