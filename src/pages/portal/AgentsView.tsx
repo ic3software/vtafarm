@@ -15,8 +15,12 @@ export function AgentsView() {
   // Don't send someone into a form they can't submit. Fail open: until
   // availability resolves — or if the call fails — the button stays live and
   // POST /setup remains the authoritative gate.
+  // custom_target_allowed matters here too: a farm with no platform stack can
+  // still create a VTA-only agent against a stack somebody shared, so the
+  // button must not be disabled on the default path alone.
   const canCreate = !availability ||
     availability.vta_only.available ||
+    availability.vta_only.custom_target_allowed === true ||
     (betaAccess && availability.full_stack.available)
   // With one mode blocked the reason is unambiguous; with both, VTA-only's is
   // the one that applies to every account.
@@ -114,6 +118,14 @@ export function AgentsView() {
                           {/* Only worth naming when it isn't the default — a
                               "managed" tag on every row is noise. */}
                           {s.domain_type && s.domain_type !== 'managed' && s.domain && <> · {s.domain}</>}
+                          {/* An orphaned agent still reads `running`, because it
+                              is — nothing of its own was touched. Without a
+                              marker here nothing on this row would give away
+                              that it can no longer deliver a message. */}
+                          {s.provider_gone && (
+                            <span style={{ color: 'hsl(var(--destructive))' }}> · stack deleted</span>
+                          )}
+                          {!!s.connection_count && <> · {s.connection_count} connected</>}
                         </span>
                       </div>
                     </div>

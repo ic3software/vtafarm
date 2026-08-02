@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef, type MouseEvent } from 'react'
-import { type SetupSession, type SetupSessionUrls, type SetupSessionCollected } from '@/lib/api'
+import { useNavigate } from 'react-router-dom'
+import {
+  api,
+  type SetupSession,
+  type SetupSessionUrls,
+  type SetupSessionCollected,
+  type SharingResponse,
+  type StackConnectionSummary,
+} from '@/lib/api'
 import { useCopyState } from './portalUtils'
 import { userSessionActions, type SessionActionApi } from './sessionActions'
 
@@ -435,9 +443,8 @@ export function AdminKeysCard({ session }: { session: SetupSession }) {
       <div className="card-header">
         <h3 className="card-title">Admin DIDs &amp; Private Keys</h3>
         <p className="card-desc">
-          Mediator and DID hosting admin identities, plus the private keys backing them — shown
-          once for offline backup (e.g. a password manager). They stay visible here until you
-          delete this agent, so remove the keys from view once you've saved them.
+          Mediator and DID hosting admin identities and their private keys. Save them in a password
+          manager, then hide them again — they stay here until you delete this agent.
         </p>
       </div>
       <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
@@ -452,6 +459,291 @@ export function AdminKeysCard({ session }: { session: SetupSession }) {
         )}
         {session.webvh_admin_key && (
           <SecretRow label="WebVH admin key" value={session.webvh_admin_key} hint="Multibase private key for the DID hosting admin DID." copyKey="key-webvh" copiedKey={copiedKey} onCopy={copy} />
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Sharing ──────────────────────────────────────────────────────────────────
+
+/**
+ * Lets the owner of a full stack hand out a connection bundle, so somebody
+ * else's VTA-only agent can use this stack's mediator and DID hosting.
+ *
+ * The switch is the grant. There is no separate "generate" step: turning
+ * sharing on mints the code, turning it off clears it, and New code replaces
+ * it.
+ *
+ * All three gate *joining*, never membership — which is the one thing people
+ * will get wrong, so both confirms say it. There is no way to remove a single
+ * connection; the stronger lever is deleting the stack, which stops everyone.
+ */
+export function ShareStackCard({
+  session, onChanged,
+}: {
+  session: SetupSession
+  onChanged?: (r: SharingResponse) => void
+}) {
+  const { copiedKey, copy } = useCopyState()
+  const [shared, setShared] = useState(!!session.shared)
+  const [code, setCode] = useState<string | undefined>(session.share_code)
+  const [connections, setConnections] = useState<StackConnectionSummary[]>(session.connections ?? [])
+  const [max, setMax] = useState(session.connections_max)
+  const [busy, setBusy] = useState<'enable' | 'rotate' | 'disable' | null>(null)
+  const [error, setError] = useState('')
+  const [confirming, setConfirming] = useState<'rotate' | 'disable' | null>(null)
+
+  // Adopt fresh server state when the polled session changes, without
+  // clobbering an in-flight action (React "adjust state on prop change").
+  const [seen, setSeen] = useState(session)
+  if (seen !== session && !busy) {
+    setSeen(session)
+    setShared(!!session.shared)
+    setCode(session.share_code)
+    setConnections(session.connections ?? [])
+    setMax(session.connections_max)
+  }
+
+  // Only a running stack can serve a connection, so offering the panel earlier
+  // would only ever produce a bundle that gets refused on arrival.
+  if (session.mode !== 'full_stack' || session.status !== 'running') return null
+
+  async function run(action: 'enable' | 'rotate' | 'disable') {
+    setBusy(action)
+    setError('')
+    setConfirming(null)
+    try {
+      const r = await api.setSharing(session.id, action)
+      setShared(r.shared)
+      setCode(r.share_code)
+      setConnections(r.connections ?? [])
+      setMax(r.connections_max)
+      onChanged?.(r)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not update sharing')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return (
+    <div className="p-card" style={{ marginBottom: 16 }}>
+      <div className="card-header">
+        <h3 className="card-title">Share this stack</h3>
+        <p className="card-desc">
+          Send someone a code and their VTA-only agent can use this stack's mediator and DID hosting.
+        </p>
+      </div>
+
+      <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+        <div className="p-row between center" style={{ gap: 12 }}>
+          <div className="p-col" style={{ minWidth: 0 }}>
+            <span className="text-sm" style={{ fontWeight: 600 }}>
+              {shared ? 'Sharing is on' : 'Sharing is off'}
+            </span>
+            {/* Only while off. Once the code is on screen under its own label,
+                saying that people can connect with it is restating it. */}
+            {!shared && (
+              <span className="field-hint" style={{ marginTop: 2 }}>No one new can connect.</span>
+            )}
+          </div>
+          <div className="p-row gap-8" style={{ flexShrink: 0 }}>
+            {shared && (
+              <button
+                className="btn btn-outline btn-sm"
+                disabled={!!busy}
+                onClick={() => setConfirming('rotate')}
+              >
+                {busy === 'rotate' ? 'Working…' : 'New code'}
+              </button>
+            )}
+            {/* Primary while off — turning sharing on is the whole point of the
+                card, and a bare `btn` has no background or border at all. */}
+            <button
+              className={shared ? 'btn btn-outline btn-sm' : 'btn btn-default'}
+              disabled={!!busy}
+              onClick={() => (shared ? setConfirming('disable') : run('enable'))}
+            >
+              {busy === 'enable' || busy === 'disable'
+                ? 'Working…'
+                : shared ? 'Turn off' : 'Turn on sharing'}
+            </button>
+          </div>
+        </div>
+
+        {/* Both confirms repeat the same distinction, because it is the one
+            people get wrong: the code controls who may join, not who is
+            already in. */}
+        {confirming && (
+          <div className="p-alert alert-warning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+            <div className="grow">
+              <p className="alert-title">{confirming === 'rotate' ? 'Issue a new code?' : 'Turn sharing off?'}</p>
+              <p className="alert-desc">
+                {confirming === 'rotate'
+                  ? 'The code you already shared stops working. Agents already connected keep running.'
+                  : 'No one new can connect. Agents already connected keep running.'}
+              </p>
+              <div className="p-row gap-8" style={{ marginTop: 10 }}>
+                <button className="btn btn-default btn-sm" onClick={() => run(confirming)}>
+                  {confirming === 'rotate' ? 'Issue new code' : 'Turn off'}
+                </button>
+                <button className="btn btn-outline btn-sm" onClick={() => setConfirming(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <p className="text-sm" style={{ color: 'hsl(var(--destructive))', margin: 0 }}>{error}</p>
+        )}
+
+        {/* The whole handover. Big and monospaced because it is meant to be
+            read aloud as much as copied — which is also why the format
+            carries a check character. */}
+        {shared && code && (
+          <div className="p-col gap-8">
+            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+              Share code
+            </span>
+            <div className="p-row between center" style={{ gap: 12 }}>
+              <span
+                className="p-mono"
+                style={{ fontSize: 20, fontWeight: 600, letterSpacing: '.08em', wordBreak: 'break-all' }}
+              >
+                {code}
+              </span>
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ flexShrink: 0, gap: 6 }}
+                onClick={() => copy('share-code', code)}
+              >
+                <CopyIcon copied={copiedKey === 'share-code'} />
+                {copiedKey === 'share-code' ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Where "you can't remove one of these" is said, if it needs saying:
+            in the confirms that act on the code, and above the Delete button —
+            not as a standing caveat on the card. */}
+        <ConnectedAgents connections={connections} max={max} />
+
+        {/* The capacity being spent is the owner's, so the number lives here
+            rather than on the page of the person spending it. Only once
+            sharing is on: "0 of 10" against a closed stack is a budget for
+            something that cannot happen. */}
+        {shared && connections.length === 0 && max != null && (
+          <span className="field-hint" style={{ margin: 0 }}>
+            0 of {max} agents connected
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Other people's agents connected to this stack.
+ *
+ * Read-only: there is no per-connection action because there is no
+ * per-connection API. The list exists because deleting this stack is allowed
+ * and breaks every agent on it, so the owner has to be able to see that from
+ * the page where Delete lives.
+ */
+export function ConnectedAgents({ connections, max }: {
+  connections?: StackConnectionSummary[]
+  /** The per-stack cap, when one is configured. Renders "3 of 10". */
+  max?: number
+}) {
+  if (!connections || connections.length === 0) return null
+  return (
+    <div className="p-col gap-8">
+      <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+        Connected agents · {connections.length}{max != null && ` of ${max}`}
+      </span>
+      {/* Names only. A status badge would report someone else's agent, which
+          the owner can neither act on nor is owed; what deleting this stack
+          costs them is spelled out in the delete confirm, agent by agent.
+
+          list-style and padding are restated because Tailwind's preflight
+          strips both, and spacing rides on line-height rather than a flex gap
+          — flex items drop their ::marker. */}
+      <ol style={{ margin: 0, paddingLeft: 22, listStyle: 'decimal' }}>
+        {connections.map(c => (
+          <li key={c.vta_name} className="p-mono text-xs" style={{ wordBreak: 'break-all', lineHeight: 1.7 }}>
+            {c.vta_name}
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
+/**
+ * Which stack a VTA-only agent is connected to.
+ *
+ * The first question when an agent misbehaves is whose infrastructure it is on,
+ * and until now the answer was a bare mediator DID.
+ *
+ * There is no `disconnected` status and the badge deliberately still reads
+ * `running` when the provider is gone — the agent **is** running, since nothing
+ * in a provider teardown touches the consumer's namespace. What it cannot do is
+ * resolve its own DID or reach a mediator, and that belongs here rather than in
+ * a status that would claim the pod had stopped.
+ */
+export function ConnectedToCard({ session }: { session: SetupSession }) {
+  const navigate = useNavigate()
+  if (session.mode !== 'vta_only' || !session.connection_source) return null
+
+  const orphaned = !!session.provider_gone
+  const platform = session.connection_source === 'platform'
+
+  return (
+    <div className="p-card" style={{ marginBottom: 16, ...(orphaned ? { borderColor: 'hsl(var(--destructive)/.4)' } : {}) }}>
+      <div className="card-header">
+        {/* "Connected to" would contradict the body once the stack is gone. */}
+        <h3 className="card-title">{orphaned ? 'Stack connection' : 'Connected to'}</h3>
+      </div>
+      <div className="card-content p-col gap-8" style={{ paddingTop: 14 }}>
+        {orphaned ? (
+          <>
+            <span className="text-sm" style={{ fontWeight: 600, color: 'hsl(var(--destructive))' }}>
+              Disconnected — this stack was deleted
+            </span>
+            {/* Not "reconnect" and not "move": the agent's did:webvh contains
+                its host, so relocating it would mint a different identity.
+                There is no path back, and the copy must not imply one — which
+                is why the button below creates an agent rather than fixing
+                this one. */}
+            <span className="field-hint">
+              The agent is still running, but it can't resolve its DID or deliver messages. Create a
+              new agent on a running stack, then delete this one.
+            </span>
+            <div style={{ marginTop: 4 }}>
+              <button className="btn btn-default btn-sm" onClick={() => navigate('/portal/create')}>
+                Create a new agent <span className="arrow">→</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <span className="text-sm" style={{ fontWeight: 600 }}>
+              {platform ? 'Platform stack' : session.provider ?? 'A stack on this farm'}
+            </span>
+            <span className="field-hint">
+              {platform
+                ? 'The shared mediator and DID hosting this farm runs.'
+                : "Another user's Full Stack. If its owner deletes it, this agent stops working."}
+            </span>
+          </>
+        )}
+        {session.mediator_did && (
+          <span className="p-mono text-xs p-muted" style={{ wordBreak: 'break-all', marginTop: 4 }}>
+            mediator&nbsp; {session.mediator_did}
+          </span>
         )}
       </div>
     </div>

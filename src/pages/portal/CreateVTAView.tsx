@@ -2,7 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession, type SetupAvailability, type Domain } from '@/lib/api'
 import type { PortalContext } from './Portal'
-import { statusBadge, FULL_STACK_PHASES, isValidAdminDid, componentHost, useDomainInfo } from './portalUtils'
+import {
+  statusBadge, FULL_STACK_PHASES, isValidAdminDid, componentHost, useDomainInfo,
+  isWellFormedShareCode, connectionRefusalMessage,
+} from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullStackCreateProgress } from './FullStackCreateProgress'
@@ -38,6 +41,18 @@ export function CreateVTAView() {
   // On a fixed-label domain one label replaces both names — neither reaches a
   // hostname there, and their only surviving job is the did:webvh path.
   const [label, setLabel] = useState('myagent')
+  // Which stack a VTA-only agent connects to. 'platform' is the default and
+  // today's behaviour; 'custom' points it at a stack somebody shared.
+  const [target, setTarget] = useState<'platform' | 'custom'>('platform')
+  const [shareCode, setShareCode] = useState('')
+  const [bundleError, setBundleError] = useState('')
+  const [checking, setChecking] = useState(false)
+  // Rendered from the SERVER's answer, never from the pasted text — see the
+  // comment on checkBundle.
+  const [confirmed, setConfirmed] = useState<{
+    stack: string; farm: string; mediator_did: string; did_hosting_server_url: string
+    connections_used?: number; connections_max?: number
+  } | null>(null)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -252,8 +267,47 @@ export function CreateVTAView() {
     ? domains.find(d => String(d.id) === domainChoice) ?? null
     : null
 
+  /**
+   * Checks the shape locally, then asks the server which stack the code opens.
+   *
+   * The second step is the only source of anything shown about that stack — a
+   * code carries no information, so there is nothing to render from except this
+   * response. That is deliberate: it makes presenting the sender's claims as
+   * facts structurally impossible rather than merely discouraged.
+   *
+   * The local step is worth having anyway. The check character turns an
+   * ordinary typo into an instant, certain answer instead of a round trip that
+   * ends in the deliberately vague "that code doesn't open anything here".
+   */
+  async function checkBundle(text: string) {
+    setConfirmed(null)
+    const trimmed = text.trim()
+    if (!trimmed) { setBundleError(''); return }
+    if (!isWellFormedShareCode(trimmed)) {
+      setBundleError("That doesn't look like a share code — check it against what you were sent.")
+      return
+    }
+
+    setBundleError('')
+    setChecking(true)
+    try {
+      setConfirmed(await api.validateConnection(trimmed))
+    } catch (err) {
+      const reason = (err as { reason?: string })?.reason
+      setBundleError(connectionRefusalMessage(
+        reason,
+        err instanceof Error ? err.message : 'Could not check that bundle',
+      ))
+    } finally {
+      setChecking(false)
+    }
+  }
+
   async function handleCreate() {
     if (!selectedImage) { setCreateError('Select a VTA image'); return }
+    // No share-code check here: `needsShareCode` disables the button, so a
+    // second message down here could only ever duplicate the refusal already
+    // sitting under the field.
     if (mode !== 'vta_only' && (!selectedMediatorImage || !selectedDidsImage)) {
       setCreateError('Select a mediator and DID hosting image'); return
     }
@@ -273,11 +327,19 @@ export function CreateVTAView() {
         ...(mode !== 'vta_only' ? { mediator_image: selectedMediatorImage, dids_image: selectedDidsImage } : {}),
         ...(mode === 'full_stack' ? { vtc_image: selectedVtcImage } : {}),
         ...(mode === 'full_stack' && !selectedDomain ? { vtc_name: vtcName } : {}),
+        ...(mode === 'vta_only' && target === 'custom' && shareCode ? { share_code: shareCode.trim() } : {}),
       })
       setSessionId(r.id)
       setStage(1)
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Failed to create session')
+      // Create re-runs every check validate ran: the stack can stop running,
+      // rotate its code or fill up in between, so the same mapping has to be
+      // wired to both.
+      const reason = (err as { reason?: string })?.reason
+      setCreateError(connectionRefusalMessage(
+        reason,
+        err instanceof Error ? err.message : 'Failed to create session',
+      ))
     } finally {
       setCreating(false)
     }
@@ -341,9 +403,31 @@ export function CreateVTAView() {
   // screen reads one field and shows the server's own sentence rather than
   // guessing at a reason.
   const modeAvailability = availability?.[mode]
-  const modeUnavailable = modeAvailability ? !modeAvailability.available : false
   const blockedOnPlatformStack = modeAvailability?.reason?.startsWith('platform_stack') === true ||
     modeAvailability?.reason === 'shared_infra_unconfigured'
+  // `available` describes the DEFAULT path only. A VTA-only agent pointed at a
+  // stack somebody shared needs no platform stack at all, so a missing one
+  // disables that one option rather than the whole mode — the platform stack is
+  // a default, not a prerequisite.
+  const platformTargetBlocked = mode === 'vta_only' && blockedOnPlatformStack
+  const modeUnavailable = modeAvailability
+    ? mode === 'vta_only'
+      ? !modeAvailability.available && !(modeAvailability.custom_target_allowed && target === 'custom')
+      : !modeAvailability.available
+    : false
+
+  // Nothing to create until a code has resolved to a stack. The reason is
+  // already on screen under the field — a refusal message, or "Checking…" —
+  // so the dead button never needs to explain itself.
+  const needsShareCode = mode === 'vta_only' && target === 'custom' && (!confirmed || checking)
+
+  // When the default path is closed but Customize is open, select it: the only
+  // working path should not also be the one the user has to go find.
+  const [autoTargeted, setAutoTargeted] = useState(false)
+  if (!autoTargeted && platformTargetBlocked && modeAvailability?.custom_target_allowed) {
+    setAutoTargeted(true)
+    setTarget('custom')
+  }
 
   const showingSetupLogs = stage === 1 && setupStreamStarted && !setupLogsDone
   // Only use status as fallback when we never entered the log-streaming phase
@@ -417,13 +501,19 @@ export function CreateVTAView() {
                       </>
                     )}
                     {/* A VTA-only user whose only blocker is the missing shared
-                        infrastructure can't do anything about it themselves —
-                        point at the one mode that doesn't depend on it, but only
-                        when they can actually pick it. */}
-                    {blockedOnPlatformStack && betaAccess && mode === 'vta_only' &&
-                      availability?.full_stack.available && (
-                        <> A Full Stack agent runs its own mediator and DID hosting, so it can be created now.</>
-                      )}
+                        infrastructure can't do anything about it themselves.
+                        Connecting to a stack somebody shared is the direct way
+                        out and needs no beta access, so it comes first; Full
+                        Stack is the fallback, and only when they can pick it. */}
+                    {blockedOnPlatformStack && mode === 'vta_only' && (
+                      <>
+                        {' '}If someone has shared a stack with you, choose <strong>Customize</strong> above
+                        and paste their connection bundle — that doesn't depend on the platform stack.
+                        {betaAccess && availability?.full_stack.available && (
+                          <> A Full Stack agent runs its own mediator and DID hosting, so it can also be created now.</>
+                        )}
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -444,6 +534,93 @@ export function CreateVTAView() {
                   : 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon + Verifiable Trust Community just for you.'}
               </div>
             </div>
+
+            {/* Which stack this agent connects to. Placed above the name and
+                image fields because it changes what the rest of the form means. */}
+            {mode === 'vta_only' && (
+              <div>
+                <div className="p-label">Connect to <span className="req">*</span></div>
+                <div className="p-tabs full">
+                  <button
+                    type="button"
+                    className="p-tab"
+                    data-active={target === 'platform'}
+                    disabled={platformTargetBlocked}
+                    style={platformTargetBlocked ? { opacity: .55, cursor: 'not-allowed' } : undefined}
+                    onClick={() => setTarget('platform')}
+                  >
+                    Platform stack
+                  </button>
+                  <button type="button" className="p-tab" data-active={target === 'custom'} onClick={() => setTarget('custom')}>
+                    Customize
+                  </button>
+                </div>
+                <div className="field-hint">
+                  {target === 'platform'
+                    ? platformTargetBlocked
+                      ? "The shared mediator and DID hosting aren't available — paste a bundle for a stack somebody shared with you instead."
+                      : 'Uses the shared mediator and DID hosting this farm runs.'
+                    : 'Uses a Full Stack somebody else runs here and shared with you.'}
+                </div>
+              </div>
+            )}
+
+            {mode === 'vta_only' && target === 'custom' && (
+              <div>
+                <label className="p-label" htmlFor="cv-bundle">Share code <span className="req">*</span></label>
+                <input
+                  id="cv-bundle"
+                  className="p-input p-mono"
+                  style={{ letterSpacing: '.06em' }}
+                  placeholder="K7M2-9XQP-4B8W-3NRT"
+                  value={shareCode}
+                  onChange={e => {
+                    const v = e.target.value
+                    setShareCode(v); setConfirmed(null); setBundleError('')
+                    // Check as soon as the code is structurally complete. The
+                    // Create button is disabled until one resolves, and a
+                    // disabled button takes no pointer events — so waiting for
+                    // the blur its click used to cause would strand anyone who
+                    // types the code instead of pasting it. The check character
+                    // is what makes this one call rather than one per keystroke.
+                    if (isWellFormedShareCode(v.trim())) checkBundle(v)
+                  }}
+                  onBlur={e => checkBundle(e.target.value)}
+                  onPaste={e => {
+                    const text = e.clipboardData.getData('text')
+                    if (text) setTimeout(() => checkBundle(text), 0)
+                  }}
+                />
+
+                {checking && <div className="field-hint" style={{ marginTop: 6 }}>Checking…</div>}
+
+                {bundleError && (
+                  <p className="text-sm" style={{ color: 'hsl(var(--destructive))', margin: '8px 0 0' }}>{bundleError}</p>
+                )}
+
+                {/* Every value here came from the server. A code carries none
+                    of it, so there is nothing else this could be built from —
+                    which is the point. The code itself is never echoed back: it
+                    is a credential on a screen somebody may be sharing. */}
+                {confirmed && !checking && (
+                  <div className="p-card" style={{ marginTop: 10, background: 'hsl(var(--muted)/.4)', border: 'none' }}>
+                    <div className="card-content p-col gap-8" style={{ padding: '12px 16px' }}>
+                      <div className="p-col gap-4">
+                        <span className="p-mono text-xs p-muted" style={{ wordBreak: 'break-all' }}>
+                          mediator&nbsp; {confirmed.mediator_did}
+                        </span>
+                        <span className="p-mono text-xs p-muted" style={{ wordBreak: 'break-all' }}>
+                          DID host&nbsp; {confirmed.did_hosting_server_url}
+                        </span>
+                      </div>
+                      {/* The stack's remaining capacity is the owner's number,
+                          shown on their page. Create either succeeds or is
+                          refused with `stack_at_conn_limit`. */}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {mode === 'full_stack' && (
               <div>
                 <label className="p-label" htmlFor="cv-domain">Domain</label>
@@ -646,7 +823,7 @@ export function CreateVTAView() {
                   ? '4 DNS records are created immediately after session creation.'
                   : 'A DNS record is created immediately after session creation.'}
             </span>
-            <button className="btn btn-default" onClick={handleCreate} disabled={creating || modeUnavailable}>
+            <button className="btn btn-default" onClick={handleCreate} disabled={creating || modeUnavailable || needsShareCode}>
               {creating ? 'Creating…' : modeUnavailable ? 'Unavailable' : <>Create session <span className="arrow">→</span></>}
             </button>
           </div>

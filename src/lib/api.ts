@@ -58,10 +58,48 @@ export interface SetupSessionActionRequired {
   claim_code?: string
 }
 
+/** One agent connected to a stack. Name and status only — it belongs to someone else. */
+export interface StackConnectionSummary {
+  vta_name: string
+  status: SetupStatus
+}
+
+/** Where a VTA-only agent's mediator and DID hosting came from. */
+export type ConnectionSource = 'platform' | 'in_farm'
+
+export interface SharingResponse {
+  shared: boolean
+  /** Absent when the stack isn't shareable — never offer a code that would be refused. */
+  share_code?: string
+  connections?: StackConnectionSummary[]
+  /** How many agents this stack may host. Absent when the cap is off. */
+  connections_max?: number
+}
+
 export interface SetupSession {
   id: string
   status: SetupStatus
   mode: SetupMode
+  /** full_stack: whether this stack currently accepts new connections. */
+  shared?: boolean
+  /** full_stack: the code to hand out, grouped for display. Absent unless `shared`. */
+  share_code?: string
+  /** full_stack: other people's agents connected here. Deleting the stack breaks all of them. */
+  connections?: StackConnectionSummary[]
+  /** full_stack: how many agents this stack may host. Absent when the cap is off. */
+  connections_max?: number
+  /** full_stack, list view: how many agents depend on this stack. */
+  connection_count?: number
+  /** vta_only: where its mediator and DID hosting came from. */
+  connection_source?: ConnectionSource
+  /** vta_only + in_farm: the stack it connected to. */
+  provider?: string
+  /**
+   * vta_only + in_farm: that stack has been deleted. The agent keeps running —
+   * nothing of its own was touched — but its DID no longer resolves and its
+   * mediator is gone.
+   */
+  provider_gone?: boolean
   /** managed | custom | platform — where this session's hostnames come from. */
   domain_type?: DomainType
   /** The zone the hostnames sit under (`firstperson.dev`, `aaa.com`). */
@@ -104,10 +142,25 @@ export type UnavailableReason =
 /** Whether one mode can be created, and if not, why. */
 export interface ModeAvailability {
   count: number
+  /**
+   * Whether this mode can be created **by its default path** — for `vta_only`,
+   * against the platform stack. No longer the whole story for that mode: read
+   * `custom_target_allowed` alongside it.
+   */
   available: boolean
   reason?: UnavailableReason
   /** A sentence to show the user. Prefer it over composing copy client-side. */
   detail?: string
+  /**
+   * `vta_only` only. Whether an agent can be created against a stack the caller
+   * names with a connection bundle.
+   *
+   * Survives every `reason` except `at_capacity`, because the platform stack is
+   * a *default*, not a prerequisite for the mode. Disable the platform option
+   * rather than the whole mode, and preselect Customize when this is the only
+   * path left open.
+   */
+  custom_target_allowed?: boolean
 }
 
 /**
@@ -274,6 +327,16 @@ export interface AdminSetupSession {
   dids_image?: string
   vtc_image?: string
   created_at: string
+  /** vta_only: where its mediator and DID hosting came from. */
+  connection_source?: ConnectionSource
+  /** vta_only + in_farm: the stack it connected to. */
+  provider?: string
+  /** vta_only + in_farm: that stack has been deleted. */
+  provider_gone?: boolean
+  /** full_stack: whether it currently accepts new connections. */
+  shared?: boolean
+  /** full_stack: how many agents depend on it. Both matter before deleting one. */
+  connection_count?: number
 }
 
 /**
@@ -480,10 +543,17 @@ export interface SessionUpgrade {
 
 interface ApiError extends Error {
   status: number
+  /**
+   * The API's machine-readable refusal code, where it sends one (connection
+   * bundles, create availability). Carried alongside `message` so callers can
+   * map to their own copy — the server's `detail` sentence is the fallback, not
+   * the only option.
+   */
+  reason?: string
 }
 
-function apiError(msg: string, status: number): ApiError {
-  return Object.assign(new Error(msg), { status }) as ApiError
+function apiError(msg: string, status: number, reason?: string): ApiError {
+  return Object.assign(new Error(msg), { status, reason }) as ApiError
 }
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -497,7 +567,7 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   const data = await res.json().catch(() => ({ error: res.statusText }))
   if (!res.ok) {
     if (res.status === 401) window.dispatchEvent(new Event('vtafarm:unauthorized'))
-    throw apiError(data.error ?? 'Request failed', res.status)
+    throw apiError(data.error ?? 'Request failed', res.status, data.reason)
   }
   return data as T
 }
@@ -683,6 +753,15 @@ export const api = {
      * with them — sending both is a 400.
      */
     label?: string
+    /**
+     * vta_only only. Points the agent at a full stack in this farm other than
+     * the platform one. Omitted → the platform stack, unchanged.
+     *
+     * Validate it first (`validateConnection`) so the user sees which stack
+     * they are joining; this call re-runs every check regardless, and can still
+     * fail with the same reasons if the stack changed in between.
+     */
+    share_code?: string
   }) => req<{ id: string; status: string; url?: string; urls?: SetupSessionUrls }>('POST', '/api/v1/setup', data),
 
   // ── Domains ──────────────────────────────────────────────────────────────────
@@ -714,4 +793,36 @@ export const api = {
     req<{ install_url: string; claim_code: string }>('POST', `/api/v1/setup/${id}/vtc/reissue-install`),
   ackVtcInstall: (id: string) =>
     req<{ vtc_install_used: boolean }>('POST', `/api/v1/setup/${id}/vtc/install-ack`),
+
+  // ── Stack connections ────────────────────────────────────────────────────────
+  /**
+   * Mint, replace or clear the share code for a full stack.
+   *
+   * All three gate *joining*, never membership: agents already connected keep
+   * running, and there is no way to remove one. The stronger lever is deleting
+   * the stack, which stops everyone. Say so in any confirm.
+   */
+  setSharing: (id: string, action: 'enable' | 'rotate' | 'disable') =>
+    req<SharingResponse>('PUT', `/api/v1/setup/${id}/sharing`, { action }),
+  /**
+   * Check a share code without creating anything, so the create form can tell
+   * the user which stack it opens.
+   *
+   * This is the only way that confirmation can exist: a code carries no
+   * information, so there is nothing to render from except this response — which
+   * makes presenting the sender's claims as facts structurally impossible.
+   *
+   * Not authoritative — `createSession` re-runs every check, and can still
+   * refuse if the stack stopped running, rotated its code or filled up in
+   * between.
+   */
+  validateConnection: (code: string) =>
+    req<{
+      stack: string
+      farm: string
+      mediator_did: string
+      did_hosting_server_url: string
+      connections_used?: number
+      connections_max?: number
+    }>('POST', '/api/v1/setup/connection/validate', { code }),
 }

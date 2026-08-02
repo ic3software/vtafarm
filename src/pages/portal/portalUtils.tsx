@@ -200,3 +200,80 @@ const ADMIN_DID_RE = /^did:key:z[1-9A-HJ-NP-Za-km-z]+$/
 export function isValidAdminDid(s: string): boolean {
   return ADMIN_DID_RE.test(s)
 }
+
+// ── Stack connection bundles ─────────────────────────────────────────────────
+
+// Mirrors internal/setup/sharecode.go. The two must agree: this decides whether
+// a code is even worth sending, and the server decides whether it opens
+// anything.
+const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
+const CROCKFORD_CHECK = CROCKFORD + '*~$=U'
+const SHARE_CODE_DATA_LEN = 15
+
+/**
+ * Folds a share code to the form the server compares: dashes and whitespace
+ * gone, uppercased, and the glyphs people substitute anyway mapped back the way
+ * Crockford specifies (I and L to 1, O to 0).
+ */
+export function normalizeShareCode(code: string): string {
+  let out = ''
+  for (const ch of code.toUpperCase()) {
+    if (ch === '-' || /\s/.test(ch)) continue
+    if (ch === 'I' || ch === 'L') out += '1'
+    else if (ch === 'O') out += '0'
+    else out += ch
+  }
+  return out
+}
+
+function crockfordCheckSymbol(data: string): string {
+  let rem = 0
+  for (const ch of data) {
+    const v = CROCKFORD.indexOf(ch)
+    if (v < 0) return ''
+    rem = (rem * 32 + v) % 37
+  }
+  return CROCKFORD_CHECK[rem]
+}
+
+/**
+ * Whether a share code is well-formed — right length, valid characters, and a
+ * check character that matches its data.
+ *
+ * This is what makes "you mistyped this" an instant, separate answer from "this
+ * code doesn't open anything here". The second is deliberately vague on the
+ * server (it covers five different situations on purpose), so a single
+ * hand-copied character would otherwise land in the least helpful message in
+ * the flow.
+ */
+export function isWellFormedShareCode(code: string): boolean {
+  const n = normalizeShareCode(code)
+  if (n.length !== SHARE_CODE_DATA_LEN + 1) return false
+  const data = n.slice(0, SHARE_CODE_DATA_LEN)
+  for (const ch of data) if (!CROCKFORD.includes(ch)) return false
+  return n[SHARE_CODE_DATA_LEN] === crockfordCheckSymbol(data)
+}
+
+/**
+ * Turns the API's refusal reason into a sentence.
+ *
+ * `invalid_bundle` covers five different server-side situations on purpose and
+ * this copy must not try to narrow it — guessing would mislead, and anything
+ * more specific would turn the field into a way to discover which stacks exist
+ * and which are shared. `isWellFormedShareCode` is what keeps an ordinary typo
+ * out of that message, which is the one a user cannot act on.
+ */
+export function connectionRefusalMessage(reason: string | undefined, fallback: string): string {
+  switch (reason) {
+    case 'bad_bundle':
+      return "That doesn't look like a share code — check it against what you were sent."
+    case 'invalid_bundle':
+      return 'That code doesn’t open anything here. The stack may have been deleted, or its owner may have turned sharing off or issued a new code — ask them for a current one.'
+    case 'stack_not_running':
+      return "That stack isn't ready right now. Ask its owner to check it, then try again."
+    case 'stack_at_connection_limit':
+      return 'That stack has reached its limit of connected agents. Ask an admin to raise the limit, or use a different stack.'
+    default:
+      return fallback
+  }
+}

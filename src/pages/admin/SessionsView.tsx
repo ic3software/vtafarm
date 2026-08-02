@@ -325,6 +325,7 @@ export function SessionsView() {
               <th>User</th>
               <th>Mode</th>
               <th>Domain</th>
+              <th>Stack</th>
               <th>Status</th>
               <th>Images</th>
               <th>Created</th>
@@ -334,13 +335,13 @@ export function SessionsView() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : sessions.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   No sessions yet.
                 </td>
               </tr>
@@ -374,6 +375,24 @@ export function SessionsView() {
                   <span className={`p-badge ${domainBadge[s.domain_type] ?? 'badge-secondary'}`}>
                     {s.domain_type}
                   </span>
+                </td>
+                {/* Support's first question about a broken agent is whose
+                    infrastructure it is on; before this it meant comparing URLs
+                    across two queries. For a full stack it is the reverse — how
+                    much breaks if this one goes. */}
+                <td style={{ fontSize: 12 }}>
+                  {s.mode === 'full_stack' ? (
+                    <span className="p-muted">
+                      {s.connection_count ? `${s.connection_count} connected` : '—'}
+                      {s.shared && <span title="Accepting new connections"> · shared</span>}
+                    </span>
+                  ) : s.provider_gone ? (
+                    <span style={{ color: 'hsl(var(--destructive))' }}>stack deleted</span>
+                  ) : s.provider ? (
+                    <span className="p-mono">{s.provider}</span>
+                  ) : (
+                    <span className="p-muted">platform</span>
+                  )}
                 </td>
                 <td title={s.error_msg || undefined}>
                   <span className={`p-badge ${statusBadge(s.status)}`}>{s.status}</span>
