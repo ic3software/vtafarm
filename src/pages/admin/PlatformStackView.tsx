@@ -10,6 +10,7 @@ import {
   CollectedDidsCard, EndpointConfigRows, AdminKeysCard,
 } from '../portal/FullStackOutputs'
 import { adminSessionActions } from '../portal/sessionActions'
+import { PlatformStackAdmins } from './PlatformStackAdmins'
 
 // The farm's own full_stack, running under our zone's fixed labels —
 // vta.{CLUSTER_DOMAIN}, vtc., mediator., dids. This is the only place it can be
@@ -554,6 +555,11 @@ export function PlatformStackView() {
               </div>
             </div>
           )}
+
+          {/* Only once the stack is running: the ACL is written by the pipeline
+              while the VTA is still down, and a grant before `deploy_vta` would
+              race the step that seeds it. */}
+          <PlatformStackAdmins stackLabel={stack.label ?? ''} />
 
           {sessionLike && <AdminKeysCard session={sessionLike} />}
         </>
