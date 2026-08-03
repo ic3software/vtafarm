@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import '@/styles/portal.css'
-import { useAdminAuth } from '@/contexts/AdminAuthContext'
+import { useAdminAuth } from '@/contexts/adminAuth'
 import { useTheme } from '@/lib/useTheme'
 import { initials } from '../portal/portalUtils'
 

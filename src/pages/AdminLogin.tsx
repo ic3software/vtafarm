@@ -3,7 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { startAuthentication } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
-import { useAdminAuth } from '@/contexts/AdminAuthContext'
+import { useAdminAuth } from '@/contexts/adminAuth'
 
 export function AdminLogin() {
   const { admin, setAdminSession } = useAdminAuth()

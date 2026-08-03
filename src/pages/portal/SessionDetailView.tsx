@@ -3,7 +3,8 @@ import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
 import { statusBadge, FULL_STACK_PHASES, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid, domainTypeBadge } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, VtcInstallAlert, VtcInstallConfigRow, useVtcInstall, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ShareStackCard, ConnectedToCard } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ShareStackCard, ConnectedToCard } from './FullStackOutputs'
+import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { SessionVersionsCard } from './SessionVersionsCard'
 import type { PortalContext } from './Portal'
 
@@ -31,6 +32,7 @@ export function SessionDetailView() {
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
+  const [deleteError, setDeleteError] = useState('')
   const [copiedVta, setCopiedVta] = useState(false)
 
   // Provision form (shown when status === 'vta_setup_complete')
@@ -76,6 +78,9 @@ export function SessionDetailView() {
       }).catch(() => {})
     }, 3000)
     return () => clearInterval(iv)
+    // Keyed on the status, not the object: this effect's own poll replaces
+    // `session` every tick, so depending on it would rebuild the interval.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, session?.status])
 
   useEffect(() => {
@@ -87,6 +92,9 @@ export function SessionDetailView() {
     es.addEventListener('done', () => es.close())
     es.onerror = () => es.close()
     return () => es.close()
+    // Keyed on the status, not the object: the 3s poll replaces `session` every
+    // tick, so depending on it would reconnect this stream continuously.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, session?.status])
 
   // Scroll only within the console body — not the whole page — as new lines arrive.
@@ -118,12 +126,18 @@ export function SessionDetailView() {
 
   async function handleDelete() {
     if (deleteInput !== name) return
+    setDeleteError('')
     setDeleting(true)
     try {
       await api.deleteSession(sessionId)
       loadSessions()
       navigate('/portal', { replace: true })
-    } catch {}
+    } catch (err) {
+      // Was silently swallowed: the spinner stopped, the agent was still there,
+      // and nothing said why. On a confirmed destructive action that reads as
+      // "it worked" until the list is refreshed.
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete the agent')
+    }
     setDeleting(false)
   }
 
@@ -461,6 +475,9 @@ export function SessionDetailView() {
                 <label className="p-label">Type the agent's name <span className="p-mono">{name}</span> to confirm</label>
                 <input className="p-input p-mono" placeholder={name} value={deleteInput} onChange={e => setDeleteInput(e.target.value)} />
               </div>
+              {deleteError && (
+                <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{deleteError}</p>
+              )}
             </div>
             <div className="dialog-footer">
               <button className="btn btn-ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>

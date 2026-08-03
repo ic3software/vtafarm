@@ -5,10 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PhaseStepper } from '../portal/PhaseStepper'
 import { FULL_STACK_PHASES, phaseIndex, statusBadge, useCopyState, isValidAdminDid, componentHost, useDomainInfo } from '../portal/portalUtils'
 import {
-  DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll,
-  VtcInstallAlert, VtcInstallConfigRow, useVtcInstall,
-  CollectedDidsCard, EndpointConfigRows, AdminKeysCard,
+  DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard,
 } from '../portal/FullStackOutputs'
+import { useDidsEnroll, useVtcInstall } from '../portal/fullStackHooks'
 import { adminSessionActions } from '../portal/sessionActions'
 import { PlatformStackAdmins } from './PlatformStackAdmins'
 

@@ -26,7 +26,8 @@ import { SecurityView } from '@/pages/admin/SecurityView'
 import { Register } from '@/pages/Register'
 import { Recover } from '@/pages/Recover'
 import { AdminEnroll } from '@/pages/AdminEnroll'
-import { UserAuthProvider, useUserAuth } from '@/contexts/UserAuthContext'
+import { UserAuthProvider } from '@/contexts/UserAuthContext'
+import { useUserAuth } from '@/contexts/userAuth'
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 
 function HomePage() {

@@ -3,22 +3,24 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { startRegistration } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
-import { useAdminAuth } from '@/contexts/AdminAuthContext'
+import { useAdminAuth } from '@/contexts/adminAuth'
 
 export function AdminEnroll() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const { admin, setAdminSession } = useAdminAuth()
 
-  const [validating, setValidating] = useState(true)
-  const [tokenError, setTokenError] = useState('')
+  // Derived from the URL rather than set in the effect below: a missing token
+  // is knowable on the first render, and setting it there forced a second one.
+  const [validating, setValidating] = useState(!!token)
+  const [tokenError, setTokenError] = useState(token ? '' : 'Invalid enrollment link.')
   const [expiresAt, setExpiresAt] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!token) { setTokenError('Invalid enrollment link.'); setValidating(false); return }
+    if (!token) return
     api.validateEnrollToken(token)
       .then(res => setExpiresAt(res.expires_at))
       .catch(err => {

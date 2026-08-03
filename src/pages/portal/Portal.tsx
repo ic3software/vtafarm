@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import { Outlet, useNavigate, useLocation, useMatch } from 'react-router-dom'
 import '@/styles/portal.css'
-import { useUserAuth } from '@/contexts/UserAuthContext'
+import { useUserAuth } from '@/contexts/userAuth'
 import { useTheme } from '@/lib/useTheme'
 import { api, type SetupSession } from '@/lib/api'
 import { initials } from './portalUtils'
@@ -29,23 +29,32 @@ export function Portal() {
   const [email, setEmail] = useState<string | null>(null)
   const [betaAccess, setBetaAccess] = useState(false)
 
-  const loadSessions = useCallback(() => {
-    setSessionsLoading(true)
-    api.listSessions()
+  // Split in two: the fetch never raises the spinner, so the mount effect below
+  // does no synchronous setState (`sessionsLoading` already starts true). The
+  // exported `loadSessions` — what child views call after creating or deleting
+  // an agent — raises it, which is the only case where it is visible anyway.
+  const fetchSessions = useCallback(
+    () => api.listSessions()
       .then(setSessions)
       .catch((err: { status?: number }) => {
         if (err.status === 401) logout()
       })
-      .finally(() => setSessionsLoading(false))
-  }, [logout])
+      .finally(() => setSessionsLoading(false)),
+    [logout],
+  )
+
+  const loadSessions = useCallback(() => {
+    setSessionsLoading(true)
+    void fetchSessions()
+  }, [fetchSessions])
 
   useEffect(() => {
     if (!loading && !user) navigate('/login', { replace: true })
   }, [loading, user, navigate])
 
   useEffect(() => {
-    if (user) loadSessions()
-  }, [user, loadSessions])
+    if (user) void fetchSessions()
+  }, [user, fetchSessions])
 
   useEffect(() => {
     if (user) {

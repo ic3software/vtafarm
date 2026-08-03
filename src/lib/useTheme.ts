@@ -7,7 +7,7 @@ export function useTheme() {
     try {
       const saved = localStorage.getItem(THEME_KEY)
       if (saved === 'dark' || saved === 'light') return saved === 'dark'
-    } catch {}
+    } catch { /* unreadable — fall through to the system preference */ }
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
 
@@ -32,7 +32,8 @@ export function useTheme() {
   const toggle = () =>
     setDark(d => {
       const next = !d
-      try { localStorage.setItem(THEME_KEY, next ? 'dark' : 'light') } catch {}
+      // The toggle still applies; only the preference fails to persist.
+      try { localStorage.setItem(THEME_KEY, next ? 'dark' : 'light') } catch { /* not persisted */ }
       return next
     })
 
