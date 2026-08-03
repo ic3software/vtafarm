@@ -101,9 +101,7 @@ export function PlatformStackAdmins({ stackLabel }: { stackLabel: string }) {
       <div className="card-header">
         <h3 className="card-title">Administrators</h3>
         <p className="card-desc">
-          Everyone here holds <strong>unrestricted admin</strong> on this VTA — the same
-          authority the stack's first admin got. They can sign, read the vault, mint keys,
-          and add or remove other admins, including you.
+          Full admin on this VTA — signing, the vault, and adding or removing other admins.
         </p>
       </div>
 
@@ -114,23 +112,13 @@ export function PlatformStackAdmins({ stackLabel }: { stackLabel: string }) {
 
         {/* ── Add ──────────────────────────────────────────────────────────── */}
         <div className="p-col gap-12">
-          <div className="p-alert alert-info">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-            <div className="grow">
-              <p className="alert-title">How the other admin gets their DID</p>
-              <div className="alert-desc">
-                They run <span className="p-mono">pnm setup --name &lt;name&gt;</span> on their own
-                machine and send you the <span className="p-mono">did:key</span> it prints — the
-                private key never leaves them. Once this finishes, they connect with{' '}
-                <span className="p-mono">pnm setup continue &lt;name&gt; --vta-did &lt;vta did&gt;</span>.
-              </div>
-            </div>
-          </div>
-
           <div>
             <label className="p-label" htmlFor="psa-did">Their DID <span className="req">*</span></label>
             <input className="p-input p-mono" id="psa-did" type="text" placeholder="did:key:z6Mk…"
               value={did} onChange={e => setDid(e.target.value)} disabled={busy} />
+            <div className="field-hint">
+              From their own <span className="p-mono">pnm setup --name &lt;name&gt;</span>.
+            </div>
           </div>
 
           <div>
@@ -138,9 +126,7 @@ export function PlatformStackAdmins({ stackLabel }: { stackLabel: string }) {
             <input className="p-input" id="psa-label" type="text" placeholder="alice"
               maxLength={64} value={label} onChange={e => setLabel(e.target.value)} disabled={busy} />
             <div className="field-hint">
-              Required, and worth choosing well. Their DID <em>will</em> change the first time
-              they connect — PNM swaps in a long-lived key and the ACL entry moves with it.
-              This label moves too, and is then the only thing that says whose entry it is.
+              Their DID changes when they first connect; this label doesn't.
             </div>
           </div>
 
@@ -152,8 +138,7 @@ export function PlatformStackAdmins({ stackLabel }: { stackLabel: string }) {
               value={confirm} onChange={e => setConfirm(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !busy && handleGrant()} disabled={busy} />
             <div className="field-hint">
-              Adding an admin restarts the VTA, so it is <strong>offline for about a minute</strong>.
-              The mediator and DID hosting stay up, so VTA-only agents are unaffected.
+              Restarts the VTA — offline for about a minute.
             </div>
           </div>
 
@@ -192,8 +177,7 @@ function GrantHistory({ grants }: { grants: VtaAdminGrant[] }) {
       </span>
       {grants.length === 0 && (
         <p className="p-muted text-sm" style={{ margin: 0 }}>
-          Nobody yet. The stack's first administrator was set during provisioning and is not
-          listed here.
+          Nothing yet. The first administrator was set during provisioning.
         </p>
       )}
       <div className="p-col gap-8">
@@ -218,14 +202,12 @@ function GrantHistory({ grants }: { grants: VtaAdminGrant[] }) {
           )
         })}
       </div>
-      {/* Two things people get wrong about this list, both worth pre-empting:
-          the DIDs go stale, and the list is not the VTA's admin list. */}
+      {/* Kept because both are load-bearing: these DIDs stop matching the VTA
+          after first connect, and removal only happens at a pnm prompt. */}
       <p className="field-hint" style={{ marginTop: 4 }}>
-        These are the DIDs as submitted. Once someone connects, PNM replaces their key and
-        the entry moves to a new DID, so these stop matching what the VTA holds — that is
-        expected, not a failure. For the VTA's actual administrators, and to remove one, run{' '}
-        <span className="p-mono">pnm acl list</span> and{' '}
-        <span className="p-mono">pnm acl delete &lt;did&gt;</span> against it.
+        DIDs as submitted — they change after first connect. For the live list and to remove
+        someone: <span className="p-mono">pnm acl list</span> /{' '}
+        <span className="p-mono">pnm acl delete &lt;did&gt;</span>.
       </p>
     </div>
   )
