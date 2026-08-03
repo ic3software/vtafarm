@@ -3,7 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { startAuthentication } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
-import { useUserAuth } from '@/contexts/UserAuthContext'
+import { useUserAuth } from '@/contexts/userAuth'
 
 export function UserLogin() {
   const { user, setUserSession } = useUserAuth()

@@ -3,15 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { startRegistration } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
-import { useUserAuth } from '@/contexts/UserAuthContext'
+import { useUserAuth } from '@/contexts/userAuth'
 
 export function Recover() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const { setUserSession } = useUserAuth()
 
-  const [validating, setValidating] = useState(true)
-  const [tokenError, setTokenError] = useState('')
+  // Derived from the URL rather than set in the effect below: a missing token
+  // is knowable on the first render, and setting it there forced a second one.
+  const [validating, setValidating] = useState(!!token)
+  const [tokenError, setTokenError] = useState(token ? '' : 'Invalid recovery link.')
   const [expiresAt, setExpiresAt] = useState('')
 
   // Set once the link is consumed — retries after a failed passkey ceremony
@@ -23,7 +25,7 @@ export function Recover() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!token) { setTokenError('Invalid recovery link.'); setValidating(false); return }
+    if (!token) return
     api.validateRecovery(token)
       .then(res => setExpiresAt(res.expires_at))
       .catch(err => {

@@ -5,11 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PhaseStepper } from '../portal/PhaseStepper'
 import { FULL_STACK_PHASES, phaseIndex, statusBadge, useCopyState, isValidAdminDid, componentHost, useDomainInfo } from '../portal/portalUtils'
 import {
-  DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll,
-  VtcInstallAlert, VtcInstallConfigRow, useVtcInstall,
-  CollectedDidsCard, EndpointConfigRows, AdminKeysCard,
+  DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard,
 } from '../portal/FullStackOutputs'
+import { useDidsEnroll, useVtcInstall } from '../portal/fullStackHooks'
 import { adminSessionActions } from '../portal/sessionActions'
+import { PlatformStackAdmins } from './PlatformStackAdmins'
 
 // The farm's own full_stack, running under our zone's fixed labels —
 // vta.{CLUSTER_DOMAIN}, vtc., mediator., dids. This is the only place it can be
@@ -361,8 +361,6 @@ export function PlatformStackView() {
   const running = status === 'running'
   const awaitingAdminDid = status === 'awaiting_admin_did'
   const currentIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, status))
-  const provides = stack.provides
-  const acl = stack.farm_acl
   const vtaDid = stack.collected?.vta_did
 
   return (
@@ -510,50 +508,10 @@ export function PlatformStackView() {
             </div>
           </div>
 
-          {provides && (
-            <div className="p-card" style={{ marginBottom: 16 }}>
-              <div className="card-header">
-                <h3 className="card-title">What this stack provides</h3>
-                <p className="card-desc">
-                  Every VTA-only agent is wired to these when it's created — read from this
-                  stack directly, so there is nothing to copy anywhere.
-                </p>
-              </div>
-              <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-                <CopyRow label="Mediator DID" value={provides.mediator_did}
-                  copyKey="prov-mediator-did" copiedKey={copiedKey} onCopy={copy} />
-                <CopyRow label="DID hosting — resolution" value={provides.did_hosting_server_url}
-                  copyKey="prov-dids-server" copiedKey={copiedKey} onCopy={copy} />
-                <CopyRow label="DID hosting — control API" value={provides.did_hosting_control_url}
-                  copyKey="prov-dids-control" copiedKey={copiedKey} onCopy={copy} />
-              </div>
-            </div>
-          )}
-
-          {acl && (
-            <div className="p-card" style={{ marginBottom: 16 }}>
-              <div className="card-header">
-                <h3 className="card-title">DID upload access</h3>
-                <p className="card-desc">
-                  {acl.granted
-                    ? <>This server uploads every VTA-only agent's DID log here using its own
-                        keypair, which the stack enrolled in this daemon's ACL as{' '}
-                        <span className="p-mono">role=admin</span> while provisioning. Nothing to do.</>
-                    : <>No keypair is configured (<span className="p-mono">DID_HOSTING_DID</span>),
-                        so nothing was enrolled — VTA-only agents will provision and then fail to
-                        publish their DID. Set it and rebuild the stack.</>}
-                </p>
-              </div>
-              <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-                <CopyRow label="This daemon's DID" value={acl.server_did}
-                  copyKey="acl-server-did" copiedKey={copiedKey} onCopy={copy} />
-                {acl.client_did && (
-                  <CopyRow label="Enrolled client DID" value={acl.client_did}
-                    copyKey="acl-client-did" copiedKey={copiedKey} onCopy={copy} />
-                )}
-              </div>
-            </div>
-          )}
+          {/* Only once the stack is running: the ACL is written by the pipeline
+              while the VTA is still down, and a grant before `deploy_vta` would
+              race the step that seeds it. */}
+          <PlatformStackAdmins stackLabel={stack.label ?? ''} />
 
           {sessionLike && <AdminKeysCard session={sessionLike} />}
         </>

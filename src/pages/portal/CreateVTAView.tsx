@@ -71,7 +71,10 @@ export function CreateVTAView() {
   const [setupLogsDone, setSetupLogsDone] = useState(false)
 
   // Stage 2 provisioning-log streaming state
-  const [provStreamStarted, setProvStreamStarted] = useState(false)
+  // Derived, not state: `stage` only ever advances (0→1→2→3), so this is
+  // exactly "stage 2 has been reached". It was a useState set synchronously
+  // inside the stage-2 effect, which is a render pass for a value already known.
+  const provStreamStarted = stage >= 2 && !!sessionId
 
   function copyVtaDid(did: string) {
     navigator.clipboard.writeText(did).catch(() => {})
@@ -158,7 +161,11 @@ export function CreateVTAView() {
   // Stage 1: stream setup logs; 2s timer starts only after 'done' event
   useEffect(() => {
     if (!setupStreamStarted || !sessionId) return
-    setLogs([])
+    // Clear when the stream actually opens rather than up front: the previous
+    // step's output stays on screen through the reconnect instead of blanking,
+    // and the setState leaves the effect body (react-hooks/set-state-in-effect).
+    let cleared = false
+    const clearOnce = () => { if (!cleared) { cleared = true; setLogs([]) } }
     let hasLog = false
     let advanceTimer: ReturnType<typeof setTimeout> | null = null
     let retryTimer: ReturnType<typeof setTimeout> | null = null
@@ -170,7 +177,9 @@ export function CreateVTAView() {
     const connect = () => {
       if (cancelled) return
       es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs?source=setup`, { withCredentials: true })
+      es.onopen = clearOnce
       es.onmessage = e => {
+        clearOnce()
         setLogs(prev => [...prev, e.data])
         hasLog = true
       }
@@ -214,7 +223,6 @@ export function CreateVTAView() {
   // Stage 2: stream provision logs immediately; advance 2s after 'done' event
   useEffect(() => {
     if (stage !== 2 || !sessionId) return
-    setProvStreamStarted(true)
     let hasLog = false
     let advanceTimer: ReturnType<typeof setTimeout> | null = null
     let retryTimer: ReturnType<typeof setTimeout> | null = null
@@ -249,9 +257,14 @@ export function CreateVTAView() {
   // Stage 3: stream live VTA logs
   useEffect(() => {
     if (stage !== 3 || !sessionId) return
-    setLogs([])
+    // Clear when the stream actually opens rather than up front: the previous
+    // step's output stays on screen through the reconnect instead of blanking,
+    // and the setState leaves the effect body (react-hooks/set-state-in-effect).
+    let cleared = false
+    const clearOnce = () => { if (!cleared) { cleared = true; setLogs([]) } }
     const es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs?source=vta`, { withCredentials: true })
-    es.onmessage = e => setLogs(prev => [...prev, e.data])
+    es.onopen = clearOnce
+    es.onmessage = e => { clearOnce(); setLogs(prev => [...prev, e.data]) }
     es.addEventListener('done', () => es.close())
     es.onerror = () => es.close()
     return () => es.close()

@@ -1,14 +1,7 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { useState, useCallback, useEffect, type ReactNode } from 'react'
 import { api, type UserInfo } from '@/lib/api'
+import { AdminAuthContext } from './adminAuth'
 
-interface AdminAuthCtx {
-  admin: UserInfo | null
-  loading: boolean
-  logout: () => Promise<void>
-  setAdminSession: (admin: UserInfo) => void
-}
-
-const AdminAuthContext = createContext<AdminAuthCtx | null>(null)
 const SESSION_KEY = 'vtafarm-admin'
 
 function readSession(): UserInfo | null {
@@ -28,19 +21,21 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   const setAdminSession = useCallback((a: UserInfo) => {
     setAdmin(a)
-    try { localStorage.setItem(SESSION_KEY, JSON.stringify(a)) } catch {}
+    // Storage can be unavailable (private mode, quota). The cookie is what
+    // actually authenticates — losing this cache only costs a re-read.
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(a)) } catch { /* not cached */ }
   }, [])
 
   const logout = useCallback(async () => {
     await api.adminLogout().catch(() => {})
     setAdmin(null)
-    try { localStorage.removeItem(SESSION_KEY) } catch {}
+    try { localStorage.removeItem(SESSION_KEY) } catch { /* nothing cached */ }
   }, [])
 
   useEffect(() => {
     const handler = () => {
       setAdmin(null)
-      try { localStorage.removeItem(SESSION_KEY) } catch {}
+      try { localStorage.removeItem(SESSION_KEY) } catch { /* nothing cached */ }
     }
     window.addEventListener('vtafarm:unauthorized', handler)
     return () => window.removeEventListener('vtafarm:unauthorized', handler)
@@ -53,8 +48,3 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useAdminAuth(): AdminAuthCtx {
-  const ctx = useContext(AdminAuthContext)
-  if (!ctx) throw new Error('useAdminAuth must be used inside AdminAuthProvider')
-  return ctx
-}

@@ -21,12 +21,16 @@ export function SettingsView() {
   const [addPasskeyError, setAddPasskeyError] = useState('')
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
-  const loadPasskeys = useCallback(() => {
-    setLoadingPasskeys(true)
-    api.listPasskeys().then(setPasskeys).catch(() => {}).finally(() => setLoadingPasskeys(false))
-  }, [])
+  // The fetch does not raise the spinner: `loadingPasskeys` starts true, so the
+  // mount path needs no toggle, and doing it synchronously inside the effect is
+  // what react-hooks/set-state-in-effect flags. Refresh callers raise it
+  // themselves — that is the only case where it is visible.
+  const loadPasskeys = useCallback(
+    () => api.listPasskeys().then(setPasskeys).catch(() => {}).finally(() => setLoadingPasskeys(false)),
+    [],
+  )
 
-  useEffect(() => { loadPasskeys() }, [loadPasskeys])
+  useEffect(() => { void loadPasskeys() }, [loadPasskeys])
 
   async function handleAddPasskey(e: FormEvent) {
     e.preventDefault()
@@ -38,7 +42,8 @@ export function SettingsView() {
       await api.passkeyRegisterComplete(newPasskeyName.trim() || 'Passkey', credential)
       setShowAddPasskey(false)
       setNewPasskeyName('')
-      loadPasskeys()
+      setLoadingPasskeys(true)
+    void loadPasskeys()
     } catch (err) {
       if ((err as { name?: string }).name === 'NotAllowedError') {
         setAddPasskeyError('Registration was cancelled.')

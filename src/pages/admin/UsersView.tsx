@@ -15,12 +15,16 @@ export function UsersView() {
   const [recovery, setRecovery] = useState<{ uniqueId: string; token: string; expires_at: string } | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const loadUsers = useCallback(() => {
-    setLoading(true)
-    api.listUsers().then(setUsers).catch(() => {}).finally(() => setLoading(false))
-  }, [])
+  // No setLoading(true) here: `loading` already starts true, and the effect
+  // below is the only caller. Flipping it synchronously inside an effect is
+  // what react-hooks/set-state-in-effect objects to — it forces a second
+  // render immediately after mount for no change in what is displayed.
+  const loadUsers = useCallback(
+    () => api.listUsers().then(setUsers).catch(() => {}).finally(() => setLoading(false)),
+    [],
+  )
 
-  useEffect(() => { loadUsers() }, [loadUsers])
+  useEffect(() => { void loadUsers() }, [loadUsers])
 
   async function toggleBetaAccess(user: User) {
     setUpdatingId(user.unique_id)

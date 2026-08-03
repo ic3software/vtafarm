@@ -1,14 +1,7 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { useState, useCallback, useEffect, type ReactNode } from 'react'
 import { api, type UserInfo } from '@/lib/api'
+import { UserAuthContext } from './userAuth'
 
-interface UserAuthCtx {
-  user: UserInfo | null
-  loading: boolean
-  logout: () => Promise<void>
-  setUserSession: (user: UserInfo) => void
-}
-
-const UserAuthContext = createContext<UserAuthCtx | null>(null)
 const SESSION_KEY = 'vtafarm-user'
 
 function readSession(): UserInfo | null {
@@ -28,19 +21,21 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
 
   const setUserSession = useCallback((u: UserInfo) => {
     setUser(u)
-    try { localStorage.setItem(SESSION_KEY, JSON.stringify(u)) } catch {}
+    // Storage can be unavailable (private mode, quota). The cookie is what
+    // actually authenticates — losing this cache only costs a re-read.
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(u)) } catch { /* not cached */ }
   }, [])
 
   const logout = useCallback(async () => {
     await api.userLogout().catch(() => {})
     setUser(null)
-    try { localStorage.removeItem(SESSION_KEY) } catch {}
+    try { localStorage.removeItem(SESSION_KEY) } catch { /* nothing cached */ }
   }, [])
 
   useEffect(() => {
     const handler = () => {
       setUser(null)
-      try { localStorage.removeItem(SESSION_KEY) } catch {}
+      try { localStorage.removeItem(SESSION_KEY) } catch { /* nothing cached */ }
     }
     window.addEventListener('vtafarm:unauthorized', handler)
     return () => window.removeEventListener('vtafarm:unauthorized', handler)
@@ -53,8 +48,3 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useUserAuth(): UserAuthCtx {
-  const ctx = useContext(UserAuthContext)
-  if (!ctx) throw new Error('useUserAuth must be used inside UserAuthProvider')
-  return ctx
-}

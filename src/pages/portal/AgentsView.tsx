@@ -6,7 +6,9 @@ import { statusBadge, timeAgo } from './portalUtils'
 
 export function AgentsView() {
   const { sessions, sessionsLoading, loadSessions, betaAccess } = useOutletContext<PortalContext>()
-  useEffect(() => { loadSessions() }, [])
+  // Refresh on entering the tab. loadSessions is a stable useCallback in
+  // Portal, so naming it here does not add a re-run.
+  useEffect(() => { loadSessions() }, [loadSessions])
   const navigate = useNavigate()
 
   const [availability, setAvailability] = useState<SetupAvailability | null>(null)

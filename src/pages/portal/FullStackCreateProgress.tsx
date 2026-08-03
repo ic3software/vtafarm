@@ -4,7 +4,8 @@ import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import { statusBadge, FULL_STACK_PHASES, phaseIndex, isValidAdminDid } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, DidsEnrollConfigRow, useDidsEnroll, VtcInstallAlert, VtcInstallConfigRow, useVtcInstall, CollectedDidsCard, EndpointConfigRows, AdminKeysCard } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard } from './FullStackOutputs'
+import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 
 export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: string; vtaName: string }) {
   const { loadSessions } = useOutletContext<PortalContext>()
@@ -40,12 +41,20 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
   // Reconnect the log stream whenever the raw status changes — each step is its own Job/pod.
   useEffect(() => {
     if (!session || session.status === 'failed' || session.status === 'awaiting_admin_did') return
-    setLogs([])
+    // Clear when the stream actually opens rather than up front: the previous
+    // step's output stays on screen through the reconnect instead of blanking,
+    // and the setState leaves the effect body (react-hooks/set-state-in-effect).
+    let cleared = false
+    const clearOnce = () => { if (!cleared) { cleared = true; setLogs([]) } }
     const es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs`, { withCredentials: true })
-    es.onmessage = e => setLogs(prev => [...prev, e.data])
+    es.onopen = clearOnce
+    es.onmessage = e => { clearOnce(); setLogs(prev => [...prev, e.data]) }
     es.addEventListener('done', () => es.close())
     es.onerror = () => es.close()
     return () => es.close()
+    // Keyed on the status, not the object: the 3s poll replaces `session` every
+    // tick, so depending on it would reconnect this stream continuously.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, session?.status])
 
   // Scroll only within the console body — not the whole page — as new lines arrive.

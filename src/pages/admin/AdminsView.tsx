@@ -23,12 +23,14 @@ export function AdminsView() {
   const [copiedToken, setCopiedToken] = useState(false)
   const [genError, setGenError] = useState('')
 
-  const loadAdmins = useCallback(() => {
-    setLoading(true)
-    api.listAdmins().then(setAdmins).catch(() => {}).finally(() => setLoading(false))
-  }, [])
+  // See UsersView: `loading` starts true, so the mount path needs no toggle,
+  // and a synchronous one inside the effect is what the lint rule flags.
+  const loadAdmins = useCallback(
+    () => api.listAdmins().then(setAdmins).catch(() => {}).finally(() => setLoading(false)),
+    [],
+  )
 
-  useEffect(() => { loadAdmins() }, [loadAdmins])
+  useEffect(() => { void loadAdmins() }, [loadAdmins])
 
   async function handleGenerateToken() {
     setGenError('')
