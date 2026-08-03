@@ -21,12 +21,17 @@ export function SecurityView() {
   const [addError, setAddError] = useState('')
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
-  const loadPasskeys = useCallback(() => {
-    setLoadingPasskeys(true)
-    api.listAdminPasskeys().then(setPasskeys).catch(() => {}).finally(() => setLoadingPasskeys(false))
-  }, [])
+  // The fetch does not raise the spinner itself — `loadingPasskeys` starts
+  // true, so the mount path needs no toggle, and doing it synchronously inside
+  // the effect is what react-hooks/set-state-in-effect flags. The one caller
+  // that genuinely wants the spinner back (the refresh after adding a passkey)
+  // raises it at its own call site.
+  const loadPasskeys = useCallback(
+    () => api.listAdminPasskeys().then(setPasskeys).catch(() => {}).finally(() => setLoadingPasskeys(false)),
+    [],
+  )
 
-  useEffect(() => { loadPasskeys() }, [loadPasskeys])
+  useEffect(() => { void loadPasskeys() }, [loadPasskeys])
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault()
@@ -38,7 +43,8 @@ export function SecurityView() {
       await api.adminPasskeyRegisterComplete(newName.trim() || 'Admin Passkey', credential)
       setShowAdd(false)
       setNewName('')
-      loadPasskeys()
+      setLoadingPasskeys(true)
+      void loadPasskeys()
     } catch (err) {
       if ((err as { name?: string }).name === 'NotAllowedError') {
         setAddError('Registration was cancelled.')
