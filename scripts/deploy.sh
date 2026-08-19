@@ -2,7 +2,7 @@
 set -e
 
 # Required env vars (set by GitHub Actions):
-#   SSH_PRIVATE_KEY, SERVER_IP, KUBECONFIG_PATH, DOCKER_USERNAME
+#   SSH_PRIVATE_KEY, SERVER_IP, KUBECONFIG_PATH, DOCKER_USERNAME, INGRESS_HOST, API_URL
 # TAG defaults to the short git SHA via the Makefile (git rev-parse --short HEAD).
 
 # ── SSH setup ─────────────────────────────────────────────────────────────────
@@ -36,7 +36,8 @@ curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 echo "Deploying vtafarm..."
 make deploy \
   DOCKER_USERNAME="$DOCKER_USERNAME" \
-  INGRESS_HOST="$INGRESS_HOST"
+  INGRESS_HOST="$INGRESS_HOST" \
+  API_URL="$API_URL"
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 eval $(ssh-agent -k)

@@ -15,6 +15,10 @@ spec:
       containers:
         - name: {{ .Values.name }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          env:
+            # Rendered into /config.js by the image's entrypoint at startup.
+            - name: API_URL
+              value: {{ required "api.url is required - the frontend has no backend to talk to without it" .Values.api.url | quote }}
           ports:
             - containerPort: {{ .Values.service.port }}
           readinessProbe:

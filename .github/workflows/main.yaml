@@ -22,7 +22,6 @@ jobs:
         run: make image-push
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          API_URL: https://vtafarm-api.firstperson.dev
 
   deploy:
     name: 🚀 Deploy
@@ -34,6 +33,7 @@ jobs:
       KUBECONFIG_PATH:  ${{ secrets.KUBECONFIG_PATH }}
       DOCKER_USERNAME:  ${{ secrets.DOCKER_USERNAME }}
       INGRESS_HOST:     vtafarm.firstperson.dev
+      API_URL:          https://vtafarm-api.firstperson.dev
     steps:
       - uses: actions/checkout@v6
 
