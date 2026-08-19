@@ -4,11 +4,7 @@ declare global {
   }
 }
 
-// Resolved at runtime, not at build time. Vite substitutes import.meta.env into
-// the bundle, which would bake one deployment's API URL into the image and make
-// it useless to anyone on another domain. `public/config.js` ships an empty
-// placeholder that the container's entrypoint overwrites from $API_URL;
-// `pnpm dev` serves that placeholder untouched and falls through to .env.
+// Runtime, not build time: Vite would bake one domain into the image.
 const _apiUrl = window.__VTAFARM_CONFIG__?.apiUrl || import.meta.env.VITE_API_URL
 if (!_apiUrl) {
   throw new Error(
