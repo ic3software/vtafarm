@@ -46,6 +46,10 @@ pnpm lint        # ESLint
 pnpm preview     # Preview the production build locally (serves dist/)
 ```
 
+## Releasing
+
+Publishing a version to GHCR: [`docs/release.md`](docs/release.md).
+
 ## Adding shadcn Components
 
 ```bash
