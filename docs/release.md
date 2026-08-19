@@ -63,12 +63,16 @@ git commit -s -m "chore: release 0.2.0"
 **2. Tag that commit.**
 
 ```bash
-git tag -a v0.2.0 -m "vtafarm 0.2.0"
+git tag -s v0.2.0 -m "vtafarm 0.2.0"
 ```
 
-Annotated (`-a`), so the tag records who made it and when. The `v` prefix is for
-git tags only — `Chart.yaml`, the image tag and the chart version are all bare
-SemVer.
+Signed (`-s`), so GitHub shows the tag as verified rather than unverified. This
+repo signs its commits already; `git config tag.gpgsign true` extends that to
+tags so a plain `git tag -a` signs too.
+
+The `v` prefix is used everywhere a person reads the version — the git tag, the
+GitHub release, the changelog heading. `Chart.yaml` and the artifacts it names
+stay bare, which is the Helm and OCI convention.
 
 Tag before building. If the build fails, `git tag -d v0.2.0` and retry; an
 untagged successful release is the worse failure, because nothing points at the
@@ -106,9 +110,14 @@ git push origin v0.2.0
 Pass only the new version's section, not the whole changelog:
 
 ```bash
-awk '/^## \[0\.2\.0\]/{f=1} f && /^## \[0\.1\.0\]/{exit} f' CHANGELOG.md \
+awk '/^## \[v0\.2\.0\]/{f=1;next} f && /^## \[/{exit} f' CHANGELOG.md \
   | gh release create v0.2.0 --notes-file -
 ```
+
+Only the version in the first pattern changes between releases. `next` drops the
+heading — the release page already shows the version and the date — and the
+`f &&` guard is what stops it exiting at the newest entry when the one being
+released is further down.
 
 Omitting `--title` makes the title the tag name, which is the convention.
 
@@ -133,7 +142,7 @@ immutable: never re-push a version that already exists, bump instead.
 
 | Failed at | Recovery |
 | --- | --- |
-| Before `make release` | `git tag -d v0.2.0`, fix, start again |
+| Before `make release`, tag not pushed | `git tag -d v0.2.0`, fix, start again |
 | Image pushed, chart failed | Fix and re-run `make release` — the image push is idempotent for the same content |
 | Both pushed, then a bug is found | Do not overwrite. Release the fix as the next version |
 | Tag already pushed | Leave it. Moving a published tag needs a force push, which this repo does not do |
