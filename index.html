@@ -9,6 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=optional" rel="stylesheet" />
     <title>VTA Farm — Verifiable Trust Infrastructure</title>
+    <!-- Runtime config. A classic script, so it runs before the deferred
+         module below reads window.__VTAFARM_CONFIG__. -->
+    <script src="/config.js"></script>
     <script>
       (function(){
         var saved = null;

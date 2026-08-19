@@ -1,5 +1,21 @@
-const _apiUrl = import.meta.env.VITE_API_URL
-if (!_apiUrl) throw new Error('VITE_API_URL is not set. Create a .env file with VITE_API_URL=<backend URL>.')
+declare global {
+  interface Window {
+    __VTAFARM_CONFIG__?: { apiUrl?: string }
+  }
+}
+
+// Resolved at runtime, not at build time. Vite substitutes import.meta.env into
+// the bundle, which would bake one deployment's API URL into the image and make
+// it useless to anyone on another domain. `public/config.js` ships an empty
+// placeholder that the container's entrypoint overwrites from $API_URL;
+// `pnpm dev` serves that placeholder untouched and falls through to .env.
+const _apiUrl = window.__VTAFARM_CONFIG__?.apiUrl || import.meta.env.VITE_API_URL
+if (!_apiUrl) {
+  throw new Error(
+    'No API URL. In development set VITE_API_URL in .env; ' +
+      'in a container the vtafarm chart mounts it at /config.js.',
+  )
+}
 export const API_BASE: string = _apiUrl
 
 export type SetupStatus =

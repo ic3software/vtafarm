@@ -12,7 +12,6 @@ API_URL         ?=
 # ─── Docker Hub ───────────────────────────────────────────────────────────────
 image-build:
 	docker build \
-	  --build-arg VITE_API_URL=$(API_URL) \
 	  -t $(IMAGE):$(TAG) \
 	  -t $(IMAGE):latest .
 
@@ -26,5 +25,6 @@ deploy:
 	  --set image.repository=$(IMAGE) \
 	  --set image.tag=$(TAG) \
 	  --set ingress.host=$(INGRESS_HOST) \
+	  --set api.url=$(API_URL) \
 	  --install --atomic --timeout=10m \
 	  --namespace=$(NAMESPACE)
