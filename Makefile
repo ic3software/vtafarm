@@ -1,23 +1,35 @@
 # ─── Image & deploy variables ─────────────────────────────────────────────────
 NAME            ?= vtafarm
-DOCKER_USERNAME ?=
-IMAGE           ?= $(DOCKER_USERNAME)/$(NAME)
+REGISTRY        ?= ghcr.io/ic3software
+IMAGE           ?= $(REGISTRY)/$(NAME)
+CHART_REGISTRY  ?= oci://$(REGISTRY)/charts
+CHART_DIR       ?= .charts
+VERSION         ?= $(shell awk '/^version:/{print $$2; exit}' helm/$(NAME)/Chart.yaml)
 TAG             ?= $(shell git rev-parse --short HEAD)
+# The cluster nodes are x86, this laptop is not.
+PLATFORM        ?= linux/amd64
 NAMESPACE       ?= default
 INGRESS_HOST    ?=
 API_URL         ?=
 
-.PHONY: image-build image-push deploy
+.PHONY: image-build image-push release release-image release-chart deploy
 
-# ─── Docker Hub ───────────────────────────────────────────────────────────────
+# ─── GHCR ─────────────────────────────────────────────────────────────────────
 image-build:
-	docker build \
-	  -t $(IMAGE):$(TAG) \
-	  -t $(IMAGE):latest .
+	docker build --platform $(PLATFORM) -t $(IMAGE):$(TAG) .
 
 image-push: image-build
 	docker push $(IMAGE):$(TAG)
-	docker push $(IMAGE):latest
+
+release: release-image release-chart
+
+release-image:
+	docker buildx build --platform $(PLATFORM) -t $(IMAGE):$(VERSION) --push .
+
+release-chart:
+	@mkdir -p $(CHART_DIR)
+	helm package helm/$(NAME) -d $(CHART_DIR)
+	helm push $(CHART_DIR)/$(NAME)-$(VERSION).tgz $(CHART_REGISTRY)
 
 # ─── Kubernetes (Helm) ────────────────────────────────────────────────────────
 deploy:
