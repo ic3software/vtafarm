@@ -6,6 +6,7 @@ import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ShareStackCard, ConnectedToCard } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { SessionVersionsCard } from './SessionVersionsCard'
+import { SessionExportCard } from './SessionExportCard'
 import type { PortalContext } from './Portal'
 
 const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
@@ -391,6 +392,7 @@ export function SessionDetailView() {
           {/* Secrets sit last before Danger Zone — both are things you visit
               deliberately, not while reading the page top to bottom. */}
           {isFullStackCompleted && <AdminKeysCard session={session} />}
+          <SessionExportCard session={session} sessionId={sessionId} />
           {/* Danger Zone */}
           <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
             <div className="card-header">
