@@ -616,6 +616,36 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   return data as T
 }
 
+// Like req, but the body is a zip; only the error path is still JSON.
+async function download(path: string, fallbackName: string): Promise<void> {
+  const res = await fetch(`${API_BASE}${path}`, { method: 'GET', credentials: 'include' })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: res.statusText }))
+    if (res.status === 401) window.dispatchEvent(new Event('vtafarm:unauthorized'))
+    throw apiError(data.error ?? 'Download failed', res.status, data.reason)
+  }
+
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  try {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filenameFromDisposition(res.headers.get('Content-Disposition')) ?? fallbackName
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  } finally {
+    // Revoking synchronously cancels the download in Safari.
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  }
+}
+
+function filenameFromDisposition(header: string | null): string | undefined {
+  if (!header) return undefined
+  const match = /filename="?([^";]+)"?/.exec(header)
+  return match?.[1]
+}
+
 export const api = {
   // ── Auth — User ──────────────────────────────────────────────────────────────
   userPasskeyLoginBegin: () =>
@@ -694,6 +724,12 @@ export const api = {
    */
   adminDeleteSession: (id: string, confirm?: string) =>
     req<null>('DELETE', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}`, confirm ? { confirm } : undefined),
+
+  // Admin twins of exportSessionConfigs/-Logs — any user's session.
+  adminExportSessionConfigs: (id: string) =>
+    download(`/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/export/configs`, `${id}-configs.zip`),
+  adminExportSessionLogs: (id: string) =>
+    download(`/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/export/logs`, `${id}-logs.zip`),
 
   // ── Admin — platform stack ───────────────────────────────────────────────────
   // The farm's own full stack under our zone's fixed labels. Created whole —
@@ -851,6 +887,11 @@ export const api = {
   deleteDomain: (id: number) => req<null>('DELETE', `/api/v1/domains/${id}`),
   getSession: (id: string) => req<SetupSession>('GET', `/api/v1/setup/${id}`),
   deleteSession: (id: string) => req<null>('DELETE', `/api/v1/setup/${id}`),
+  // Read from the running pods; the configs archive carries credentials.
+  exportSessionConfigs: (id: string) =>
+    download(`/api/v1/setup/${encodeURIComponent(id)}/export/configs`, `${id}-configs.zip`),
+  exportSessionLogs: (id: string) =>
+    download(`/api/v1/setup/${encodeURIComponent(id)}/export/logs`, `${id}-logs.zip`),
   provisionAdmin: (id: string, admin_did: string) =>
     req<{ status: string }>('POST', `/api/v1/setup/${id}/admin`, { admin_did }),
   // Self-service upgrade/downgrade of the caller's own session — the backend

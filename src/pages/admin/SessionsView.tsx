@@ -108,6 +108,43 @@ function isPlatform(s: AdminSetupSession) {
   return s.domain_type === 'platform'
 }
 
+// Both read the session's live containers, so only a running session offers them.
+function ExportCell({ session }: { session: AdminSetupSession }) {
+  const [busy, setBusy] = useState<'configs' | 'logs' | null>(null)
+  const [failed, setFailed] = useState('')
+  const ready = session.status === 'running'
+
+  async function run(kind: 'configs' | 'logs') {
+    setBusy(kind)
+    setFailed('')
+    try {
+      if (kind === 'configs') await api.adminExportSessionConfigs(session.vta_name)
+      else await api.adminExportSessionLogs(session.vta_name)
+    } catch (err) {
+      setFailed(err instanceof Error ? err.message : `Failed to download ${kind}`)
+    }
+    setBusy(null)
+  }
+
+  return (
+    <div className="p-row gap-8" style={{ alignItems: 'center' }}>
+      <button className="btn btn-outline btn-sm" disabled={!ready || busy !== null}
+        onClick={() => run('configs')}
+        title={ready ? `Download ${session.vta_name}'s configs` : 'Available once the session is running'}>
+        {busy === 'configs' ? '…' : 'Configs'}
+      </button>
+      <button className="btn btn-outline btn-sm" disabled={!ready || busy !== null}
+        onClick={() => run('logs')}
+        title={ready ? `Download ${session.vta_name}'s logs` : 'Available once the session is running'}>
+        {busy === 'logs' ? '…' : 'Logs'}
+      </button>
+      {failed && (
+        <span title={failed} style={{ fontSize: 12, color: 'hsl(var(--destructive))' }}>failed</span>
+      )}
+    </div>
+  )
+}
+
 // What the admin has to type to enable the delete button — the session's name,
 // for every session. The platform stack used to be the exception, asking for
 // its label while everything else asked for an opaque 8-char id; now that the
@@ -329,19 +366,20 @@ export function SessionsView() {
               <th>Status</th>
               <th>Images</th>
               <th>Created</th>
+              <th className="col-actions" style={{ textAlign: 'left' }}>Export</th>
               <th className="col-actions">Delete</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={10} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={11} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : sessions.length === 0 ? (
               <tr>
-                <td colSpan={10} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={11} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   No sessions yet.
                 </td>
               </tr>
@@ -400,6 +438,9 @@ export function SessionsView() {
                 <td><ImagesCell session={s} /></td>
                 <td title={fmt(s.created_at)} style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap' }}>
                   {relTime(s.created_at)}
+                </td>
+                <td className="col-actions">
+                  <ExportCell session={s} />
                 </td>
                 <td className="col-actions">
                   <button
