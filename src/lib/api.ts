@@ -767,6 +767,7 @@ export const api = {
 
   // ── Admin — VTA provisioning load tests ────────────────────────────────────
   listLoadTests: () => req<LoadTestRun[]>('GET', '/api/v1/admin/load-tests'),
+  getLoadTest: (id: number) => req<LoadTestRun>('GET', `/api/v1/admin/load-tests/${id}`),
   createLoadTest: (count: number, admin_did: string, vta_image: string) =>
     req<{ id: number; status: LoadTestStatus }>('POST', '/api/v1/admin/load-tests', { count, admin_did, vta_image }),
   checkLoadTest: (id: number) =>
