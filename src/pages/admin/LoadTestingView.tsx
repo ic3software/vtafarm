@@ -130,9 +130,6 @@ export function LoadTestingView() {
             <label className="p-label" htmlFor="lt-admin-did">Admin DID</label>
             <input id="lt-admin-did" className="p-input p-mono" type="text" placeholder="did:key:z6Mk…"
               value={adminDid} onChange={e => setAdminDid(e.target.value)} disabled={creating || hasActiveRun} />
-            <p className="p-muted" style={{ fontSize: 12, margin: '6px 0 0' }}>
-              Used for this run only. It is cleared after submission and is not stored in the browser.
-            </p>
           </div>
           {hasActiveRun && (
             <div className="p-alert alert-warning">
