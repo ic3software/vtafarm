@@ -195,7 +195,7 @@ export function useDomainInfo(variant: 'user' | 'admin' = 'user'): DomainInfo | 
 
 // ── Shared admin-DID (did:key) validation ────────────────────────────────────
 
-const ADMIN_DID_RE = /^did:key:z[1-9A-HJ-NP-Za-km-z]+$/
+const ADMIN_DID_RE = /^did:key:z[1-9A-HJ-NP-Za-km-z]{20,}$/
 
 export function isValidAdminDid(s: string): boolean {
   return ADMIN_DID_RE.test(s)

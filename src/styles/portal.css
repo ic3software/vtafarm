@@ -375,6 +375,7 @@
 .portal-root .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
 .portal-root .page-head h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 5px; }
 .portal-root .page-head .sub { font-size: 14px; color: hsl(var(--muted-foreground)); margin: 0; }
+.portal-root .load-test-form-grid { display: grid; grid-template-columns: minmax(120px, .35fr) minmax(260px, 1fr); gap: 16px; }
 
 /* --- Auth layout --- */
 .portal-root .p-auth { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
@@ -418,6 +419,7 @@
   .portal-root .page-head { flex-direction: column; align-items: stretch; gap: 14px; }
   .portal-root .page-head .btn { width: 100%; }
   .portal-root .page-head h1 { font-size: 21px; }
+  .portal-root .load-test-form-grid { grid-template-columns: 1fr; }
   .portal-root .p-table { min-width: 560px; }
   .portal-root .stepper .step .s-sub { display: none; }
   .portal-root .stepper .step .s-label { font-size: 10px; max-width: 8ch; }
