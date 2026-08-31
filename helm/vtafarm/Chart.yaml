@@ -3,5 +3,5 @@ name: vtafarm
 description: VTA Farm — React frontend served by nginx
 type: application
 # Kept equal; one release bumps both.
-version: 0.3.0
-appVersion: "0.3.0"
+version: 0.4.0
+appVersion: "0.4.0"

@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.4.0] - 2026-08-31
+
+### Added
+
+- Admin: a **Load testing** section for provisioning batches of 1–50 VTA-only
+  sessions from a selected image. Run names are generated automatically and one
+  Admin DID is applied to the batch.
+- Each run has a dedicated detail page showing VTA names, session IDs,
+  provisioning state, endpoints and errors, plus a live readiness check and
+  one-action cleanup.
+
+### Changed
+
+- Load-test runs are listed in a compact table, and deleted runs disappear after
+  cleanup. The Admin DID is kept only in the current form and cleared after
+  submission.
+
+Requires vtafarm-api 0.4.0.
+
 ## [v0.3.0] - 2026-08-20
 
 ### Added
