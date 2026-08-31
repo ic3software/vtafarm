@@ -20,6 +20,8 @@ import { DashboardView } from '@/pages/admin/DashboardView'
 import { AdminsView } from '@/pages/admin/AdminsView'
 import { UsersView } from '@/pages/admin/UsersView'
 import { SessionsView } from '@/pages/admin/SessionsView'
+import { LoadTestingView } from '@/pages/admin/LoadTestingView'
+import { LoadTestingDetailView } from '@/pages/admin/LoadTestingDetailView'
 import { PlatformStackView } from '@/pages/admin/PlatformStackView'
 import { InvitationsView } from '@/pages/admin/InvitationsView'
 import { SecurityView } from '@/pages/admin/SecurityView'
@@ -195,6 +197,8 @@ export default function App() {
               <Route path="admins" element={<AdminsView />} />
               <Route path="users" element={<UsersView />} />
               <Route path="sessions" element={<SessionsView />} />
+              <Route path="load-testing" element={<LoadTestingView />} />
+              <Route path="load-testing/:id" element={<LoadTestingDetailView />} />
               <Route path="platform-stack" element={<PlatformStackView />} />
               <Route path="invitations" element={<InvitationsView />} />
               <Route path="settings" element={<SecurityView />} />

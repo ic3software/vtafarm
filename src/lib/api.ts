@@ -351,6 +351,46 @@ export interface AdminSetupSession {
   connection_count?: number
 }
 
+export type LoadTestStatus =
+  | 'creating' | 'active' | 'partial' | 'failed'
+  | 'deleting' | 'deleted' | 'delete_failed'
+
+export interface LoadTestSession {
+  id: number
+  vta_name: string
+  status: SetupStatus
+  error_msg?: string
+  fqdn: string
+}
+
+export interface LoadTestRun {
+  id: number
+  status: LoadTestStatus
+  error_msg?: string
+  requested_count: number
+  created_count: number
+  running_count: number
+  failed_count: number
+  vta_image: string
+  created_at: string
+  updated_at: string
+  sessions: LoadTestSession[]
+}
+
+export interface LoadTestCheck {
+  id: number
+  checked_at: string
+  online_count: number
+  total: number
+  all_online: boolean
+  sessions: Array<{
+    vta_name: string
+    status: SetupStatus
+    online: boolean
+    reason?: string
+  }>
+}
+
 /**
  * The farm's own `full_stack` at `vta.{CLUSTER_DOMAIN}` and friends — the
  * mediator and DID host every `vta_only` session points at.
@@ -724,6 +764,16 @@ export const api = {
    */
   adminDeleteSession: (id: string, confirm?: string) =>
     req<null>('DELETE', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}`, confirm ? { confirm } : undefined),
+
+  // ── Admin — VTA provisioning load tests ────────────────────────────────────
+  listLoadTests: () => req<LoadTestRun[]>('GET', '/api/v1/admin/load-tests'),
+  getLoadTest: (id: number) => req<LoadTestRun>('GET', `/api/v1/admin/load-tests/${id}`),
+  createLoadTest: (count: number, admin_did: string, vta_image: string) =>
+    req<{ id: number; status: LoadTestStatus }>('POST', '/api/v1/admin/load-tests', { count, admin_did, vta_image }),
+  checkLoadTest: (id: number) =>
+    req<LoadTestCheck>('POST', `/api/v1/admin/load-tests/${id}/check`),
+  deleteLoadTest: (id: number) =>
+    req<{ id: number; status: LoadTestStatus } | null>('DELETE', `/api/v1/admin/load-tests/${id}`),
 
   // Admin twins of exportSessionConfigs/-Logs — any user's session.
   adminExportSessionConfigs: (id: string) =>

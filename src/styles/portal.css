@@ -375,6 +375,19 @@
 .portal-root .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
 .portal-root .page-head h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 5px; }
 .portal-root .page-head .sub { font-size: 14px; color: hsl(var(--muted-foreground)); margin: 0; }
+.portal-root .load-test-form { display: grid; gap: 16px; padding: 20px 24px 24px; }
+.portal-root .load-test-form-grid { display: grid; grid-template-columns: minmax(120px, .35fr) minmax(260px, 1fr); gap: 16px; }
+.portal-root .load-test-run-header { padding-bottom: 20px; }
+.portal-root .load-test-run-actions { flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.portal-root .load-test-run-row { cursor: pointer; }
+.portal-root .load-test-run-row:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
+.portal-root .load-test-error { min-width: 280px; max-width: 460px; white-space: normal; overflow-wrap: anywhere; color: hsl(var(--destructive)); font-size: 12px; line-height: 1.45; }
+.portal-root .load-test-back { display: inline-block; margin: 0 0 10px; padding: 0; border: 0; background: none; color: hsl(var(--muted-foreground)); font: inherit; font-size: 13px; cursor: pointer; }
+.portal-root .load-test-back:hover { color: hsl(var(--foreground)); }
+.portal-root .load-test-table thead th:first-child,
+.portal-root .load-test-table tbody td:first-child { padding-left: 24px; }
+.portal-root .load-test-table thead th:last-child,
+.portal-root .load-test-table tbody td:last-child { padding-right: 24px; }
 
 /* --- Auth layout --- */
 .portal-root .p-auth { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
@@ -418,6 +431,9 @@
   .portal-root .page-head { flex-direction: column; align-items: stretch; gap: 14px; }
   .portal-root .page-head .btn { width: 100%; }
   .portal-root .page-head h1 { font-size: 21px; }
+  .portal-root .load-test-form-grid { grid-template-columns: 1fr; }
+  .portal-root .load-test-run-header { flex-direction: column; gap: 14px; }
+  .portal-root .load-test-run-actions { justify-content: flex-start; }
   .portal-root .p-table { min-width: 560px; }
   .portal-root .stepper .step .s-sub { display: none; }
   .portal-root .stepper .step .s-label { font-size: 10px; max-width: 8ch; }

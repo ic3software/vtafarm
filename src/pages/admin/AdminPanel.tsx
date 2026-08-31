@@ -50,6 +50,7 @@ export function AdminPanel() {
   const crumb = path.includes('/settings') ? 'Settings'
     : path.includes('/users') ? 'Users'
     : path.includes('/platform-stack') ? 'Platform stack'
+    : path.includes('/load-testing') ? 'Load testing'
     : path.includes('/sessions') ? 'Sessions'
     : path.includes('/invitations') ? 'Invitations'
     : path.includes('/admins') ? 'Admins'
@@ -100,6 +101,13 @@ export function AdminPanel() {
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg>
               Sessions
+            </div>
+            <div
+              className={`nav-item ${path.includes('/load-testing') ? 'active' : ''}`}
+              onClick={() => goTo('/admin/load-testing')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/><path d="M16 7h3v3"/></svg>
+              Load testing
             </div>
             <div
               className={`nav-item ${path.includes('/platform-stack') ? 'active' : ''}`}
