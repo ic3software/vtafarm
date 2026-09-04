@@ -57,3 +57,8 @@ pnpm dlx shadcn@latest add <component>
 ```
 
 Components land in `src/components/ui/`.
+
+## License
+
+VTA Farm is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.
+Contributions are welcome under the terms in [CONTRIBUTING.md](CONTRIBUTING.md).
