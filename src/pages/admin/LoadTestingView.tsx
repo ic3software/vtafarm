@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type Keyboar
 import { useNavigate } from 'react-router-dom'
 import { api, type LoadTestRun } from '@/lib/api'
 import { imageTag } from '@/lib/utils'
-import { isValidAdminDid } from '../portal/portalUtils'
 import { LoadTestRunBadge } from './LoadTestRunBadge'
 
 const activeRunStatuses = new Set(['creating', 'active', 'partial', 'deleting', 'delete_failed'])
@@ -17,7 +16,6 @@ export function LoadTestingView() {
   const [runs, setRuns] = useState<LoadTestRun[]>([])
   const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [count, setCount] = useState('5')
-  const [adminDid, setAdminDid] = useState('')
   const [selectedImage, setSelectedImage] = useState('')
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -28,7 +26,6 @@ export function LoadTestingView() {
   ), [])
 
   useEffect(() => {
-    window.localStorage.removeItem('vtafarm.load-test.admin-did')
     void loadRuns().catch(() => {})
     void api.adminListImages('vta').then(options => {
       setImages(options)
@@ -58,11 +55,6 @@ export function LoadTestingView() {
       setError('Number of VTAs must be between 1 and 50.')
       return
     }
-    const did = adminDid.trim()
-    if (!isValidAdminDid(did)) {
-      setError('Enter the did:key value produced by pnm setup.')
-      return
-    }
     if (!selectedImage) {
       setError('Select a VTA image.')
       return
@@ -70,8 +62,7 @@ export function LoadTestingView() {
     setCreating(true)
     setError('')
     try {
-      const created = await api.createLoadTest(parsedCount, did, selectedImage)
-      setAdminDid('')
+      const created = await api.createLoadTest(parsedCount, selectedImage)
       await loadRuns()
       navigate(`/admin/load-testing/${created.id}`)
     } catch (err) {
@@ -105,7 +96,7 @@ export function LoadTestingView() {
         <div className="card-header">
           <div>
             <h3 className="card-title">VTA provisioning test</h3>
-            <p className="card-desc">Names are generated as <span className="p-mono">load-&lt;run&gt;-001</span>. The same admin DID is applied automatically to every session.</p>
+            <p className="card-desc">Names are generated as <span className="p-mono">load-&lt;run&gt;-001</span>. An ephemeral admin DID is generated automatically for each run.</p>
           </div>
         </div>
         <form onSubmit={submit} className="load-test-form">
@@ -126,11 +117,6 @@ export function LoadTestingView() {
               </select>
             </div>
           </div>
-          <div>
-            <label className="p-label" htmlFor="lt-admin-did">Admin DID</label>
-            <input id="lt-admin-did" className="p-input p-mono" type="text" placeholder="did:key:z6Mk…"
-              value={adminDid} onChange={e => setAdminDid(e.target.value)} disabled={creating || hasActiveRun} />
-          </div>
           {hasActiveRun && (
             <div className="p-alert alert-warning">
               <div className="grow"><p className="alert-title">Finish or delete the active run before starting another.</p></div>
@@ -139,7 +125,7 @@ export function LoadTestingView() {
           {error && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
           <div>
             <button className="btn btn-default" type="submit"
-              disabled={creating || hasActiveRun || !countIsValid || !selectedImage || !adminDid.trim()}>
+              disabled={creating || hasActiveRun || !countIsValid || !selectedImage}>
               {creating ? 'Starting…' : countIsValid ? `Start ${parsedCount} VTA${parsedCount === 1 ? '' : 's'}` : 'Start VTAs'}
             </button>
           </div>
