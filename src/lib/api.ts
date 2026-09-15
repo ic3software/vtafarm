@@ -308,6 +308,28 @@ export interface PasskeyRecord {
   last_used_at: string | null
 }
 
+export type SIOPRole = 'user' | 'admin'
+
+export interface SIOPMetadata {
+  enabled: boolean
+  rp_did: string
+}
+
+export interface SIOPIdentity {
+  id: number
+  did: string
+  label: string
+  created_at: string
+  last_authenticated_at: string | null
+  last_kid: string
+}
+
+export interface SIOPChallenge {
+  challenge: string
+  session_id: string
+  expires_at: string
+}
+
 export interface Invitation {
   id: number
   token: string
@@ -640,7 +662,7 @@ function apiError(msg: string, status: number, reason?: string): ApiError {
   return Object.assign(new Error(msg), { status, reason }) as ApiError
 }
 
-async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function req<T>(method: string, path: string, body?: unknown, dispatchUnauthorized = true): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     credentials: 'include',
@@ -650,7 +672,7 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   if (res.status === 204) return null as T
   const data = await res.json().catch(() => ({ error: res.statusText }))
   if (!res.ok) {
-    if (res.status === 401) window.dispatchEvent(new Event('vtafarm:unauthorized'))
+    if (res.status === 401 && dispatchUnauthorized) window.dispatchEvent(new Event('vtafarm:unauthorized'))
     throw apiError(data.error ?? 'Request failed', res.status, data.reason)
   }
   return data as T
@@ -687,6 +709,28 @@ function filenameFromDisposition(header: string | null): string | undefined {
 }
 
 export const api = {
+  // ── VTA Wallet SIOP ─────────────────────────────────────────────────────────
+  siopMetadata: () => req<SIOPMetadata>('GET', '/api/v1/auth/siop/metadata'),
+  siopLoginChallenge: (role: SIOPRole, did: string) =>
+    req<SIOPChallenge>('POST', `/api/v1/auth/${role}/siop/challenge`, { did }, false),
+  siopLoginAuthenticate: (role: SIOPRole, sessionId: string, idToken: string) =>
+    req<{ user: UserInfo }>('POST', `/api/v1/auth/${role}/siop/authenticate`, {
+      session_id: sessionId,
+      id_token: idToken,
+    }, false),
+  siopLinkChallenge: (role: SIOPRole, did: string) =>
+    req<SIOPChallenge>('POST', `/api/v1/${role}/siop/link/challenge`, { did }, false),
+  siopLinkAuthenticate: (role: SIOPRole, sessionId: string, idToken: string, label: string) =>
+    req<SIOPIdentity>('POST', `/api/v1/${role}/siop/link/authenticate`, {
+      session_id: sessionId,
+      id_token: idToken,
+      label,
+    }, false),
+  listSIOPIdentities: (role: SIOPRole) =>
+    req<SIOPIdentity[]>('GET', `/api/v1/${role}/siop/identities`),
+  deleteSIOPIdentity: (role: SIOPRole, id: number) =>
+    req<null>('DELETE', `/api/v1/${role}/siop/identities/${id}`),
+
   // ── Auth — User ──────────────────────────────────────────────────────────────
   userPasskeyLoginBegin: () =>
     req<{ session_id: string; publicKey: unknown }>('POST', '/api/v1/auth/user/passkey/begin'),
