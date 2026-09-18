@@ -47,28 +47,46 @@ gh auth refresh -h github.com -s write:packages -s read:packages
 
 ## Steps
 
-Run them in this order. Steps 1 and 2 must not have any other commit between
-them: the changelog, the version, the tag and the artifacts all have to describe
-the same tree.
+Run them in this order. `main` requires the `✍️ Sign-off` status check, which
+runs on pull requests, and this repository uses squash merges. Prepare each
+release on a branch, merge it, and tag the resulting commit on `main`. The tag
+and the artifacts must describe that same tree.
 
-**1. Write the changelog and bump the version, in one commit.**
+**1. Create a release branch, then write the changelog and bump the version in
+one commit.**
 
 ```bash
+git switch main
+git pull --ff-only
+git switch -c chore/release-0-2-0
 vim CHANGELOG.md                 # add the new version's entry
 vim helm/vtafarm/Chart.yaml      # version and appVersion
 git add CHANGELOG.md helm/vtafarm/Chart.yaml
 git commit -s -m "chore: release 0.2.0"
 ```
 
-**2. Tag that commit.**
+**2. Push the branch, open a pull request and wait for its checks.**
 
 ```bash
+git push -u origin chore/release-0-2-0
+```
+
+Open the pushed branch on GitHub, create a pull request targeting `main`, and
+wait for the `✍️ Sign-off` check to pass. Merge it on GitHub with **Squash and
+merge**. Do not create the version tag on the release branch: squash merging
+creates a different commit on `main`.
+
+**3. Update `main` and tag the merged commit.**
+
+```bash
+git switch main
+git pull --ff-only
 git tag -s v0.2.0 -m "vtafarm 0.2.0"
 ```
 
-Signed (`-s`), so GitHub shows the tag as verified rather than unverified. This
-repo signs its commits already; `git config tag.gpgsign true` extends that to
-tags so a plain `git tag -a` signs too.
+The tag is signed (`-s`), so GitHub shows it as verified rather than
+unverified. This repo signs its commits already; `git config tag.gpgsign true`
+extends that to tags so a plain `git tag -a` signs too.
 
 The `v` prefix is used everywhere a person reads the version — the git tag, the
 GitHub release, the changelog heading. `Chart.yaml` and the artifacts it names
@@ -78,7 +96,7 @@ Tag before building. If the build fails, `git tag -d v0.2.0` and retry; an
 untagged successful release is the worse failure, because nothing points at the
 commit the artifacts came from.
 
-**3. Build and publish.**
+**4. Build and publish.**
 
 ```bash
 make release
@@ -96,16 +114,16 @@ helm push .charts/vtafarm-0.2.0.tgz oci://ghcr.io/ic3software/charts
 built on an arm64 machine without it produces an image that fails to start with
 `exec format error`.
 
-**4. Push the commit and the tag.**
+**5. Push the tag.**
 
 ```bash
-git push origin main
 git push origin v0.2.0
 ```
 
-`git push origin main` does not carry tags. They need their own push.
+The pull request already updated `main`. Git does not include tags with that
+update, so the version tag needs its own push.
 
-**5. Create the GitHub release.**
+**6. Create the GitHub release.**
 
 Pass only the new version's section, not the whole changelog:
 
@@ -142,7 +160,8 @@ immutable: never re-push a version that already exists, bump instead.
 
 | Failed at | Recovery |
 | --- | --- |
-| Before `make release`, tag not pushed | `git tag -d v0.2.0`, fix, start again |
+| Before the pull request is merged | Fix the release branch, commit with `-s`, push and wait for the checks again |
+| After merge, before `make release`, tag not pushed | `git tag -d v0.2.0`; fix through another pull request, then tag the new `main` commit |
 | Image pushed, chart failed | Fix and re-run `make release` — the image push is idempotent for the same content |
 | Both pushed, then a bug is found | Do not overwrite. Release the fix as the next version |
 | Tag already pushed | Leave it. Moving a published tag needs a force push, which this repo does not do |

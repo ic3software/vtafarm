@@ -1,5 +1,22 @@
 # Changelog
 
+## [v0.5.0] - 2026-09-18
+
+### Added
+
+- Users and admins can link and unlink VTA Wallet identities from their Settings
+  or Security page, then use a linked identity to sign in alongside their
+  existing passkeys.
+- Apache-2.0 licensing, contribution guidelines and a DCO check for pull
+  requests.
+
+### Changed
+
+- Load tests now generate an ephemeral Admin DID for each run, so starting a
+  test no longer requires entering one manually.
+
+Requires vtafarm-api 0.5.0.
+
 ## [v0.4.0] - 2026-08-31
 
 ### Added
