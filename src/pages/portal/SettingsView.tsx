@@ -4,6 +4,7 @@ import { startRegistration } from '@simplewebauthn/browser'
 import { api, type PasskeyRecord } from '@/lib/api'
 import { initials } from './portalUtils'
 import type { PortalContext } from './Portal'
+import { VTAWalletIdentities } from '@/auth/siop/VTAWalletIdentities'
 
 const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'
 function fmt(iso: string) {
@@ -43,7 +44,7 @@ export function SettingsView() {
       setShowAddPasskey(false)
       setNewPasskeyName('')
       setLoadingPasskeys(true)
-    void loadPasskeys()
+      void loadPasskeys()
     } catch (err) {
       if ((err as { name?: string }).name === 'NotAllowedError') {
         setAddPasskeyError('Registration was cancelled.')
@@ -134,6 +135,8 @@ export function SettingsView() {
           ))}
         </div>
       </div>
+
+      <VTAWalletIdentities role="user" hasPasskey={passkeys.length > 0} />
 
       {/* Add Passkey dialog */}
       {showAddPasskey && (
