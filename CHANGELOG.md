@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.6.0] - 2026-09-21
+
+### Added
+
+- Users can link additional PNM administrators to a running agent from its
+  detail page, inspect the cached VTA ACL and refresh it from the live VTA.
+- Admins can inspect and refresh the platform stack's live VTA ACL from the
+  Administrators card.
+
+Requires vtafarm-api 0.6.0.
+
 ## [v0.5.0] - 2026-09-18
 
 ### Added
