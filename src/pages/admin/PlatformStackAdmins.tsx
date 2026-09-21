@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, type SessionAcl } from '@/lib/api'
 import { isValidAdminDid } from '../portal/portalUtils'
 
+type Notice = { area: 'grant' | 'acl'; message: string }
+
 function formatAclCreatedAt(value: string): string {
   const match = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2}:\d{2})$/.exec(value)
   if (!match) return value
@@ -17,7 +19,7 @@ export function PlatformStackAdmins() {
   const [busy, setBusy] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState<Notice | null>(null)
   const [warning, setWarning] = useState('')
 
   const load = useCallback((force = false) => (
@@ -37,16 +39,19 @@ export function PlatformStackAdmins() {
       return
     }
 
-    setError(''); setNotice(''); setWarning(''); setBusy(true)
+    setError(''); setNotice(null); setWarning(''); setBusy(true)
     try {
       const result = await api.grantPlatformStackAdmin({
         did: trimmedDid,
         ...(trimmedLabel ? { label: trimmedLabel } : {}),
       })
       setDid(''); setLabel('')
-      setNotice(result.already_present
-        ? 'This PNM was already an administrator; nothing changed.'
-        : 'The additional PNM can now administer this VTA.')
+      setNotice({
+        area: 'grant',
+        message: result.already_present
+          ? 'This PNM was already an administrator; nothing changed.'
+          : 'The additional PNM can now administer this VTA.',
+      })
       if (result.warning) setWarning(result.warning)
       await load(true)
     } catch (err) {
@@ -57,11 +62,11 @@ export function PlatformStackAdmins() {
   }
 
   async function handleRefresh() {
-    setError(''); setNotice(''); setWarning(''); setRefreshing(true)
+    setError(''); setNotice(null); setWarning(''); setRefreshing(true)
     try {
       const result = await api.refreshPlatformStackAdmins()
       setAcl(result)
-      setNotice('Live ACL refreshed.')
+      setNotice({ area: 'acl', message: 'Live ACL refreshed.' })
       if (result.warning) setWarning(result.warning)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to refresh the ACL')
@@ -91,7 +96,7 @@ export function PlatformStackAdmins() {
           </div>
 
           {error && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
-          {notice && <p role="status" style={{ margin: 0, fontSize: 13, color: 'hsl(var(--foreground))' }}>{notice}</p>}
+          {notice?.area === 'grant' && <p role="status" style={{ margin: 0, fontSize: 13, color: 'hsl(var(--foreground))' }}>{notice.message}</p>}
           {warning && (
             <div className="p-alert alert-warning" role="alert">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
@@ -118,6 +123,9 @@ export function PlatformStackAdmins() {
             <div className="p-muted text-xs" style={{ marginTop: 3 }}>
               {acl?.synced_at ? `Synced ${new Date(acl.synced_at).toLocaleString()}` : 'Not synced yet'}
             </div>
+            {notice?.area === 'acl' && (
+              <div role="status" className="text-xs" style={{ marginTop: 3 }}>{notice.message}</div>
+            )}
           </div>
           <button className="btn btn-outline btn-sm" type="button" onClick={handleRefresh}
             disabled={busy || refreshing}>
