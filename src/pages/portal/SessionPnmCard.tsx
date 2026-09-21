@@ -80,7 +80,7 @@ export function SessionPnmCard({ sessionId, onVtaRestarted }: SessionPnmCardProp
       const result = await api.refreshSessionAcl(sessionId)
       onVtaRestarted()
       setAcl(result)
-      setNotice('Live ACL refreshed.')
+      setNotice('ACL refreshed.')
       if (result.warning) setWarning(result.warning)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to refresh the ACL')
@@ -134,7 +134,7 @@ export function SessionPnmCard({ sessionId, onVtaRestarted }: SessionPnmCardProp
 
         <div className="p-row between center">
           <div>
-            <div className="text-sm fw-600">Live ACL</div>
+            <div className="text-sm fw-600">ACL</div>
             <div className="p-muted text-xs" style={{ marginTop: 3 }}>
               {acl?.synced_at ? `Synced ${new Date(acl.synced_at).toLocaleString()}` : 'Not synced yet'}
             </div>
@@ -143,13 +143,13 @@ export function SessionPnmCard({ sessionId, onVtaRestarted }: SessionPnmCardProp
             disabled={linking || refreshingAcl}>
             {refreshingAcl
               ? <><svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Refreshing…</>
-              : 'Refresh live ACL'}
+              : 'Refresh ACL'}
           </button>
         </div>
         <p className="p-muted text-xs" style={{ margin: 0 }}>Refreshing temporarily stops and restarts the VTA.</p>
 
         {!loadingAcl && acl?.synced_at && acl.entries.length === 0 && (
-          <p className="p-muted text-sm" style={{ margin: 0 }}>No ACL entries.</p>
+          <p className="p-muted text-sm" style={{ margin: 0 }}>No Super Admin entries.</p>
         )}
         {acl && acl.entries.length > 0 && (
           <div className="p-col gap-8">
