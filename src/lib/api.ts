@@ -508,6 +508,20 @@ export interface GrantAdminResult {
   warning?: string
 }
 
+export interface VtaAclEntry {
+  did: string
+  role: string
+  label?: string
+  contexts: string
+  created_at: string
+}
+
+export interface SessionAcl {
+  entries: VtaAclEntry[]
+  synced_at: string | null
+  warning?: string
+}
+
 export interface AdminSessionsPage {
   items: AdminSetupSession[]
   total: number
@@ -992,6 +1006,10 @@ export const api = {
   // adds an administrator without advancing the session setup pipeline.
   addSessionAdmin: (id: string, admin_did: string) =>
     req<GrantAdminResult>('POST', `/api/v1/setup/${encodeURIComponent(id)}/admins`, { admin_did }),
+  getSessionAcl: (id: string, force = false) =>
+    req<SessionAcl>('GET', `/api/v1/setup/${encodeURIComponent(id)}/admins${force ? `?refresh=${Date.now()}` : ''}`),
+  refreshSessionAcl: (id: string) =>
+    req<SessionAcl>('POST', `/api/v1/setup/${encodeURIComponent(id)}/admins/refresh`),
   // Self-service upgrade/downgrade of the caller's own session — the backend
   // only ever matches sessions owned by the authenticated user.
   createSessionUpgrade: (id: string, components: Array<{ component: UpgradeComponent; image: string }>) =>
