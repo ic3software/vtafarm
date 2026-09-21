@@ -476,35 +476,13 @@ export interface PlatformStack {
   updated_at?: string
 }
 
-/**
- * One attempt by this farm to add a co-admin. **An event, not a permission.**
- *
- * `did` is what was submitted, and it stops being the holder's DID on their
- * first connect: PNM mints a long-lived key and `POST /acl/swap` moves the ACL
- * entry onto it. A granted row whose DID is absent from the ACL is therefore
- * the normal steady state, not an error — say "rotated", never "missing".
- */
-export interface VtaAdminGrant {
-  did: string
-  label: string
-  status: 'pending' | 'granted' | 'failed'
-  error_msg?: string
-  granted_at?: string
-  created_at: string
-}
-
-export interface PlatformStackAdmins {
-  id: string
-  label: string
-  grants: VtaAdminGrant[]
-}
-
+/** Result of an offline VTA administrator grant. */
 export interface GrantAdminResult {
   did: string
   status: string
   /** The DID was already in the VTA's ACL; nothing changed. Not an error. */
   already_present?: boolean
-  /** The VTA failed to restart. The stack is down — surface this loudly. */
+  /** The grant landed, but snapshot synchronization or restart needs attention. */
   warning?: string
 }
 
@@ -844,16 +822,9 @@ export const api = {
   // domain row, DNS, session — by one action; this is the only route that can
   // mint a domains row for our own zone.
   getPlatformStack: () => req<PlatformStack>('GET', '/api/v1/admin/platform-stack'),
-  /**
-   * What was added from here — a history of events, free and instant.
-   *
-   * Not the VTA's current admin list, and it differs both ways: a granted DID
-   * is usually no longer in the ACL (PNM rotates the key on first connect and
-   * the entry moves with it), and admins added out of band never appear. For
-   * the live list, `pnm acl list` against the VTA.
-   */
-  getPlatformStackAdmins: () =>
-    req<PlatformStackAdmins>('GET', '/api/v1/admin/platform-stack/admins'),
+  /** Last complete `vta acl list` snapshot. Reading it causes no downtime. */
+  getPlatformStackAdmins: (force = false) =>
+    req<SessionAcl>('GET', `/api/v1/admin/platform-stack/admins${force ? `?refresh=${Date.now()}` : ''}`),
   /**
    * Add a co-admin as **unrestricted super admin** — the same authority the
    * stack's first admin got.
@@ -863,16 +834,16 @@ export const api = {
    * already has a grant or another admin holds the window; both are retryable
    * and neither indicates damage.
    *
-   * `label` is required: PNM rotates the DID away on first connect, and the
-   * label is the only human-readable field the ACL entry carries across that
-   * move — so it is what identifies this person at a `pnm acl list` prompt
-   * later, which is where removals happen.
+   * `label` is optional. When present, it survives PNM's first-connect key
+   * rotation and remains the human-readable name in the ACL.
    *
    * There is no revoke counterpart by design — removal is
    * `pnm acl delete <did>` against the running VTA.
    */
-  grantPlatformStackAdmin: (data: { did: string; label: string; confirm: string }) =>
+  grantPlatformStackAdmin: (data: { did: string; label?: string }) =>
     req<GrantAdminResult>('POST', '/api/v1/admin/platform-stack/admins', data),
+  refreshPlatformStackAdmins: () =>
+    req<SessionAcl>('POST', '/api/v1/admin/platform-stack/admins/refresh'),
   // No admin_did: the stack runs exactly the sequence a user's session does and
   // parks at awaiting_admin_did, where adminProvisionAdmin resumes it. The DID
   // is minted locally by `pnm setup` from a VTA DID that doesn't exist yet.

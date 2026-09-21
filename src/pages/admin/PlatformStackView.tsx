@@ -511,7 +511,7 @@ export function PlatformStackView() {
           {/* Only once the stack is running: the ACL is written by the pipeline
               while the VTA is still down, and a grant before `deploy_vta` would
               race the step that seeds it. */}
-          <PlatformStackAdmins stackLabel={stack.label ?? ''} />
+          <PlatformStackAdmins />
 
           {sessionLike && <AdminKeysCard session={sessionLike} />}
         </>
