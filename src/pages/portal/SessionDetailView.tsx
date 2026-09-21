@@ -392,9 +392,6 @@ export function SessionDetailView() {
             session={session}
             onChanged={() => api.getSession(sessionId).then(setSession).catch(() => {})}
           />
-          {session.status === 'running' && (
-            <SessionPnmCard sessionId={sessionId} onVtaRestarted={reconnectVtaLogs} />
-          )}
           {/* Self-service version changes — only once the stack is fully running */}
           {session.status === 'running' && (
             <SessionVersionsCard
@@ -406,6 +403,9 @@ export function SessionDetailView() {
               deliberately, not while reading the page top to bottom. */}
           {isFullStackCompleted && <AdminKeysCard session={session} />}
           <SessionExportCard session={session} sessionId={sessionId} />
+          {session.status === 'running' && (
+            <SessionPnmCard sessionId={sessionId} onVtaRestarted={reconnectVtaLogs} />
+          )}
           {/* Danger Zone */}
           <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
             <div className="card-header">
