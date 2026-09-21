@@ -4,6 +4,7 @@ import { isValidAdminDid } from './portalUtils'
 
 interface SessionPnmCardProps {
   sessionId: string
+  onVtaRestarted: () => void
 }
 
 function formatAclCreatedAt(value: string): string {
@@ -14,7 +15,7 @@ function formatAclCreatedAt(value: string): string {
   return date.toLocaleString()
 }
 
-export function SessionPnmCard({ sessionId }: SessionPnmCardProps) {
+export function SessionPnmCard({ sessionId, onVtaRestarted }: SessionPnmCardProps) {
   const [adminDid, setAdminDid] = useState('')
   const [linking, setLinking] = useState(false)
   const [error, setError] = useState('')
@@ -50,6 +51,7 @@ export function SessionPnmCard({ sessionId }: SessionPnmCardProps) {
     setLinking(true)
     try {
       const result = await api.addSessionAdmin(sessionId, trimmed)
+      onVtaRestarted()
       setAdminDid('')
       setNotice(result.already_present
         ? 'This PNM was already an administrator; nothing changed.'
@@ -76,6 +78,7 @@ export function SessionPnmCard({ sessionId }: SessionPnmCardProps) {
     setRefreshingAcl(true)
     try {
       const result = await api.refreshSessionAcl(sessionId)
+      onVtaRestarted()
       setAcl(result)
       setNotice('Live ACL refreshed.')
       if (result.warning) setWarning(result.warning)
