@@ -822,7 +822,7 @@ export const api = {
   // domain row, DNS, session — by one action; this is the only route that can
   // mint a domains row for our own zone.
   getPlatformStack: () => req<PlatformStack>('GET', '/api/v1/admin/platform-stack'),
-  /** Last complete `vta acl list` snapshot. Reading it causes no downtime. */
+  /** Super Admin entries from the last complete ACL snapshot. Reading causes no downtime. */
   getPlatformStackAdmins: (force = false) =>
     req<SessionAcl>('GET', `/api/v1/admin/platform-stack/admins${force ? `?refresh=${Date.now()}` : ''}`),
   /**

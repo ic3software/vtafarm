@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.6.1] - 2026-09-21
+
+### Changed
+
+- User and admin interfaces now label **Live ACL** as **ACL**.
+- ACL lists now show only Super Admin entries returned by the API.
+
+Requires vtafarm-api 0.6.1.
+
 ## [v0.6.0] - 2026-09-21
 
 ### Added

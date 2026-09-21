@@ -66,7 +66,7 @@ export function PlatformStackAdmins() {
     try {
       const result = await api.refreshPlatformStackAdmins()
       setAcl(result)
-      setNotice({ area: 'acl', message: 'Live ACL refreshed.' })
+      setNotice({ area: 'acl', message: 'ACL refreshed.' })
       if (result.warning) setWarning(result.warning)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to refresh the ACL')
@@ -119,7 +119,7 @@ export function PlatformStackAdmins() {
 
         <div className="p-row between center">
           <div>
-            <div className="text-sm fw-600">Live ACL</div>
+            <div className="text-sm fw-600">ACL</div>
             <div className="p-muted text-xs" style={{ marginTop: 3 }}>
               {acl?.synced_at ? `Synced ${new Date(acl.synced_at).toLocaleString()}` : 'Not synced yet'}
             </div>
@@ -129,13 +129,13 @@ export function PlatformStackAdmins() {
           </div>
           <button className="btn btn-outline btn-sm" type="button" onClick={handleRefresh}
             disabled={busy || refreshing}>
-            {refreshing ? 'Refreshing…' : 'Refresh live ACL'}
+            {refreshing ? 'Refreshing…' : 'Refresh ACL'}
           </button>
         </div>
         <p className="p-muted text-xs" style={{ margin: 0 }}>Refreshing temporarily stops and restarts the VTA.</p>
 
         {!loadingAcl && acl?.synced_at && acl.entries.length === 0 && (
-          <p className="p-muted text-sm" style={{ margin: 0 }}>No ACL entries.</p>
+          <p className="p-muted text-sm" style={{ margin: 0 }}>No Super Admin entries.</p>
         )}
         {acl && acl.entries.length > 0 && (
           <div className="p-col gap-8">
