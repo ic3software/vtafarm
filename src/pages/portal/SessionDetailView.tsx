@@ -7,6 +7,7 @@ import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfig
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { SessionVersionsCard } from './SessionVersionsCard'
 import { SessionExportCard } from './SessionExportCard'
+import { SessionPnmCard } from './SessionPnmCard'
 import type { PortalContext } from './Portal'
 
 const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
@@ -29,6 +30,9 @@ export function SessionDetailView() {
   const [session, setSession] = useState<SetupSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [logs, setLogs] = useState<string[]>([])
+  // ACL maintenance replaces the VTA pod without changing session.status, so
+  // its completion must explicitly invalidate the otherwise stable stream.
+  const [logStreamGeneration, setLogStreamGeneration] = useState(0)
   const consoleBodyRef = useRef<HTMLDivElement>(null)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -88,7 +92,8 @@ export function SessionDetailView() {
     if (!session) return
     const skip = ['dns_provisioned', 'vta_setup_complete', 'dns_provision', 'awaiting_admin_did']
     if (skip.includes(session.status)) return
-    const es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs`, { withCredentials: true })
+    const source = logStreamGeneration > 0 ? '?source=vta' : ''
+    const es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs${source}`, { withCredentials: true })
     es.onmessage = e => setLogs(prev => [...prev, e.data])
     es.addEventListener('done', () => es.close())
     es.onerror = () => es.close()
@@ -96,7 +101,12 @@ export function SessionDetailView() {
     // Keyed on the status, not the object: the 3s poll replaces `session` every
     // tick, so depending on it would reconnect this stream continuously.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, session?.status])
+  }, [sessionId, session?.status, logStreamGeneration])
+
+  function reconnectVtaLogs() {
+    setLogs([])
+    setLogStreamGeneration(generation => generation + 1)
+  }
 
   // Scroll only within the console body — not the whole page — as new lines arrive.
   useEffect(() => {
@@ -393,6 +403,9 @@ export function SessionDetailView() {
               deliberately, not while reading the page top to bottom. */}
           {isFullStackCompleted && <AdminKeysCard session={session} />}
           <SessionExportCard session={session} sessionId={sessionId} />
+          {session.status === 'running' && (
+            <SessionPnmCard sessionId={sessionId} onVtaRestarted={reconnectVtaLogs} />
+          )}
           {/* Danger Zone */}
           <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
             <div className="card-header">
