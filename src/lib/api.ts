@@ -988,6 +988,10 @@ export const api = {
     download(`/api/v1/setup/${encodeURIComponent(id)}/export/logs`, `${id}-logs.zip`),
   provisionAdmin: (id: string, admin_did: string) =>
     req<{ status: string }>('POST', `/api/v1/setup/${id}/admin`, { admin_did }),
+  // Link another PNM to an already-running VTA. Unlike provisionAdmin, this
+  // adds an administrator without advancing the session setup pipeline.
+  addSessionAdmin: (id: string, admin_did: string) =>
+    req<GrantAdminResult>('POST', `/api/v1/setup/${encodeURIComponent(id)}/admins`, { admin_did }),
   // Self-service upgrade/downgrade of the caller's own session — the backend
   // only ever matches sessions owned by the authenticated user.
   createSessionUpgrade: (id: string, components: Array<{ component: UpgradeComponent; image: string }>) =>

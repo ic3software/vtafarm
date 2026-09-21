@@ -7,6 +7,7 @@ import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfig
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { SessionVersionsCard } from './SessionVersionsCard'
 import { SessionExportCard } from './SessionExportCard'
+import { SessionPnmCard } from './SessionPnmCard'
 import type { PortalContext } from './Portal'
 
 const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
@@ -382,6 +383,7 @@ export function SessionDetailView() {
             session={session}
             onChanged={() => api.getSession(sessionId).then(setSession).catch(() => {})}
           />
+          {session.status === 'running' && <SessionPnmCard sessionId={sessionId} />}
           {/* Self-service version changes — only once the stack is fully running */}
           {session.status === 'running' && (
             <SessionVersionsCard
