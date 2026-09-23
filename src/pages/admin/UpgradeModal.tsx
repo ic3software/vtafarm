@@ -233,11 +233,11 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
                     </div>
                   )}
                   {preview.skipped.length > 0 && (
-                    <div>
-                      <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                        Skipped
-                      </p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, color: 'hsl(var(--muted-foreground))' }}>
+                    <details>
+                      <summary style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))', cursor: 'pointer' }}>
+                        Skipped ({preview.skipped.length})
+                      </summary>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6, color: 'hsl(var(--muted-foreground))' }}>
                         {preview.skipped.map((s, i) => (
                           <div key={i} style={{
                             display: 'grid',
@@ -258,7 +258,7 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </details>
                   )}
                 </div>
               )}

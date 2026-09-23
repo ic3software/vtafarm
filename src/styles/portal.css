@@ -263,7 +263,7 @@
 
 /* --- Dialog overlay --- */
 .portal-root .p-overlay { position: fixed; inset: 0; background: hsl(0 0% 0% / 0.5); backdrop-filter: blur(2px); display: grid; place-items: center; padding: 24px; z-index: 100; }
-.portal-root .p-dialog { width: 100%; max-width: 460px; background: hsl(var(--popover)); color: hsl(var(--popover-foreground)); border: 1px solid hsl(var(--border)); border-radius: var(--radius); box-shadow: var(--shadow-lg); overflow: hidden; }
+.portal-root .p-dialog { width: 100%; max-width: 460px; max-height: calc(100dvh - 48px); background: hsl(var(--popover)); color: hsl(var(--popover-foreground)); border: 1px solid hsl(var(--border)); border-radius: var(--radius); box-shadow: var(--shadow-lg); overflow-x: hidden; overflow-y: auto; }
 /* The gap below the header lives on the header, not on the body's top: a
    confirm dialog with no body would otherwise sit its description straight on
    the footer. Totals are unchanged for dialogs that do have a body. */
