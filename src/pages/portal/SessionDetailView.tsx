@@ -8,6 +8,7 @@ import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { SessionVersionsCard } from './SessionVersionsCard'
 import { SessionExportCard } from './SessionExportCard'
 import { SessionPnmCard } from './SessionPnmCard'
+import { StackConfigEditor } from '../StackConfigEditor'
 import type { PortalContext } from './Portal'
 
 const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
@@ -399,6 +400,7 @@ export function SessionDetailView() {
               onUpgraded={() => api.getSession(sessionId).then(setSession).catch(() => {})}
             />
           )}
+          {session.status === 'running' && <StackConfigEditor sessionId={sessionId} vtaOnly={!isFullStack} />}
           {/* Secrets sit last before Danger Zone — both are things you visit
               deliberately, not while reading the page top to bottom. */}
           {isFullStackCompleted && <AdminKeysCard session={session} />}

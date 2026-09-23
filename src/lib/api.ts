@@ -639,7 +639,7 @@ export interface SessionUpgrade {
   tasks: SessionUpgradeTask[]
 }
 
-interface ApiError extends Error {
+export interface ApiError extends Error {
   status: number
   /**
    * The API's machine-readable refusal code, where it sends one (connection
@@ -648,10 +648,12 @@ interface ApiError extends Error {
    * the only option.
    */
   reason?: string
+  validationErrors?: Record<string, string>
+  rolledBack?: boolean
 }
 
-function apiError(msg: string, status: number, reason?: string): ApiError {
-  return Object.assign(new Error(msg), { status, reason }) as ApiError
+function apiError(msg: string, status: number, reason?: string, extra?: Partial<ApiError>): ApiError {
+  return Object.assign(new Error(msg), { status, reason }, extra) as ApiError
 }
 
 async function req<T>(method: string, path: string, body?: unknown, dispatchUnauthorized = true): Promise<T> {
@@ -665,7 +667,10 @@ async function req<T>(method: string, path: string, body?: unknown, dispatchUnau
   const data = await res.json().catch(() => ({ error: res.statusText }))
   if (!res.ok) {
     if (res.status === 401 && dispatchUnauthorized) window.dispatchEvent(new Event('vtafarm:unauthorized'))
-    throw apiError(data.error ?? 'Request failed', res.status, data.reason)
+    throw apiError(data.error ?? 'Request failed', res.status, data.reason, {
+      validationErrors: data.validation_errors,
+      rolledBack: data.rolled_back,
+    })
   }
   return data as T
 }
@@ -822,6 +827,12 @@ export const api = {
   // domain row, DNS, session — by one action; this is the only route that can
   // mint a domains row for our own zone.
   getPlatformStack: () => req<PlatformStack>('GET', '/api/v1/admin/platform-stack'),
+  getPlatformStackConfig: (component: UpgradeComponent) =>
+    req<{ content: string }>('GET', `/api/v1/admin/platform-stack/config?component=${component}`),
+  validatePlatformStackConfig: (component: UpgradeComponent, content: string) =>
+    req<{ valid: true }>('POST', '/api/v1/admin/platform-stack/config/validate', { component, content }),
+  applyPlatformStackConfig: (component: UpgradeComponent, content: string) =>
+    req<{ status: 'applied' | 'unchanged'; validated?: boolean }>('PUT', '/api/v1/admin/platform-stack/config', { component, content }),
   /** Super Admin entries from the last complete ACL snapshot. Reading causes no downtime. */
   getPlatformStackAdmins: (force = false) =>
     req<SessionAcl>('GET', `/api/v1/admin/platform-stack/admins${force ? `?refresh=${Date.now()}` : ''}`),
@@ -965,6 +976,13 @@ export const api = {
   verifyDomain: (id: number) => req<Domain>('POST', `/api/v1/domains/${id}/verify`),
   deleteDomain: (id: number) => req<null>('DELETE', `/api/v1/domains/${id}`),
   getSession: (id: string) => req<SetupSession>('GET', `/api/v1/setup/${id}`),
+  getStackConfig: (id: string, component: UpgradeComponent) =>
+    req<{ content: string }>('GET', `/api/v1/setup/${encodeURIComponent(id)}/config?component=${component}`),
+  validateStackConfig: (id: string, component: UpgradeComponent, content: string) =>
+    req<{ valid: true }>('POST', `/api/v1/setup/${encodeURIComponent(id)}/config/validate`, { component, content }),
+  applyStackConfig: (id: string, component: UpgradeComponent, content: string) =>
+    req<{ status: 'applied' | 'unchanged'; validated?: boolean }>(
+      'PUT', `/api/v1/setup/${encodeURIComponent(id)}/config`, { component, content }),
   deleteSession: (id: string) => req<null>('DELETE', `/api/v1/setup/${id}`),
   // Read from the running pods; the configs archive carries credentials.
   exportSessionConfigs: (id: string) =>

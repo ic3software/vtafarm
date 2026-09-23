@@ -10,6 +10,7 @@ import {
 import { useDidsEnroll, useVtcInstall } from '../portal/fullStackHooks'
 import { adminSessionActions } from '../portal/sessionActions'
 import { PlatformStackAdmins } from './PlatformStackAdmins'
+import { StackConfigEditor } from '../StackConfigEditor'
 
 // The farm's own full_stack, running under our zone's fixed labels —
 // vta.{CLUSTER_DOMAIN}, vtc., mediator., dids. This is the only place it can be
@@ -512,6 +513,10 @@ export function PlatformStackView() {
               while the VTA is still down, and a grant before `deploy_vta` would
               race the step that seeds it. */}
           <PlatformStackAdmins />
+
+          <div style={{ marginTop: 16 }}>
+            <StackConfigEditor admin />
+          </div>
 
           {sessionLike && <AdminKeysCard session={sessionLike} />}
         </>
