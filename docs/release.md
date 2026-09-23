@@ -17,13 +17,13 @@ version on the shelf; something else has to take it off.
 `Chart.yaml` holds the only version number:
 
 ```yaml
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.7.0
+appVersion: "0.7.0"
 ```
 
 The two are kept equal and one release bumps both. `make release` reads
-`version` from this file — nothing else needs editing, and the image tag and the
-chart version therefore cannot disagree.
+`version` from this file, so the image tag and the chart version cannot
+disagree. Add the release notes to `CHANGELOG.md` at the same time.
 
 While this is 0.x the values structure may change in any release. Anything that
 would make an existing `values.yaml` behave differently belongs under
@@ -58,17 +58,17 @@ one commit.**
 ```bash
 git switch main
 git pull --ff-only
-git switch -c chore/release-0-2-0
+git switch -c chore/release-0.7.0
 vim CHANGELOG.md                 # add the new version's entry
 vim helm/vtafarm/Chart.yaml      # version and appVersion
-git add CHANGELOG.md helm/vtafarm/Chart.yaml
-git commit -s -m "chore: release 0.2.0"
+git add CHANGELOG.md helm/vtafarm/Chart.yaml docs/release.md
+git commit -s -m "chore: release 0.7.0"
 ```
 
 **2. Push the branch, open a pull request and wait for its checks.**
 
 ```bash
-git push -u origin chore/release-0-2-0
+git push -u origin chore/release-0.7.0
 ```
 
 Open the pushed branch on GitHub, create a pull request targeting `main`, and
@@ -81,7 +81,7 @@ creates a different commit on `main`.
 ```bash
 git switch main
 git pull --ff-only
-git tag -s v0.2.0 -m "vtafarm 0.2.0"
+git tag -s v0.7.0 -m "vtafarm 0.7.0"
 ```
 
 The tag is signed (`-s`), so GitHub shows it as verified rather than
@@ -92,7 +92,7 @@ The `v` prefix is used everywhere a person reads the version — the git tag, th
 GitHub release, the changelog heading. `Chart.yaml` and the artifacts it names
 stay bare, which is the Helm and OCI convention.
 
-Tag before building. If the build fails, `git tag -d v0.2.0` and retry; an
+Tag before building. If the build fails, `git tag -d v0.7.0` and retry; an
 untagged successful release is the worse failure, because nothing points at the
 commit the artifacts came from.
 
@@ -105,9 +105,9 @@ make release
 This runs:
 
 ```bash
-docker buildx build --platform linux/amd64 -t ghcr.io/ic3software/vtafarm:0.2.0 --push .
+docker buildx build --platform linux/amd64 -t ghcr.io/ic3software/vtafarm:0.7.0 --push .
 helm package helm/vtafarm -d .charts
-helm push .charts/vtafarm-0.2.0.tgz oci://ghcr.io/ic3software/charts
+helm push .charts/vtafarm-0.7.0.tgz oci://ghcr.io/ic3software/charts
 ```
 
 `--platform linux/amd64` is not optional. The cluster nodes are x86; a release
@@ -117,7 +117,7 @@ built on an arm64 machine without it produces an image that fails to start with
 **5. Push the tag.**
 
 ```bash
-git push origin v0.2.0
+git push origin v0.7.0
 ```
 
 The pull request already updated `main`. Git does not include tags with that
@@ -128,8 +128,8 @@ update, so the version tag needs its own push.
 Pass only the new version's section, not the whole changelog:
 
 ```bash
-awk '/^## \[v0\.2\.0\]/{f=1;next} f && /^## \[/{exit} f' CHANGELOG.md \
-  | gh release create v0.2.0 --notes-file -
+awk '/^## \[v0\.7\.0\]/{f=1;next} f && /^## \[/{exit} f' CHANGELOG.md \
+  | gh release create v0.7.0 --notes-file -
 ```
 
 Only the version in the first pattern changes between releases. `next` drops the
@@ -142,8 +142,8 @@ Omitting `--title` makes the title the tag name, which is the convention.
 ## Verifying
 
 ```bash
-helm show chart oci://ghcr.io/ic3software/charts/vtafarm --version 0.2.0
-docker manifest inspect ghcr.io/ic3software/vtafarm:0.2.0 | grep architecture
+helm show chart oci://ghcr.io/ic3software/charts/vtafarm --version 0.7.0
+docker manifest inspect ghcr.io/ic3software/vtafarm:0.7.0 | grep architecture
 ```
 
 The architecture must be `amd64`.
@@ -161,7 +161,7 @@ immutable: never re-push a version that already exists, bump instead.
 | Failed at | Recovery |
 | --- | --- |
 | Before the pull request is merged | Fix the release branch, commit with `-s`, push and wait for the checks again |
-| After merge, before `make release`, tag not pushed | `git tag -d v0.2.0`; fix through another pull request, then tag the new `main` commit |
+| After merge, before `make release`, tag not pushed | `git tag -d v0.7.0`; fix through another pull request, then tag the new `main` commit |
 | Image pushed, chart failed | Fix and re-run `make release` — the image push is idempotent for the same content |
 | Both pushed, then a bug is found | Do not overwrite. Release the fix as the next version |
 | Tag already pushed | Leave it. Moving a published tag needs a force push, which this repo does not do |
