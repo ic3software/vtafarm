@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.7.0] - 2026-09-23
+
+### Added
+
+- Users can edit the TOML configuration of each component in a running agent;
+  admins can do the same for the platform stack. The editor checks TOML syntax
+  before applying changes and shows the result of the component readiness check.
+
+### Fixed
+
+- Dialogs remain scrollable when their content exceeds the viewport.
+
+Requires vtafarm-api 0.7.0.
+
 ## [v0.6.1] - 2026-09-21
 
 ### Changed
