@@ -61,7 +61,7 @@ git pull --ff-only
 git switch -c chore/release-0.7.0
 vim CHANGELOG.md                 # add the new version's entry
 vim helm/vtafarm/Chart.yaml      # version and appVersion
-git add CHANGELOG.md helm/vtafarm/Chart.yaml docs/release.md
+git add CHANGELOG.md helm/vtafarm/Chart.yaml
 git commit -s -m "chore: release 0.7.0"
 ```
 
