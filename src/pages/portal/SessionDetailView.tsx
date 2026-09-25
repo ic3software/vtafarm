@@ -3,7 +3,7 @@ import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
 import { statusBadge, FULL_STACK_PHASES, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid, domainTypeBadge } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ShareStackCard, ConnectedToCard } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ConnectedToCard } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { SessionVersionsCard } from './SessionVersionsCard'
 import { SessionExportCard } from './SessionExportCard'
@@ -386,13 +386,6 @@ export function SessionDetailView() {
               {isFullStackCompleted && <VtcInstallConfigRow {...vtcInstall} />}
             </div>
           </div>
-          {/* Hand this stack's mediator and DID hosting to someone else's
-              VTA-only agent. Refetches so the delete confirm below sees the
-              connection list the moment it changes. */}
-          <ShareStackCard
-            session={session}
-            onChanged={() => api.getSession(sessionId).then(setSession).catch(() => {})}
-          />
           {/* Self-service version changes — only once the stack is fully running */}
           {session.status === 'running' && (
             <SessionVersionsCard
@@ -448,6 +441,7 @@ export function SessionDetailView() {
                 {session.domain_type === 'custom'
                   ? <>This permanently destroys <span className="p-mono">{name}</span> and its session data. This cannot be undone.</>
                   : <>This permanently destroys <span className="p-mono">{name}</span>, its DNS record, and its session data. This cannot be undone.</>}
+                {isFullStack && <> Agents using this stack's mediator or DID hosting will stop working.</>}
               </p>
             </div>
             <div className="dialog-body">
@@ -460,30 +454,6 @@ export function SessionDetailView() {
                       Delete the four CNAMEs at your provider afterwards — a record left
                       pointing at a service you no longer run is a security risk. Your domain
                       stays attached and can back a new agent.
-                    </p>
-                  </div>
-                </div>
-              )}
-              {/* Deleting a shared stack is allowed and breaks every agent on
-                  it, so this is the only place the owner is told. Both halves
-                  matter: they cannot be reconnected (a did:webvh contains its
-                  host, so there is no path back), and nothing of theirs is
-                  deleted — without that, the confirm reads as far more
-                  destructive than it is. */}
-              {!!session.connections?.length && (
-                <div className="p-alert alert-warning">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-                  <div className="grow">
-                    <p className="alert-title">
-                      {session.connections.length} other {session.connections.length === 1 ? 'person’s agent connects' : 'people’s agents connect'} to this stack
-                    </p>
-                    <p className="alert-desc">
-                      <span className="p-mono">{session.connections.map(c => c.vta_name).join(', ')}</span>
-                      <span style={{ display: 'block', marginTop: 6 }}>
-                        Deleting this stops them working — they will be able to see why, but not fix
-                        it, and they cannot be reconnected. Their agents keep running otherwise;
-                        nothing of theirs is deleted.
-                      </span>
                     </p>
                   </div>
                 </div>

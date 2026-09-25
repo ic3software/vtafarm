@@ -414,15 +414,11 @@ export function SessionsView() {
                     {s.domain_type}
                   </span>
                 </td>
-                {/* Support's first question about a broken agent is whose
-                    infrastructure it is on; before this it meant comparing URLs
-                    across two queries. For a full stack it is the reverse — how
-                    much breaks if this one goes. */}
+                {/* Support can identify the provider of a VTA-only agent. */}
                 <td style={{ fontSize: 12 }}>
                   {s.mode === 'full_stack' ? (
                     <span className="p-muted">
-                      {s.connection_count ? `${s.connection_count} connected` : '—'}
-                      {s.shared && <span title="Accepting new connections"> · shared</span>}
+                      —
                     </span>
                   ) : s.provider_gone ? (
                     <span style={{ color: 'hsl(var(--destructive))' }}>stack deleted</span>
