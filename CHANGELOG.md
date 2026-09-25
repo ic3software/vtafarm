@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.7.1] - 2026-09-25
+
+### Fixed
+
+- Upgrade dialogs show each VTA session name once in preview and progress rows.
+
+Requires vtafarm-api 0.7.1.
+
 ## [v0.7.0] - 2026-09-23
 
 ### Added
