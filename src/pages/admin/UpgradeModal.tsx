@@ -212,10 +212,8 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
                               alignItems: 'center',
                               color: 'hsl(var(--muted-foreground))',
                             }}>
-                              <span title={`${t.session_id} ${t.vta_name}`} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                <span className="p-mono" style={{ fontSize: 12 }}>{t.session_id}</span>
-                                {' '}
-                                {t.vta_name}
+                              <span title={t.vta_name} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <span className="p-mono" style={{ fontSize: 12 }}>{t.vta_name}</span>
                               </span>
                               <span className="p-badge badge-secondary" style={{ justifySelf: 'start' }}>{componentLabels[t.component]}</span>
                               <span className="p-mono" title={`${t.from_image} -> ${toImage || '(unknown target)'}`} style={{
@@ -246,7 +244,7 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
                             rowGap: 6,
                             alignItems: 'center',
                           }}>
-                            <span className="p-mono" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span className="p-mono" title={s.session_id} style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {s.session_id}
                             </span>
                             <span className="p-badge badge-secondary" style={{ justifySelf: 'start' }}>
@@ -300,11 +298,10 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
                 <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Loading…</p>
               ) : batch.tasks.map((t, i) => (
                 <div key={`${t.session_id}-${t.component}-${i}`} className="p-row" style={{ alignItems: 'center', gap: 10, fontSize: 13 }}>
-                  <span className="p-mono" style={{ fontSize: 12, minWidth: 70 }}>{t.session_id || '(deleted)'}</span>
+                  <span className="p-mono" style={{ fontSize: 12, minWidth: 70 }}>{t.vta_name || t.session_id || '(deleted)'}</span>
                   <span className="p-badge badge-secondary">{t.component}</span>
                   <span style={{ color: 'hsl(var(--muted-foreground))', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {t.vta_name}
-                    <span className="p-mono" style={{ fontSize: 11.5 }}> {imageTag(t.from_image)} → {imageTag(t.to_image)}</span>
+                    <span className="p-mono" style={{ fontSize: 11.5 }}>{imageTag(t.from_image)} → {imageTag(t.to_image)}</span>
                   </span>
                   <span className={`p-badge ${taskBadge(t.status)}`} title={t.error_msg || undefined}>{t.status}</span>
                 </div>
@@ -313,7 +310,7 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
                 <div style={{ fontSize: 12, color: 'hsl(var(--destructive))' }}>
                   {batch.tasks.filter(t => t.status === 'failed' && t.error_msg).map((t, i) => (
                     <p key={i} style={{ margin: '2px 0' }}>
-                      <span className="p-mono">{t.session_id}</span> ({t.component}): {t.error_msg}
+                      <span className="p-mono">{t.vta_name || t.session_id || '(deleted)'}</span> ({t.component}): {t.error_msg}
                     </p>
                   ))}
                 </div>
