@@ -357,20 +357,11 @@ export function AdminKeysCard({ session }: { session: SetupSession }) {
   )
 }
 
-/**
- * Which stack a VTA-only agent is connected to.
- *
- * The first question when an agent misbehaves is whose infrastructure it is on,
- * and until now the answer was a bare mediator DID.
- *
- * There is no `disconnected` status and the badge deliberately still reads
- * `running` when the provider is gone — the agent **is** running, since nothing
- * in a provider teardown touches the consumer's namespace. What it cannot do is
- * resolve its own DID or reach a mediator, and that belongs here rather than in
- * a status that would claim the pod had stopped.
- */
+// A deleted in-farm DID host breaks DID resolution without stopping the VTA pod,
+// so the connection warning is separate from the session's running status.
 export function ConnectedToCard({ session }: { session: SetupSession }) {
   const navigate = useNavigate()
+  const { copiedKey, copy } = useCopyState()
   if (session.mode !== 'vta_only' || !session.connection_source) return null
 
   const orphaned = !!session.provider_gone
@@ -379,11 +370,10 @@ export function ConnectedToCard({ session }: { session: SetupSession }) {
   return (
     <div className="p-card" style={{ marginBottom: 16, ...(orphaned ? { borderColor: 'hsl(var(--destructive)/.4)' } : {}) }}>
       <div className="card-header">
-        {/* "Connected to" would contradict the body once the stack is gone. */}
-        <h3 className="card-title">{orphaned ? 'Stack connection' : 'Connected to'}</h3>
+        <h3 className="card-title">Connection ({platform ? 'Platform' : 'Customized'})</h3>
       </div>
-      <div className="card-content p-col gap-8" style={{ paddingTop: 14 }}>
-        {orphaned ? (
+      <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+        {orphaned && (
           <>
             <span className="text-sm" style={{ fontWeight: 600, color: 'hsl(var(--destructive))' }}>
               Disconnected — this stack was deleted
@@ -394,8 +384,8 @@ export function ConnectedToCard({ session }: { session: SetupSession }) {
                 is why the button below creates an agent rather than fixing
                 this one. */}
             <span className="field-hint">
-              The agent is still running, but it can't resolve its DID or deliver messages. Create a
-              new agent on a running stack, then delete this one.
+              The agent is still running, but its DID hosting stack was deleted. Create a
+              new agent on an available DID host, then delete this one.
             </span>
             <div style={{ marginTop: 4 }}>
               <button className="btn btn-default btn-sm" onClick={() => navigate('/portal/create')}>
@@ -403,22 +393,12 @@ export function ConnectedToCard({ session }: { session: SetupSession }) {
               </button>
             </div>
           </>
-        ) : (
-          <>
-            <span className="text-sm" style={{ fontWeight: 600 }}>
-              {platform ? 'Platform stack' : session.provider ?? 'A stack on this farm'}
-            </span>
-            <span className="field-hint">
-              {platform
-                ? 'The shared mediator and DID hosting this farm runs.'
-                : "Another user's Full Stack. If its owner deletes it, this agent stops working."}
-            </span>
-          </>
+        )}
+        {session.did_hosting_did && (
+          <Row label="DID Hosting DID" value={session.did_hosting_did} copyKey="connection-did-hosting" copiedKey={copiedKey} onCopy={copy} />
         )}
         {session.mediator_did && (
-          <span className="p-mono text-xs p-muted" style={{ wordBreak: 'break-all', marginTop: 4 }}>
-            mediator&nbsp; {session.mediator_did}
-          </span>
+          <Row label="Mediator DID" value={session.mediator_did} copyKey="connection-mediator" copiedKey={copiedKey} onCopy={copy} />
         )}
       </div>
     </div>

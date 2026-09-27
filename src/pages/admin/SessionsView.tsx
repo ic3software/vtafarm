@@ -422,6 +422,8 @@ export function SessionsView() {
                     </span>
                   ) : s.provider_gone ? (
                     <span style={{ color: 'hsl(var(--destructive))' }}>stack deleted</span>
+                  ) : s.connection_source === 'external' ? (
+                    <span className="p-muted">external DID hosting</span>
                   ) : s.provider ? (
                     <span className="p-mono">{s.provider}</span>
                   ) : (

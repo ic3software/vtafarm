@@ -16,7 +16,7 @@ export const API_BASE: string = _apiUrl
 
 export type SetupStatus =
   // vta_only
-  | 'dns_provisioned' | 'vta_setup_running' | 'vta_setup_complete' | 'provisioning' | 'running'
+  | 'dns_provisioned' | 'vta_setup_running' | 'awaiting_did_publication' | 'vta_setup_complete' | 'provisioning' | 'running'
   // full_stack
   | 'dns_provision' | 'dns_wait' | 'env_provision' | 'k8s_provision' | 'tls_provision'
   | 'step_vta_setup'
@@ -70,14 +70,23 @@ export interface SetupSessionActionRequired {
   claim_code?: string
 }
 
-/** Where a VTA-only agent's mediator and DID hosting came from. */
-export type ConnectionSource = 'platform' | 'in_farm'
+/** Where a VTA-only agent's DID hosting came from. The mediator is chosen separately. */
+export type ConnectionSource = 'platform' | 'in_farm' | 'external'
+
+export interface ConnectionInspection {
+  source: ConnectionSource
+  provider?: string
+  did_hosting_url: string
+  did_hosting_did: string
+  mediator_did: string
+  manual_publication: boolean
+}
 
 export interface SetupSession {
   id: string
   status: SetupStatus
   mode: SetupMode
-  /** vta_only: where its mediator and DID hosting came from. */
+  /** vta_only: where its DID hosting came from. */
   connection_source?: ConnectionSource
   /** vta_only + in_farm: the stack it connected to. */
   provider?: string
@@ -100,6 +109,8 @@ export interface SetupSession {
   vtc_image?: string
   vta_did?: string
   mediator_did?: string
+  did_hosting_did?: string
+  did_log_url?: string
   collected?: SetupSessionCollected
   action_required?: SetupSessionActionRequired
   dids_enroll_used?: boolean
@@ -134,6 +145,7 @@ export interface ModeAvailability {
   reason?: UnavailableReason
   /** A sentence to show the user. Prefer it over composing copy client-side. */
   detail?: string
+  custom_target_allowed?: boolean
 }
 
 /**
@@ -322,7 +334,7 @@ export interface AdminSetupSession {
   dids_image?: string
   vtc_image?: string
   created_at: string
-  /** vta_only: where its mediator and DID hosting came from. */
+  /** vta_only: where its DID hosting came from. */
   connection_source?: ConnectionSource
   /** vta_only + in_farm: the stack it connected to. */
   provider?: string
@@ -886,6 +898,11 @@ export const api = {
   // Remaining per-mode cluster capacity — the create screen uses this to show
   // "Unavailable" and disable the button before submitting.
   setupAvailability: () => req<SetupAvailability>('GET', '/api/v1/setup/availability'),
+  inspectConnection: (did_hosting_did: string, mediator_did: string) =>
+    req<ConnectionInspection>('POST', '/api/v1/setup/connection/inspect', { did_hosting_did, mediator_did }),
+  didLogDownloadURL: (id: string) => `${API_BASE}/api/v1/setup/${encodeURIComponent(id)}/did-log`,
+  validatePublishedDID: (id: string) =>
+    req<{ valid: true; status: 'vta_setup_complete' }>('POST', `/api/v1/setup/${encodeURIComponent(id)}/did-log/validate`),
   // Environment hostname facts behind every hostname hint. Static per
   // deployment — see useDomainInfo() in portalUtils, which caches it.
   domainInfo: () => req<DomainInfo>('GET', '/api/v1/setup/domain-info'),
@@ -897,6 +914,8 @@ export const api = {
     admin_did?: string
     portable?: boolean
     pre_rotation_count?: number
+    did_hosting_did?: string
+    mediator_did?: string
     mediator_image?: string
     dids_image?: string
     vtc_image?: string
