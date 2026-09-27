@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
-import { api, API_BASE, type SetupSession, type SetupAvailability, type Domain } from '@/lib/api'
+import { api, API_BASE, type SetupSession, type SetupAvailability, type ConnectionInspection, type Domain } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import {
   statusBadge, FULL_STACK_PHASES, isValidAdminDid, componentHost, useDomainInfo,
@@ -8,6 +8,7 @@ import {
 import { PhaseStepper } from './PhaseStepper'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullStackCreateProgress } from './FullStackCreateProgress'
+import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 
 type Stage = 0 | 1 | 2 | 3
 type Mode = 'vta_only' | 'full_stack'
@@ -20,6 +21,12 @@ export function CreateVTAView() {
 
   const [stage, setStage] = useState<Stage>(0)
   const [mode, setMode] = useState<Mode>('vta_only')
+  const [connectionChoice, setConnectionChoice] = useState<'platform' | 'custom'>('platform')
+  const [didHostingDid, setDidHostingDid] = useState('')
+  const [mediatorDid, setMediatorDid] = useState('')
+  const [connectionInspection, setConnectionInspection] = useState<ConnectionInspection | null>(null)
+  const [inspectionError, setInspectionError] = useState('')
+  const [inspecting, setInspecting] = useState(false)
   const domainInfo = useDomainInfo()
   const [availability, setAvailability] = useState<SetupAvailability | null>(null)
   const [vtaName, setVtaName] = useState('myvta')
@@ -189,7 +196,7 @@ export function CreateVTAView() {
   // Stage 1 safety net: advance 60s after setup completes if stream never resolves
   useEffect(() => {
     if (!setupStreamStarted || setupLogsDone) return
-    if (liveSession?.status !== 'vta_setup_complete') return
+    if (liveSession?.status !== 'vta_setup_complete' && liveSession?.status !== 'awaiting_did_publication') return
     const t = setTimeout(() => setSetupLogsDone(true), 60000)
     return () => clearTimeout(t)
   }, [setupStreamStarted, setupLogsDone, liveSession?.status])
@@ -275,6 +282,9 @@ export function CreateVTAView() {
     if (mode === 'full_stack' && !selectedVtcImage) {
       setCreateError('Select a VTC image'); return
     }
+    if (mode === 'vta_only' && connectionChoice === 'custom' && !connectionInspection) {
+      setCreateError('Validate the DID connection before creating the session'); return
+    }
     setCreateError(''); setCreating(true)
     try {
       const r = await api.createSession({
@@ -288,6 +298,9 @@ export function CreateVTAView() {
         ...(mode !== 'vta_only' ? { mediator_image: selectedMediatorImage, dids_image: selectedDidsImage } : {}),
         ...(mode === 'full_stack' ? { vtc_image: selectedVtcImage } : {}),
         ...(mode === 'full_stack' && !selectedDomain ? { vtc_name: vtcName } : {}),
+        ...(mode === 'vta_only' && connectionChoice === 'custom'
+          ? { did_hosting_did: didHostingDid.trim(), mediator_did: mediatorDid.trim() }
+          : {}),
       })
       setSessionId(r.id)
       setStage(1)
@@ -295,6 +308,19 @@ export function CreateVTAView() {
       setCreateError(err instanceof Error ? err.message : 'Failed to create session')
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function handleInspectConnection() {
+    setInspectionError('')
+    setConnectionInspection(null)
+    setInspecting(true)
+    try {
+      setConnectionInspection(await api.inspectConnection(didHostingDid.trim(), mediatorDid.trim()))
+    } catch (err) {
+      setInspectionError(err instanceof Error ? err.message : 'Could not validate the DID connection')
+    } finally {
+      setInspecting(false)
     }
   }
 
@@ -323,16 +349,19 @@ export function CreateVTAView() {
     navigate('/portal')
   }
 
+  const externalFlow = connectionInspection?.manual_publication || liveSession?.connection_source === 'external'
   const currentStep = (() => {
-    if (stage === 3) return 6
-    if (stage === 2) return 4
+    if (stage === 3) return externalFlow ? 6 : 5
+    if (stage === 2) return externalFlow ? 5 : 4
     if (stage === 0) return 0
+    if (liveSession?.status === 'vta_setup_complete') return externalFlow ? 4 : 3
+    if (liveSession?.status === 'awaiting_did_publication' && setupLogsDone) return 3
     if (setupLogsDone) return 3
     if (!liveSession) return 1
     switch (liveSession.status) {
       case 'dns_provisioned': return 1
       case 'vta_setup_running': return 2
-      case 'vta_setup_complete': return 3
+      case 'awaiting_did_publication': return 3
       default: return 1
     }
   })()
@@ -356,13 +385,19 @@ export function CreateVTAView() {
   // screen reads one field and shows the server's own sentence rather than
   // guessing at a reason.
   const modeAvailability = availability?.[mode]
-  const modeUnavailable = modeAvailability ? !modeAvailability.available : false
+  const customAtCapacity = mode === 'vta_only' && connectionChoice === 'custom' &&
+    modeAvailability?.custom_target_allowed === false
+  const modeUnavailable = modeAvailability
+    ? mode === 'vta_only' && connectionChoice === 'custom'
+      ? customAtCapacity
+      : !modeAvailability.available
+    : false
   const showingSetupLogs = stage === 1 && setupStreamStarted && !setupLogsDone
   // Only use status as fallback when we never entered the log-streaming phase
-  const showDIDForm = stage === 1 && (
-    setupLogsDone ||
-    (!setupStreamStarted && liveSession?.status === 'vta_setup_complete')
-  )
+  const showDIDForm = stage === 1 && liveSession?.status === 'vta_setup_complete' &&
+    (setupLogsDone || !setupStreamStarted)
+  const showPublicationForm = stage === 1 && liveSession?.status === 'awaiting_did_publication' &&
+    (setupLogsDone || !setupStreamStarted)
 
   return (
     <section className="p-content">
@@ -379,7 +414,10 @@ export function CreateVTAView() {
       <div className="p-card" style={{ marginBottom: 20 }}>
         <div className="card-content" style={{ padding: '26px 28px 22px' }}>
           <div className="stepper">
-            {(['Create session', 'DNS & environment', 'VTA setup', 'Admin DID', 'Deploy VTA', 'Running'] as const).map((label, i) => {
+            {(externalFlow
+              ? ['Create session', 'DNS & environment', 'VTA setup', 'Publish DID', 'Admin DID', 'Deploy VTA', 'Running']
+              : ['Create session', 'DNS & environment', 'VTA setup', 'Admin DID', 'Deploy VTA', 'Running']
+            ).map((label, i) => {
               const s = i < currentStep ? 'done' : i === currentStep ? 'active' : ''
               const isFailed = setupFailed && i === currentStep
               const spinning = !setupFailed && i === currentStep && (stage === 2 || showingSetupLogs)
@@ -419,10 +457,10 @@ export function CreateVTAView() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
                 <div className="grow">
                   <p className="alert-title">
-                    {mode === 'vta_only' && modeAvailability?.reason?.startsWith('platform_stack') ? 'Not ready yet' : 'Unavailable'}
+                    {mode === 'vta_only' && !customAtCapacity && modeAvailability?.reason?.startsWith('platform_stack') ? 'Not ready yet' : 'Unavailable'}
                   </p>
                   <p className="alert-desc">
-                    {modeAvailability?.detail ?? (
+                    {!customAtCapacity && modeAvailability?.detail ? modeAvailability.detail : (
                       <>
                         The cluster is currently at capacity and can't provision a new{' '}
                         {mode === 'vta_only' ? 'VTA' : 'Full Stack'} agent right now. Please try again later or contact an admin.
@@ -444,10 +482,57 @@ export function CreateVTAView() {
               )}
               <div className="field-hint">
                 {mode === 'vta_only'
-                  ? 'Deploys the VTA using the platform stack’s mediator and DID hosting.'
+                  ? 'Deploys the VTA with the platform stack or a mediator and DID host you choose.'
                   : 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon + Verifiable Trust Community just for you.'}
               </div>
             </div>
+
+            {mode === 'vta_only' && (
+              <div className="p-col gap-12">
+                <div>
+                  <div className="p-label">Connect to</div>
+                  <div className="p-tabs full">
+                    <button type="button" className="p-tab" data-active={connectionChoice === 'platform'} onClick={() => setConnectionChoice('platform')}>Platform stack</button>
+                    <button type="button" className="p-tab" data-active={connectionChoice === 'custom'} onClick={() => setConnectionChoice('custom')}>Customize</button>
+                  </div>
+                </div>
+                {connectionChoice === 'custom' && (
+                  <>
+                    <div className="field-hint">Enter the DID hosting daemon DID and mediator DID. Farm-managed hosting publishes your VTA DID automatically; external hosting requires you to upload its DID log.</div>
+                    <div>
+                      <label className="p-label" htmlFor="cv-did-hosting-did">DID Hosting DID <span className="req">*</span></label>
+                      <input className="p-input p-mono" id="cv-did-hosting-did" type="text" placeholder="did:webvh:…" value={didHostingDid}
+                        onChange={e => { setDidHostingDid(e.target.value); setConnectionInspection(null); setInspectionError('') }} />
+                    </div>
+                    <div>
+                      <label className="p-label" htmlFor="cv-mediator-did">Mediator DID <span className="req">*</span></label>
+                      <input className="p-input p-mono" id="cv-mediator-did" type="text" placeholder="did:webvh:…" value={mediatorDid}
+                        onChange={e => { setMediatorDid(e.target.value); setConnectionInspection(null); setInspectionError('') }} />
+                    </div>
+                    <div>
+                      <button className="btn btn-outline btn-sm" type="button" onClick={handleInspectConnection}
+                        disabled={inspecting || !didHostingDid.trim() || !mediatorDid.trim()}>
+                        {inspecting ? 'Checking…' : 'Validate connection'}
+                      </button>
+                    </div>
+                    {inspectionError && <p className="text-sm" style={{ color: 'hsl(var(--destructive))', margin: 0 }}>{inspectionError}</p>}
+                    {connectionInspection && (
+                      <div className="p-alert alert-success">
+                        <div className="grow">
+                          <p className="alert-title">{connectionInspection.manual_publication ? 'External DID hosting' : 'Farm-managed DID hosting'}</p>
+                          <p className="alert-desc">
+                            {connectionInspection.manual_publication
+                              ? 'After VTA setup, download its did.jsonl, upload it to your DID hosting, and validate publication here.'
+                              : 'VTA Farm will upload the VTA DID log automatically.'}
+                          </p>
+                          <p className="p-mono text-xs" style={{ wordBreak: 'break-all', marginBottom: 0 }}>{connectionInspection.did_hosting_url}</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
             {mode === 'full_stack' && (
               <div>
@@ -716,7 +801,11 @@ export function CreateVTAView() {
             </div>
           </div>
 
-          {showDIDForm ? (
+          {showPublicationForm && liveSession ? (
+            <ExternalDIDPublicationCard session={liveSession} onValidated={() => {
+              api.getSession(sessionId).then(setLiveSession).catch(() => {})
+            }} />
+          ) : showDIDForm ? (
             /* vta_setup_complete — ready for admin DID */
             <div className="p-card">
               <div className="card-header">

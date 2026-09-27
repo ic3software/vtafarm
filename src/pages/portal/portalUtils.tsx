@@ -5,6 +5,7 @@ const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   // vta_only
   dns_provisioned:    { cls: 'badge-secondary',   label: 'DNS provisioned' },
   vta_setup_running:  { cls: 'badge-warning',     label: 'setup running' },
+  awaiting_did_publication: { cls: 'badge-warning', label: 'publish DID log' },
   vta_setup_complete: { cls: 'badge-warning',     label: 'setup complete' },
   provisioning:       { cls: 'badge-warning',     label: 'provisioning' },
   running:            { cls: 'badge-success',     label: 'running' },
@@ -40,7 +41,7 @@ const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   failed: { cls: 'badge-destructive', label: 'failed' },
 }
 
-const NON_PULSING = new Set<SetupStatus>(['dns_provisioned', 'dns_provision'])
+const NON_PULSING = new Set<SetupStatus>(['dns_provisioned', 'dns_provision', 'awaiting_did_publication'])
 
 export function statusBadge(status: SetupSession['status']) {
   const { cls, label } = STATUS_META[status] ?? { cls: 'badge-secondary', label: status }
@@ -95,15 +96,6 @@ export interface Phase {
   label: string
   statuses: SetupStatus[]
 }
-
-export const VTA_ONLY_PHASES: Phase[] = [
-  { key: 'create',    label: 'Create session',   statuses: [] },
-  { key: 'dns_env',   label: 'DNS & environment', statuses: ['dns_provisioned'] },
-  { key: 'vta_setup', label: 'VTA setup',        statuses: ['vta_setup_running'] },
-  { key: 'admin_did', label: 'Admin DID',        statuses: ['vta_setup_complete'] },
-  { key: 'deploy_vta', label: 'Deploy VTA',      statuses: ['provisioning'] },
-  { key: 'running',   label: 'Running',          statuses: ['running'] },
-]
 
 // The full_stack pipeline. The two offline VTC prep steps (setup key + ACL
 // grant) run right after the admin DID is imported, so they fold into that

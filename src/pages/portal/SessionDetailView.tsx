@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
-import { statusBadge, FULL_STACK_PHASES, VTA_ONLY_PHASES, phaseIndex, isValidAdminDid, domainTypeBadge } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, phaseIndex, isValidAdminDid, domainTypeBadge } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ConnectedToCard } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
@@ -9,6 +9,7 @@ import { SessionVersionsCard } from './SessionVersionsCard'
 import { SessionExportCard } from './SessionExportCard'
 import { SessionPnmCard } from './SessionPnmCard'
 import { StackConfigEditor } from '../StackConfigEditor'
+import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 import type { PortalContext } from './Portal'
 
 const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
@@ -19,8 +20,6 @@ const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['st
   { label: 'Deploy VTA',         sub: 'provisioning',       status: 'provisioning' },
   { label: 'Running',            sub: 'running',            status: 'running' },
 ]
-
-const ORDER = STATUS_STEPS.map(s => s.status)
 
 export function SessionDetailView() {
   const { id } = useParams<{ id: string }>()
@@ -48,6 +47,9 @@ export function SessionDetailView() {
 
   const didsEnroll = useDidsEnroll(session)
   const vtcInstall = useVtcInstall(session?.mode === 'full_stack' ? session : null)
+  const vtaSteps = session?.connection_source === 'external'
+    ? [...STATUS_STEPS.slice(0, 3), { label: 'Publish DID', sub: 'awaiting_did_publication', status: 'awaiting_did_publication' as const }, ...STATUS_STEPS.slice(3)]
+    : STATUS_STEPS
 
   function copyVtaDid(did: string) {
     navigator.clipboard.writeText(did).catch(() => {})
@@ -60,11 +62,12 @@ export function SessionDetailView() {
     if (session.status === 'running') return 'done'
     if (stepStatus === null) return 'done'
     if (session.status === 'failed') {
-      // 'failed' is not in ORDER so we can't know the exact step — mark last step as failed, rest done
+      // 'failed' does not identify which step failed; mark the last step.
       return stepStatus === 'running' ? 'failed' : 'done'
     }
-    const cur = ORDER.indexOf(session.status)
-    const idx = ORDER.indexOf(stepStatus)
+    const order = vtaSteps.map(s => s.status)
+    const cur = order.indexOf(session.status)
+    const idx = order.indexOf(stepStatus)
     if (idx < cur) return 'done'
     if (idx === cur) return 'active'
     return ''
@@ -91,7 +94,7 @@ export function SessionDetailView() {
 
   useEffect(() => {
     if (!session) return
-    const skip = ['dns_provisioned', 'vta_setup_complete', 'dns_provision', 'awaiting_admin_did']
+    const skip = ['dns_provisioned', 'awaiting_did_publication', 'vta_setup_complete', 'dns_provision', 'awaiting_admin_did']
     if (skip.includes(session.status)) return
     const source = logStreamGeneration > 0 ? '?source=vta' : ''
     const es = new EventSource(`${API_BASE}/api/v1/setup/${sessionId}/logs${source}`, { withCredentials: true })
@@ -166,7 +169,7 @@ export function SessionDetailView() {
   const isAwaitingAdmin = isFullStack ? session.status === 'awaiting_admin_did' : session.status === 'vta_setup_complete'
   const adminDidStep = (isFullStack
     ? phaseIndex(fsPhases, 'awaiting_admin_did')
-    : phaseIndex(VTA_ONLY_PHASES, 'vta_setup_complete')) + 1
+    : vtaSteps.findIndex(step => step.status === 'vta_setup_complete')) + 1
   const fsPhaseIndex = Math.max(0, phaseIndex(fsPhases, session.status))
   const fsFailed = session.status === 'failed'
   const isFullStackCompleted = isFullStack && session.status === 'running'
@@ -209,7 +212,7 @@ export function SessionDetailView() {
         <div className="p-card" style={{ marginBottom: 20 }}>
           <div className="card-content" style={{ padding: '28px 28px 24px' }}>
             <div className="stepper">
-              {STATUS_STEPS.map(step => (
+              {vtaSteps.map(step => (
                 <div key={step.sub} className={`step ${stepClass(step.status)}`}>
                   <div className="bar"/>
                   <div className="node">
@@ -219,7 +222,7 @@ export function SessionDetailView() {
                       <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                     ) : stepClass(step.status) === 'failed' ? (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6 6 18M6 6l12 12"/></svg>
-                    ) : (STATUS_STEPS.findIndex(s => s.sub === step.sub) + 1)}
+                    ) : (vtaSteps.findIndex(s => s.sub === step.sub) + 1)}
                   </div>
                   <div className="s-label">{step.label}</div>
                 </div>
@@ -237,6 +240,10 @@ export function SessionDetailView() {
       {!isFullStack && session.vta_did && (
         <CollectedDidsCard collected={{ vta_did: session.vta_did }} />
       )}
+
+      {!isFullStack && <ExternalDIDPublicationCard session={session} onValidated={() => {
+        api.getSession(sessionId).then(setSession).catch(() => {})
+      }} />}
 
       {/* Full-width action card — shown when VTA setup is done and admin DID is needed */}
       {isAwaitingAdmin && (
@@ -442,6 +449,7 @@ export function SessionDetailView() {
                   ? <>This permanently destroys <span className="p-mono">{name}</span> and its session data. This cannot be undone.</>
                   : <>This permanently destroys <span className="p-mono">{name}</span>, its DNS record, and its session data. This cannot be undone.</>}
                 {isFullStack && <> Agents using this stack's mediator or DID hosting will stop working.</>}
+                {session.connection_source === 'external' && <> Remove its DID log and any ACL entry from your external hosting service yourself.</>}
               </p>
             </div>
             <div className="dialog-body">

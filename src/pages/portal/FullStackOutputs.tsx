@@ -357,24 +357,15 @@ export function AdminKeysCard({ session }: { session: SetupSession }) {
   )
 }
 
-/**
- * Which stack a VTA-only agent is connected to.
- *
- * The first question when an agent misbehaves is whose infrastructure it is on,
- * and until now the answer was a bare mediator DID.
- *
- * There is no `disconnected` status and the badge deliberately still reads
- * `running` when the provider is gone — the agent **is** running, since nothing
- * in a provider teardown touches the consumer's namespace. What it cannot do is
- * resolve its own DID or reach a mediator, and that belongs here rather than in
- * a status that would claim the pod had stopped.
- */
+// A deleted in-farm DID host breaks DID resolution without stopping the VTA pod,
+// so the connection warning is separate from the session's running status.
 export function ConnectedToCard({ session }: { session: SetupSession }) {
   const navigate = useNavigate()
   if (session.mode !== 'vta_only' || !session.connection_source) return null
 
   const orphaned = !!session.provider_gone
   const platform = session.connection_source === 'platform'
+  const external = session.connection_source === 'external'
 
   return (
     <div className="p-card" style={{ marginBottom: 16, ...(orphaned ? { borderColor: 'hsl(var(--destructive)/.4)' } : {}) }}>
@@ -394,8 +385,8 @@ export function ConnectedToCard({ session }: { session: SetupSession }) {
                 is why the button below creates an agent rather than fixing
                 this one. */}
             <span className="field-hint">
-              The agent is still running, but it can't resolve its DID or deliver messages. Create a
-              new agent on a running stack, then delete this one.
+              The agent is still running, but its DID hosting stack was deleted. Create a
+              new agent on an available DID host, then delete this one.
             </span>
             <div style={{ marginTop: 4 }}>
               <button className="btn btn-default btn-sm" onClick={() => navigate('/portal/create')}>
@@ -406,12 +397,14 @@ export function ConnectedToCard({ session }: { session: SetupSession }) {
         ) : (
           <>
             <span className="text-sm" style={{ fontWeight: 600 }}>
-              {platform ? 'Platform stack' : session.provider ?? 'A stack on this farm'}
+              {external ? 'External DID hosting' : platform ? 'Platform stack' : session.provider ?? 'A stack on this farm'}
             </span>
             <span className="field-hint">
-              {platform
-                ? 'The shared mediator and DID hosting this farm runs.'
-                : "Another user's Full Stack. If its owner deletes it, this agent stops working."}
+              {external
+                ? 'You manage this agent’s DID log and hosting permissions.'
+                : platform
+                  ? 'DID hosting on the farm’s platform stack.'
+                  : "DID hosting on another user's Full Stack. If its owner deletes it, this agent stops working."}
             </span>
           </>
         )}
