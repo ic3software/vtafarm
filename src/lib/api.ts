@@ -85,6 +85,8 @@ export interface ConnectionInspection {
 export interface SetupSession {
   id: string
   status: SetupStatus
+  /** Status that was active immediately before status became `failed`. */
+  failed_stage?: SetupStatus
   mode: SetupMode
   /** vta_only: where its DID hosting came from. */
   connection_source?: ConnectionSource
@@ -333,6 +335,7 @@ export interface AdminSetupSession {
   mediator_image?: string
   dids_image?: string
   vtc_image?: string
+  resources: AdminSessionResourceSummary[]
   created_at: string
   /** vta_only: where its DID hosting came from. */
   connection_source?: ConnectionSource
@@ -340,6 +343,42 @@ export interface AdminSetupSession {
   provider?: string
   /** vta_only + in_farm: that stack has been deleted. */
   provider_gone?: boolean
+}
+
+export interface AdminSessionResourceSummary {
+  component: UpgradeComponent
+  memory_request: string
+  memory_limit: string
+  customized: boolean
+}
+
+export interface ResourceProfile {
+  cpu_request: string
+  cpu_limit: string
+  memory_request: string
+  memory_limit: string
+}
+
+export interface WorkloadResource {
+  component: UpgradeComponent
+  defaults: ResourceProfile
+  desired: Pick<ResourceProfile, 'memory_request' | 'memory_limit'>
+  actual: ResourceProfile
+  status: 'in_sync' | 'drifted' | 'failed'
+  apply_error?: string
+}
+
+export interface AdminSessionResources {
+  session_id: string
+  mode: SetupMode
+  resources: WorkloadResource[]
+}
+
+export interface ResourceApplyResult {
+  session_id: string
+  component: UpgradeComponent
+  status: 'applied' | 'failed' | 'skipped'
+  error?: string
 }
 
 export type LoadTestStatus =
@@ -395,6 +434,7 @@ export interface PlatformStack {
   /** The session's `vta_name` — present only while one exists. */
   id?: string
   status?: SetupStatus
+  failed_stage?: SetupStatus
   /** Reaches no hostname; it survives only in `did:webvh` paths. */
   label?: string
   domain?: string
@@ -741,6 +781,15 @@ export const api = {
   // ── Admin — setup sessions ───────────────────────────────────────────────────
   adminListSessions: (page = 1, mode?: string) =>
     req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?page=${page}${mode ? `&mode=${encodeURIComponent(mode)}` : ''}`),
+  adminSessionResources: (id: string) =>
+    req<AdminSessionResources>('GET', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/resources`),
+  adminApplySessionResources: (
+    sessionIds: string[],
+    resources: Array<{ component: UpgradeComponent; memory_request: string; memory_limit: string }>,
+  ) => req<{ results: ResourceApplyResult[] }>('PUT', '/api/v1/admin/setup-sessions/resources', {
+    session_ids: sessionIds,
+    resources,
+  }),
   adminListImages: (component: UpgradeComponent = 'vta') =>
     req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/admin/setup/images?component=${component}`),
   /** Admin-cookie twin of `domainInfo` — the admin panel holds a different cookie. */

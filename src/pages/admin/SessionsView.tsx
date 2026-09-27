@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { api, ALL_COMPONENTS, type AdminSessionsPage, type AdminSetupSession, type UpgradeBatchSummary, type UpgradeComponent } from '@/lib/api'
+import { api, ALL_COMPONENTS, type AdminSessionResourceSummary, type AdminSessionsPage, type AdminSetupSession, type UpgradeBatchSummary, type UpgradeComponent } from '@/lib/api'
 import { UpgradeModal } from './UpgradeModal'
+import { ResourceModal } from './ResourceModal'
 import { imageTag, pageNumbers } from '@/lib/utils'
 
 const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'
@@ -104,6 +105,47 @@ function ImagesCell({ session }: { session: AdminSetupSession }) {
   )
 }
 
+function ResourceLine({ resource }: { resource: AdminSessionResourceSummary }) {
+  return (
+    <span className="p-row gap-8" style={{ ...tagStyle, display: 'inline-flex' }}>
+      <span>
+        <span style={{ color: 'hsl(var(--muted-foreground))' }}>{resource.component} </span>
+        {resource.memory_request} / {resource.memory_limit}
+      </span>
+      <span className={`p-badge ${resource.customized ? 'badge-warning' : 'badge-success'}`}>
+        {resource.customized ? 'Customized' : 'Default'}
+      </span>
+    </span>
+  )
+}
+
+function ResourcesCell({ session }: { session: AdminSetupSession }) {
+  const [open, setOpen] = useState(false)
+  const rows = session.resources ?? []
+  if (rows.length === 0) return <span className="p-muted">—</span>
+  if (rows.length === 1) return <div><ResourceLine resource={rows[0]} /></div>
+
+  return (
+    <div className="p-col" style={{ alignItems: 'flex-start', gap: 3 }}>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(value => !value)}
+        title={rows.map(resource => `${resource.component} ${resource.memory_request} / ${resource.memory_limit}`).join('\n')}
+        style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
+      >
+        <ResourceLine resource={rows[0]} />
+        <span className="p-mono" style={{ ...tagStyle, marginLeft: 8, color: 'hsl(var(--muted-foreground))' }}>
+          {open ? '−' : `+${rows.length - 1}`}
+        </span>
+      </button>
+      {open && rows.slice(1).map(resource => (
+        <div key={resource.component}><ResourceLine resource={resource} /></div>
+      ))}
+    </div>
+  )
+}
+
 function isPlatform(s: AdminSetupSession) {
   return s.domain_type === 'platform'
 }
@@ -156,6 +198,7 @@ function confirmWord(s: AdminSetupSession) {
 type ModalState =
   | { kind: 'create'; selection: string[] | 'all'; defaultComponents: UpgradeComponent[] }
   | { kind: 'progress'; batchId: number }
+  | { kind: 'resources'; sessions: Array<{ id: string; mode: string }> }
   | null
 
 export function SessionsView() {
@@ -344,6 +387,13 @@ export function SessionsView() {
             onClick={() => setModal({ kind: 'create', selection: [...selected.keys()], defaultComponents: selectedComponents() })}>
             Upgrade selected
           </button>
+          <button className="btn btn-outline btn-sm"
+            onClick={() => setModal({
+              kind: 'resources',
+              sessions: [...selected].map(([id, mode]) => ({ id, mode })),
+            })}>
+            Edit resources
+          </button>
           <button className="btn btn-ghost btn-sm" onClick={() => setSelected(new Map())}>
             Clear
           </button>
@@ -366,6 +416,7 @@ export function SessionsView() {
               <th>Status</th>
               <th>Images</th>
               <th>Created</th>
+              <th className="col-actions">Resources</th>
               <th className="col-actions" style={{ textAlign: 'left' }}>Export</th>
               <th className="col-actions">Delete</th>
             </tr>
@@ -373,13 +424,13 @@ export function SessionsView() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={11} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={12} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : sessions.length === 0 ? (
               <tr>
-                <td colSpan={11} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={12} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   No sessions yet.
                 </td>
               </tr>
@@ -436,6 +487,18 @@ export function SessionsView() {
                 <td><ImagesCell session={s} /></td>
                 <td title={fmt(s.created_at)} style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap' }}>
                   {relTime(s.created_at)}
+                </td>
+                <td style={{ minWidth: 260 }}>
+                  <div className="p-row gap-8" style={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                    <ResourcesCell session={s} />
+                    <button
+                      className="btn btn-outline btn-sm"
+                      disabled={s.status !== 'running'}
+                      onClick={() => setModal({ kind: 'resources', sessions: [{ id: s.vta_name, mode: s.mode }] })}
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </td>
                 <td className="col-actions">
                   <ExportCell session={s} />
@@ -495,6 +558,19 @@ export function SessionsView() {
       )}
       {modal?.kind === 'progress' && (
         <UpgradeModal selection={[]} batchId={modal.batchId} onClose={closeModal} />
+      )}
+      {modal?.kind === 'resources' && (
+        <ResourceModal
+          sessions={modal.sessions}
+          onClose={didApply => {
+            setModal(null)
+            if (didApply) {
+              setSelected(new Map())
+              setLoading(true)
+              void fetchPage(page)
+            }
+          }}
+        />
       )}
 
       {deleteTarget && (

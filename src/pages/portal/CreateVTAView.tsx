@@ -13,6 +13,18 @@ import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 type Stage = 0 | 1 | 2 | 3
 type Mode = 'vta_only' | 'full_stack'
 
+function vtaOnlyStepIndex(status: SetupSession['status'] | undefined, externalFlow: boolean) {
+  switch (status) {
+    case 'dns_provisioned': return 1
+    case 'vta_setup_running': return 2
+    case 'awaiting_did_publication': return 3
+    case 'vta_setup_complete': return externalFlow ? 4 : 3
+    case 'provisioning': return externalFlow ? 5 : 4
+    case 'running': return externalFlow ? 6 : 5
+    default: return null
+  }
+}
+
 export function CreateVTAView() {
   // betaAccess comes from the portal shell, which already reads it fresh from
   // the DB — the JWT doesn't carry it, and an admin can flip it at any time.
@@ -145,12 +157,12 @@ export function CreateVTAView() {
   useEffect(() => {
     if (stage !== 1 || !sessionId || setupFailed) return
     const check = (s: SetupSession) => {
+      setLiveSession(s)
       if (s.status === 'failed') {
         setSetupFailed(true)
         setFailedMsg(s.error_msg ?? 'Setup failed')
         return
       }
-      setLiveSession(s)
       if (s.status === 'vta_setup_running') setSetupStreamStarted(true)
     }
     api.getSession(sessionId).then(check).catch(() => {})
@@ -211,6 +223,7 @@ export function CreateVTAView() {
   useEffect(() => {
     if (stage !== 2 || !sessionId || setupFailed) return
     const check = (s: SetupSession) => {
+      setLiveSession(s)
       if (s.status === 'failed') {
         setSetupFailed(true)
         setFailedMsg(s.error_msg ?? 'Provisioning failed')
@@ -360,6 +373,10 @@ export function CreateVTAView() {
 
   const externalFlow = connectionInspection?.manual_publication || liveSession?.connection_source === 'external'
   const currentStep = (() => {
+    if (setupFailed) {
+      const failedStep = vtaOnlyStepIndex(liveSession?.failed_stage, externalFlow)
+      if (failedStep !== null) return failedStep
+    }
     if (stage === 3) return externalFlow ? 6 : 5
     if (stage === 2) return externalFlow ? 5 : 4
     if (stage === 0) return 0
