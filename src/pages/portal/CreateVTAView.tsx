@@ -24,7 +24,11 @@ export function CreateVTAView() {
   const [connectionChoice, setConnectionChoice] = useState<'platform' | 'custom'>('platform')
   const [didHostingDid, setDidHostingDid] = useState('')
   const [mediatorDid, setMediatorDid] = useState('')
-  const [connectionInspection, setConnectionInspection] = useState<ConnectionInspection | null>(null)
+  const [validatedConnection, setValidatedConnection] = useState<{
+    didHostingDid: string
+    mediatorDid: string
+    inspection: ConnectionInspection
+  } | null>(null)
   const [inspectionError, setInspectionError] = useState('')
   const [inspecting, setInspecting] = useState(false)
   const domainInfo = useDomainInfo()
@@ -59,6 +63,8 @@ export function CreateVTAView() {
   const [copiedVta, setCopiedVta] = useState(false)
   const [setupFailed, setSetupFailed] = useState(false)
   const [failedMsg, setFailedMsg] = useState('')
+  const connectionInspection = validatedConnection?.didHostingDid === didHostingDid.trim() &&
+    validatedConnection.mediatorDid === mediatorDid.trim() ? validatedConnection.inspection : null
 
   // Stage 1 setup-log streaming state
   const [setupStreamStarted, setSetupStreamStarted] = useState(false)
@@ -313,10 +319,13 @@ export function CreateVTAView() {
 
   async function handleInspectConnection() {
     setInspectionError('')
-    setConnectionInspection(null)
+    setValidatedConnection(null)
     setInspecting(true)
+    const hostingDID = didHostingDid.trim()
+    const mediatorDID = mediatorDid.trim()
     try {
-      setConnectionInspection(await api.inspectConnection(didHostingDid.trim(), mediatorDid.trim()))
+      const inspection = await api.inspectConnection(hostingDID, mediatorDID)
+      setValidatedConnection({ didHostingDid: hostingDID, mediatorDid: mediatorDID, inspection })
     } catch (err) {
       setInspectionError(err instanceof Error ? err.message : 'Could not validate the DID connection')
     } finally {
@@ -498,16 +507,16 @@ export function CreateVTAView() {
                 </div>
                 {connectionChoice === 'custom' && (
                   <>
-                    <div className="field-hint">Enter the DID hosting daemon DID and mediator DID. Farm-managed hosting publishes your VTA DID automatically; external hosting requires you to upload its DID log.</div>
-                    <div>
-                      <label className="p-label" htmlFor="cv-did-hosting-did">DID Hosting DID <span className="req">*</span></label>
-                      <input className="p-input p-mono" id="cv-did-hosting-did" type="text" placeholder="did:webvh:…" value={didHostingDid}
-                        onChange={e => { setDidHostingDid(e.target.value); setConnectionInspection(null); setInspectionError('') }} />
-                    </div>
+                    <div className="field-hint">Enter the mediator DID and DID hosting daemon DID, then validate the connection to enable session creation. Farm-managed hosting publishes your VTA DID automatically; external hosting requires you to upload its DID log.</div>
                     <div>
                       <label className="p-label" htmlFor="cv-mediator-did">Mediator DID <span className="req">*</span></label>
                       <input className="p-input p-mono" id="cv-mediator-did" type="text" placeholder="did:webvh:…" value={mediatorDid}
-                        onChange={e => { setMediatorDid(e.target.value); setConnectionInspection(null); setInspectionError('') }} />
+                        onChange={e => { setMediatorDid(e.target.value); setValidatedConnection(null); setInspectionError('') }} />
+                    </div>
+                    <div>
+                      <label className="p-label" htmlFor="cv-did-hosting-did">DID Hosting DID <span className="req">*</span></label>
+                      <input className="p-input p-mono" id="cv-did-hosting-did" type="text" placeholder="did:webvh:…" value={didHostingDid}
+                        onChange={e => { setDidHostingDid(e.target.value); setValidatedConnection(null); setInspectionError('') }} />
                     </div>
                     <div>
                       <button className="btn btn-outline btn-sm" type="button" onClick={handleInspectConnection}
@@ -736,7 +745,8 @@ export function CreateVTAView() {
                   ? '4 DNS records are created immediately after session creation.'
                   : 'A DNS record is created immediately after session creation.'}
             </span>
-            <button className="btn btn-default" onClick={handleCreate} disabled={creating || modeUnavailable}>
+            <button className="btn btn-default" onClick={handleCreate}
+              disabled={creating || modeUnavailable || (mode === 'vta_only' && connectionChoice === 'custom' && !connectionInspection)}>
               {creating ? 'Creating…' : modeUnavailable ? 'Unavailable' : <>Create session <span className="arrow">→</span></>}
             </button>
           </div>
