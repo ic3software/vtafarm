@@ -90,7 +90,8 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
   const status = session?.status
   const failed = status === 'failed'
   const completed = status === 'running'
-  const currentIndex = Math.max(0, phaseIndex(phases, status))
+  const progressStatus = failed ? session?.failed_stage ?? 'running' : status
+  const currentIndex = Math.max(0, phaseIndex(phases, progressStatus))
   const currentPhaseLabel = phases[currentIndex]?.label ?? 'Setup'
 
   return (

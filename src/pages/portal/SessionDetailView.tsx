@@ -61,13 +61,15 @@ export function SessionDetailView() {
     if (!session) return ''
     if (session.status === 'running') return 'done'
     if (stepStatus === null) return 'done'
-    if (session.status === 'failed') {
-      // 'failed' does not identify which step failed; mark the last step.
-      return stepStatus === 'running' ? 'failed' : 'done'
-    }
+    const progressStatus = session.status === 'failed' ? session.failed_stage ?? 'running' : session.status
     const order = vtaSteps.map(s => s.status)
-    const cur = order.indexOf(session.status)
+    const cur = order.indexOf(progressStatus ?? null)
     const idx = order.indexOf(stepStatus)
+    if (session.status === 'failed') {
+      if (idx < cur) return 'done'
+      if (idx === cur) return 'failed'
+      return ''
+    }
     if (idx < cur) return 'done'
     if (idx === cur) return 'active'
     return ''
@@ -170,8 +172,9 @@ export function SessionDetailView() {
   const adminDidStep = (isFullStack
     ? phaseIndex(fsPhases, 'awaiting_admin_did')
     : vtaSteps.findIndex(step => step.status === 'vta_setup_complete')) + 1
-  const fsPhaseIndex = Math.max(0, phaseIndex(fsPhases, session.status))
   const fsFailed = session.status === 'failed'
+  const fsProgressStatus = fsFailed ? session.failed_stage ?? 'running' : session.status
+  const fsPhaseIndex = Math.max(0, phaseIndex(fsPhases, fsProgressStatus))
   const isFullStackCompleted = isFullStack && session.status === 'running'
 
   return (

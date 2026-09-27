@@ -85,6 +85,8 @@ export interface ConnectionInspection {
 export interface SetupSession {
   id: string
   status: SetupStatus
+  /** Status that was active immediately before status became `failed`. */
+  failed_stage?: SetupStatus
   mode: SetupMode
   /** vta_only: where its DID hosting came from. */
   connection_source?: ConnectionSource
@@ -432,6 +434,7 @@ export interface PlatformStack {
   /** The session's `vta_name` — present only while one exists. */
   id?: string
   status?: SetupStatus
+  failed_stage?: SetupStatus
   /** Reaches no hostname; it survives only in `did:webvh` paths. */
   label?: string
   domain?: string

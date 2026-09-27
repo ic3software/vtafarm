@@ -361,7 +361,8 @@ export function PlatformStackView() {
   const failed = status === 'failed'
   const running = status === 'running'
   const awaitingAdminDid = status === 'awaiting_admin_did'
-  const currentIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, status))
+  const progressStatus = failed ? stack.failed_stage ?? 'running' : status
+  const currentIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, progressStatus))
   const vtaDid = stack.collected?.vta_did
 
   return (
