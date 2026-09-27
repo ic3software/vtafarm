@@ -232,14 +232,11 @@ export function SessionDetailView() {
         </div>
       )}
 
-      {/* Which stack this agent runs against — the first question when it
-          misbehaves, and where an orphaned agent is told its stack is gone. */}
-      {!isFullStack && <ConnectedToCard session={session} />}
-
       {/* DID block (vta_only — full_stack's DIDs live in the Endpoints/DIDs cards below) */}
       {!isFullStack && session.vta_did && (
         <CollectedDidsCard collected={{ vta_did: session.vta_did }} />
       )}
+      {!isFullStack && <ConnectedToCard session={session} />}
 
       {!isFullStack && <ExternalDIDPublicationCard session={session} onValidated={() => {
         api.getSession(sessionId).then(setSession).catch(() => {})
@@ -384,9 +381,6 @@ export function SessionDetailView() {
               <div className="p-row between"><span className="p-muted text-sm">Created</span><span className="text-sm">{new Date(session.created_at).toLocaleString()}</span></div>
               {!isFullStack && session.url && (
                 <><hr className="p-sep"/><ConfigLinkRow label="VTA" href={`${session.url}/health`} value={`${session.url}/health`} /></>
-              )}
-              {!isFullStack && session.mediator_did && (
-                <><hr className="p-sep"/><div className="p-row between center"><span className="p-muted text-sm">Mediator</span><span className="p-mono text-xs">{session.mediator_did.slice(-12)}</span></div></>
               )}
               {isFullStackCompleted && <EndpointConfigRows urls={session.urls} />}
               {isFullStackCompleted && <DidsEnrollConfigRow {...didsEnroll} />}

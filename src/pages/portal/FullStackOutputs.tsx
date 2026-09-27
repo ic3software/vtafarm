@@ -361,20 +361,19 @@ export function AdminKeysCard({ session }: { session: SetupSession }) {
 // so the connection warning is separate from the session's running status.
 export function ConnectedToCard({ session }: { session: SetupSession }) {
   const navigate = useNavigate()
+  const { copiedKey, copy } = useCopyState()
   if (session.mode !== 'vta_only' || !session.connection_source) return null
 
   const orphaned = !!session.provider_gone
   const platform = session.connection_source === 'platform'
-  const external = session.connection_source === 'external'
 
   return (
     <div className="p-card" style={{ marginBottom: 16, ...(orphaned ? { borderColor: 'hsl(var(--destructive)/.4)' } : {}) }}>
       <div className="card-header">
-        {/* "Connected to" would contradict the body once the stack is gone. */}
-        <h3 className="card-title">{orphaned ? 'Stack connection' : 'Connected to'}</h3>
+        <h3 className="card-title">Connection ({platform ? 'Platform' : 'Customized'})</h3>
       </div>
-      <div className="card-content p-col gap-8" style={{ paddingTop: 14 }}>
-        {orphaned ? (
+      <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+        {orphaned && (
           <>
             <span className="text-sm" style={{ fontWeight: 600, color: 'hsl(var(--destructive))' }}>
               Disconnected — this stack was deleted
@@ -394,24 +393,12 @@ export function ConnectedToCard({ session }: { session: SetupSession }) {
               </button>
             </div>
           </>
-        ) : (
-          <>
-            <span className="text-sm" style={{ fontWeight: 600 }}>
-              {external ? 'External DID hosting' : platform ? 'Platform stack' : session.provider ?? 'A stack on this farm'}
-            </span>
-            <span className="field-hint">
-              {external
-                ? 'You manage this agent’s DID log and hosting permissions.'
-                : platform
-                  ? 'DID hosting on the farm’s platform stack.'
-                  : "DID hosting on another user's Full Stack. If its owner deletes it, this agent stops working."}
-            </span>
-          </>
+        )}
+        {session.did_hosting_did && (
+          <Row label="DID Hosting DID" value={session.did_hosting_did} copyKey="connection-did-hosting" copiedKey={copiedKey} onCopy={copy} />
         )}
         {session.mediator_did && (
-          <span className="p-mono text-xs p-muted" style={{ wordBreak: 'break-all', marginTop: 4 }}>
-            mediator&nbsp; {session.mediator_did}
-          </span>
+          <Row label="Mediator DID" value={session.mediator_did} copyKey="connection-mediator" copiedKey={copiedKey} onCopy={copy} />
         )}
       </div>
     </div>
