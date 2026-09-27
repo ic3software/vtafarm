@@ -1,5 +1,22 @@
 # Changelog
 
+## [v0.8.0] - 2026-09-27
+
+### Added
+
+- VTA-only creation can connect to an in-farm or external DID host and choose
+  its mediator independently by entering the two DIDs. The destination is
+  inspected and identified before the agent is created.
+- For external DID hosting, the setup flow provides the generated `did.jsonl`,
+  publication guidance and a validation step before provisioning continues.
+
+### Removed
+
+- Full Stack share-code controls and the share-code connection form. Custom
+  connections now use DID-hosting and mediator DIDs directly.
+
+Requires vtafarm-api 0.8.0.
+
 ## [v0.7.1] - 2026-09-25
 
 ### Fixed
