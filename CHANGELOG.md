@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.9.0] - 2026-09-27
+
+### Added
+
+- Admins can inspect per-component memory requests and limits, distinguish
+  platform defaults from customized sessions, and safely apply changes to one
+  or more running sessions.
+
+### Fixed
+
+- Full-stack and VTA-only progress indicators mark the stage where setup
+  actually failed instead of always marking the final step.
+
+Requires vtafarm-api 0.9.0.
+
 ## [v0.8.0] - 2026-09-27
 
 ### Added
