@@ -88,9 +88,8 @@ function SecretRow({
   )
 }
 
-// Single-use DID-hosting admin enrollment link and, on current images, its
-// second-channel claim code. Older images issued a link only, so the copy gate
-// is conditional. Reissuing lives in the Configuration card.
+// Single-use DID-hosting admin enrollment link and its required second-channel
+// claim code. Reissuing lives in the Configuration card.
 export function DidsEnrollAlert({ enrollUrl, claimCode, used, justReissued, handleOpen }: DidsEnrollState) {
   const { copiedKey, copy } = useCopyState()
   const [claimCopied, setClaimCopied] = useState(false)
@@ -103,8 +102,20 @@ export function DidsEnrollAlert({ enrollUrl, claimCode, used, justReissued, hand
   }
   if (!enrollUrl || used) return null
 
+  if (!claimCode) {
+    return (
+      <div className="p-alert alert-destructive" style={{ marginBottom: 16 }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+        <div className="grow">
+          <p className="alert-title">DID hosting enrollment unavailable</p>
+          <p className="alert-desc">The enrollment invite has no claim code. Recreate the agent with a current DID Hosting image.</p>
+        </div>
+      </div>
+    )
+  }
+
   const copied = copiedKey === 'dids-claim-code'
-  const needsCopyFirst = !!claimCode && !claimCopied
+  const needsCopyFirst = !claimCopied
 
   function handleOpenClick(e: MouseEvent<HTMLAnchorElement>) {
     if (needsCopyFirst) {
@@ -121,27 +132,23 @@ export function DidsEnrollAlert({ enrollUrl, claimCode, used, justReissued, hand
       <div className="grow">
         <p className="alert-title">DID hosting admin enrollment</p>
         <p className="alert-desc">
-          {claimCode
-            ? 'Copy the claim code, then open the link.'
-            : 'Visit this single-use link to register a passkey for the DID hosting admin panel.'}
+          Copy the claim code, then open the link.
           {justReissued && (
             <span style={{ display: 'block', marginTop: 4 }}>
               After reissuing, wait 10 seconds before opening the new link.
             </span>
           )}
         </p>
-        {claimCode && (
-          <div className="p-row gap-8 center" style={{ marginTop: 8 }}>
-            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
-              Claim code
-            </span>
-            <span className="p-mono" style={{ fontSize: 13, fontWeight: 600 }}>{claimCode}</span>
-            <button className="btn btn-outline btn-sm" style={{ gap: 6 }} onClick={() => { copy('dids-claim-code', claimCode); setClaimCopied(true); setOpenWarning(false) }}>
-              <CopyIcon copied={copied} />
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
-        )}
+        <div className="p-row gap-8 center" style={{ marginTop: 8 }}>
+          <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+            Claim code
+          </span>
+          <span className="p-mono" style={{ fontSize: 13, fontWeight: 600 }}>{claimCode}</span>
+          <button className="btn btn-outline btn-sm" style={{ gap: 6 }} onClick={() => { copy('dids-claim-code', claimCode); setClaimCopied(true); setOpenWarning(false) }}>
+            <CopyIcon copied={copied} />
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
         {openWarning && (
           <span className="field-hint" style={{ display: 'block', marginTop: 8, color: 'hsl(var(--destructive))' }}>
             Copy the claim code before opening the link.
