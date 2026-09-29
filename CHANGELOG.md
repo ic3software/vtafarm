@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.9.2] - 2026-09-29
+
+### Added
+
+- DID Hosting enrollment prompts display and copy the claim code required by
+  current daemon images before opening the single-use enrollment link.
+
+Requires vtafarm-api 0.9.2.
+
 ## [v0.9.1] - 2026-09-29
 
 ### Fixed
