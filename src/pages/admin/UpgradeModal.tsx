@@ -19,9 +19,9 @@ const componentLabels: Record<UpgradeComponent, string> = {
 
 function taskBadge(status: UpgradeTaskStatus) {
   if (status === 'succeeded') return 'badge-success'
-  if (status === 'failed') return 'badge-destructive'
-  if (status === 'running') return 'badge-default'
-  if (status === 'skipped') return 'badge-warning'
+  if (status === 'failed' || status === 'rollback_failed') return 'badge-destructive'
+  if (status === 'running' || status === 'rolling_back') return 'badge-default'
+  if (status === 'skipped' || status === 'rolled_back') return 'badge-warning'
   return 'badge-secondary'
 }
 
@@ -303,12 +303,12 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
                   <span style={{ color: 'hsl(var(--muted-foreground))', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     <span className="p-mono" style={{ fontSize: 11.5 }}>{imageTag(t.from_image)} → {imageTag(t.to_image)}</span>
                   </span>
-                  <span className={`p-badge ${taskBadge(t.status)}`} title={t.error_msg || undefined}>{t.status}</span>
+                  <span className={`p-badge ${taskBadge(t.status)}`} title={t.error_msg || undefined}>{t.status.replaceAll('_', ' ')}</span>
                 </div>
               ))}
-              {batch?.tasks.some(t => t.status === 'failed' && t.error_msg) && (
+              {batch?.tasks.some(t => t.error_msg) && (
                 <div style={{ fontSize: 12, color: 'hsl(var(--destructive))' }}>
-                  {batch.tasks.filter(t => t.status === 'failed' && t.error_msg).map((t, i) => (
+                  {batch.tasks.filter(t => t.error_msg).map((t, i) => (
                     <p key={i} style={{ margin: '2px 0' }}>
                       <span className="p-mono">{t.vta_name || t.session_id || '(deleted)'}</span> ({t.component}): {t.error_msg}
                     </p>
@@ -318,7 +318,7 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
               {error && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
             </div>
             <div className="dialog-footer">
-              {batch?.status === 'paused' && (
+              {batch?.status === 'paused' && !batch.tasks.some(t => t.status === 'running' || t.status === 'rolling_back') && (
                 <button className="btn btn-outline" type="button" disabled={busy} onClick={() => act(api.resumeUpgrade)}>
                   Resume
                 </button>
