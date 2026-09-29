@@ -416,21 +416,22 @@ export function SessionsView() {
               <th>Status</th>
               <th>Images</th>
               <th>Created</th>
-              <th className="col-actions">Resources</th>
+              <th>Current resource settings</th>
+              <th className="col-actions" style={{ textAlign: 'left' }}>Edit Resources</th>
               <th className="col-actions" style={{ textAlign: 'left' }}>Export</th>
-              <th className="col-actions">Delete</th>
+              <th className="col-actions" style={{ textAlign: 'left' }}>Delete</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={12} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={13} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : sessions.length === 0 ? (
               <tr>
-                <td colSpan={12} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={13} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   No sessions yet.
                 </td>
               </tr>
@@ -488,22 +489,22 @@ export function SessionsView() {
                 <td title={fmt(s.created_at)} style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap' }}>
                   {relTime(s.created_at)}
                 </td>
-                <td style={{ minWidth: 260 }}>
-                  <div className="p-row gap-8" style={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                    <ResourcesCell session={s} />
-                    <button
-                      className="btn btn-outline btn-sm"
-                      disabled={s.status !== 'running'}
-                      onClick={() => setModal({ kind: 'resources', sessions: [{ id: s.vta_name, mode: s.mode }] })}
-                    >
-                      Edit
-                    </button>
-                  </div>
+                <td style={{ minWidth: 190 }}>
+                  <ResourcesCell session={s} />
                 </td>
-                <td className="col-actions">
+                <td className="col-actions" style={{ textAlign: 'left' }}>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    disabled={s.status !== 'running'}
+                    onClick={() => setModal({ kind: 'resources', sessions: [{ id: s.vta_name, mode: s.mode }] })}
+                  >
+                    Edit
+                  </button>
+                </td>
+                <td className="col-actions" style={{ textAlign: 'left' }}>
                   <ExportCell session={s} />
                 </td>
-                <td className="col-actions">
+                <td className="col-actions" style={{ textAlign: 'left' }}>
                   <button
                     className="btn btn-ghost btn-sm"
                     style={{ color: 'hsl(var(--destructive))' }}
