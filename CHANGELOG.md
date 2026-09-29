@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.9.1] - 2026-09-29
+
+### Fixed
+
+- Upgrade status views continue tracking failed upgrades through automatic
+  rollback and clearly report whether the previous version was restored.
+- Admin session resource settings and their actions use separate, left-aligned
+  table columns.
+
+Requires vtafarm-api 0.9.1.
+
 ## [v0.9.0] - 2026-09-27
 
 ### Added
