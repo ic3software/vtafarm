@@ -581,7 +581,7 @@ export interface AdminDashboard {
 export type UpgradeComponent = 'vta' | 'mediator' | 'dids' | 'vtc'
 export const ALL_COMPONENTS: UpgradeComponent[] = ['vta', 'mediator', 'dids', 'vtc']
 export type UpgradeBatchStatus = 'running' | 'paused' | 'completed' | 'cancelled'
-export type UpgradeTaskStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped'
+export type UpgradeTaskStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped' | 'rolling_back' | 'rolled_back' | 'rollback_failed'
 
 export interface UpgradeTarget {
   session_id: string

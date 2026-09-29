@@ -31,9 +31,9 @@ function currentImage(session: SetupSession, component: UpgradeComponent): strin
 
 function taskBadge(status: UpgradeTaskStatus) {
   if (status === 'succeeded') return 'badge-success'
-  if (status === 'failed') return 'badge-destructive'
-  if (status === 'running') return 'badge-default'
-  if (status === 'skipped') return 'badge-warning'
+  if (status === 'failed' || status === 'rollback_failed') return 'badge-destructive'
+  if (status === 'running' || status === 'rolling_back') return 'badge-default'
+  if (status === 'skipped' || status === 'rolled_back') return 'badge-warning'
   return 'badge-secondary'
 }
 
@@ -59,7 +59,9 @@ function direction(images: ImageOption[], from: string, to: string): 'upgrade' |
   return toIdx < fromIdx ? 'upgrade' : 'downgrade'
 }
 
-const inFlight = (u: SessionUpgrade | null): u is SessionUpgrade => u?.status === 'running'
+const inFlight = (u: SessionUpgrade | null): boolean => !!u && (
+  u.status === 'running' || u.tasks.some(t => t.status === 'running' || t.status === 'rolling_back')
+)
 
 interface SessionVersionsCardProps {
   session: SetupSession
@@ -76,6 +78,7 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const running = inFlight(upgrade)
 
   // Load each component's registry tag list once, and pick up an upgrade
   // already in flight (e.g. after a page reload).
@@ -96,9 +99,9 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
     })
     api.getSessionUpgrade(session.id)
       .then(u => {
-        if (stopped || u.status !== 'running') return
+        if (stopped) return
         setUpgrade(u)
-        setShowResult(true)
+        setShowResult(inFlight(u))
       })
       .catch(() => {}) // 404 — never upgraded
     return () => { stopped = true }
@@ -108,20 +111,20 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
 
   // Progress phase: poll until the upgrade reaches a terminal state.
   useEffect(() => {
-    if (!inFlight(upgrade)) return
+    if (!running) return
     let stopped = false
     const timer = setInterval(() => {
       api.getSessionUpgrade(session.id)
         .then(u => {
           if (stopped) return
           setUpgrade(u)
-          if (u.status !== 'running') onUpgraded()
+          if (!inFlight(u)) onUpgraded()
         })
         .catch(() => {})
     }, 3000)
     return () => { stopped = true; clearInterval(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.id, upgrade?.status])
+  }, [session.id, running])
 
   const changes = components.flatMap(component => {
     const from = currentImage(session, component)
@@ -149,7 +152,8 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
     setError('')
   }
 
-  const running = inFlight(upgrade)
+  const rollingBack = upgrade?.tasks.some(t => t.status === 'rolling_back')
+  const failedTasks = upgrade?.tasks.filter(t => ['failed', 'rolled_back', 'rollback_failed'].includes(t.status)) ?? []
 
   return (
     <div className="p-card">
@@ -158,7 +162,7 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
         {running && (
           <span className="p-badge badge-default">
             <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 11, height: 11 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-            updating
+            {rollingBack ? 'rolling back' : 'updating'}
           </span>
         )}
       </div>
@@ -171,14 +175,23 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
                 <span className="p-mono text-xs" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }} title={`${t.from_image} → ${t.to_image}`}>
                   {imageTag(t.from_image)} → {imageTag(t.to_image)}
                 </span>
-                <span className={`p-badge ${taskBadge(t.status)}`} title={t.error_msg || undefined}>{t.status}</span>
+                <span className={`p-badge ${taskBadge(t.status)}`}>{t.status.replaceAll('_', ' ')}</span>
               </div>
             ))}
-            {upgrade.status === 'paused' && (
+            {rollingBack && (
               <p style={{ margin: 0, fontSize: 12, color: 'hsl(var(--destructive))' }}>
-                Update stopped on a failure{(() => { const f = upgrade.tasks.find(t => t.status === 'failed' && t.error_msg); return f ? `: ${f.error_msg}` : '.' })()}
+                Update failed. Restoring the previous version…
               </p>
             )}
+            {!rollingBack && failedTasks.map(t => (
+              <p key={t.component} className="text-xs" style={{ margin: 0, overflowWrap: 'anywhere' }}>
+                {componentLabels[t.component]}: {t.status === 'rolled_back'
+                  ? 'Update failed. Previous version restored.'
+                  : t.status === 'rollback_failed'
+                    ? 'Update and automatic rollback failed. Check the service immediately.'
+                    : 'Update failed.'}
+              </p>
+            ))}
             {upgrade.status === 'completed' && (
               <p style={{ margin: 0, fontSize: 12, color: 'hsl(var(--success))' }}>All components updated.</p>
             )}
@@ -242,7 +255,7 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
             <div className="dialog-header">
               <h3 className="dialog-title">Change versions?</h3>
               <p className="dialog-desc">
-                Each component restarts on its new image — expect a short interruption while it rolls out.
+                Each component restarts on its new image. If it fails to start, the previous image is restored automatically. Stored data is not rolled back.
               </p>
             </div>
             <div className="dialog-body">
