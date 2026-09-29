@@ -11,7 +11,7 @@ import { api } from '@/lib/api'
  */
 export interface SessionActionApi {
   ackDidsEnroll: (id: string) => Promise<unknown>
-  reissueDidsEnroll: (id: string) => Promise<{ dids_admin_enroll_url: string }>
+  reissueDidsEnroll: (id: string) => Promise<{ dids_admin_enroll_url: string; dids_admin_enroll_claim_code: string }>
   ackVtcInstall: (id: string) => Promise<unknown>
   reissueVtcInstall: (id: string) => Promise<{ install_url: string; claim_code: string }>
 }

@@ -88,12 +88,32 @@ function SecretRow({
   )
 }
 
-// Single-use DID-hosting admin enrollment link — shown at the top of the
-// completed/running page, only while there's still something to do (an
-// unopened link). Once opened, this disappears; reissuing a new one lives in
-// the Configuration card instead (see DidsEnrollConfigRow).
-export function DidsEnrollAlert({ enrollUrl, used, justReissued, handleOpen }: DidsEnrollState) {
+// Single-use DID-hosting admin enrollment link and, on current images, its
+// second-channel claim code. Older images issued a link only, so the copy gate
+// is conditional. Reissuing lives in the Configuration card.
+export function DidsEnrollAlert({ enrollUrl, claimCode, used, justReissued, handleOpen }: DidsEnrollState) {
+  const { copiedKey, copy } = useCopyState()
+  const [claimCopied, setClaimCopied] = useState(false)
+  const [openWarning, setOpenWarning] = useState(false)
+  const [seenClaimCode, setSeenClaimCode] = useState(claimCode)
+  if (seenClaimCode !== claimCode) {
+    setSeenClaimCode(claimCode)
+    setClaimCopied(false)
+    setOpenWarning(false)
+  }
   if (!enrollUrl || used) return null
+
+  const copied = copiedKey === 'dids-claim-code'
+  const needsCopyFirst = !!claimCode && !claimCopied
+
+  function handleOpenClick(e: MouseEvent<HTMLAnchorElement>) {
+    if (needsCopyFirst) {
+      e.preventDefault()
+      setOpenWarning(true)
+      return
+    }
+    handleOpen()
+  }
 
   return (
     <div className="p-alert alert-warning" style={{ marginBottom: 16 }}>
@@ -101,16 +121,43 @@ export function DidsEnrollAlert({ enrollUrl, used, justReissued, handleOpen }: D
       <div className="grow">
         <p className="alert-title">DID hosting admin enrollment</p>
         <p className="alert-desc">
-          Visit this single-use link to register a passkey for the DID hosting admin panel.
+          {claimCode
+            ? 'Copy the claim code, then open the link.'
+            : 'Visit this single-use link to register a passkey for the DID hosting admin panel.'}
           {justReissued && (
             <span style={{ display: 'block', marginTop: 4 }}>
-              Reissuing restarts the DID hosting service — wait 10 seconds before opening the new link.
+              After reissuing, wait 10 seconds before opening the new link.
             </span>
           )}
         </p>
+        {claimCode && (
+          <div className="p-row gap-8 center" style={{ marginTop: 8 }}>
+            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+              Claim code
+            </span>
+            <span className="p-mono" style={{ fontSize: 13, fontWeight: 600 }}>{claimCode}</span>
+            <button className="btn btn-outline btn-sm" style={{ gap: 6 }} onClick={() => { copy('dids-claim-code', claimCode); setClaimCopied(true); setOpenWarning(false) }}>
+              <CopyIcon copied={copied} />
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        )}
+        {openWarning && (
+          <span className="field-hint" style={{ display: 'block', marginTop: 8, color: 'hsl(var(--destructive))' }}>
+            Copy the claim code before opening the link.
+          </span>
+        )}
       </div>
       <div className="p-row gap-8" style={{ flexShrink: 0 }}>
-        <a className="btn btn-outline btn-sm" href={enrollUrl} target="_blank" rel="noopener" onClick={handleOpen}>Open enrollment →</a>
+        <a
+          className="btn btn-outline btn-sm"
+          href={enrollUrl}
+          target="_blank"
+          rel="noopener"
+          aria-disabled={needsCopyFirst}
+          style={needsCopyFirst ? { opacity: 0.55 } : undefined}
+          onClick={handleOpenClick}
+        >Open enrollment →</a>
       </div>
     </div>
   )
@@ -130,7 +177,7 @@ export function DidsEnrollConfigRow({ used, reissuing, reissueError, justReissue
           <span className="p-muted text-sm">DID hosting enrollment</span>
           <span className="field-hint" style={{ marginTop: 4 }}>
             {justReissued
-              ? 'Reissuing restarts the DID hosting service — wait 10 seconds before opening the new link.'
+              ? 'After reissuing, wait 10 seconds before opening the new link.'
               : 'Link already opened. Reissue a new one to register a passkey.'}
           </span>
           {reissueError && <span style={{ color: 'hsl(var(--destructive))', display: 'block', marginTop: 4 }} className="field-hint">{reissueError}</span>}
@@ -182,10 +229,10 @@ export function VtcInstallAlert({ installUrl, claimCode, used, reissueError, jus
       <div className="grow">
         <p className="alert-title">VTC admin install</p>
         <p className="alert-desc">
-          Copy the claim code below first, then open the one-shot link to claim the VTC admin — you'll be asked for it.
+          Copy the claim code, then open the link.
           {justReissued && (
             <span style={{ display: 'block', marginTop: 4 }}>
-              Reissuing restarts the VTC service — wait 10 seconds before opening the new link.
+              After reissuing, wait 10 seconds before opening the new link.
             </span>
           )}
           {reissueError && (
@@ -206,7 +253,7 @@ export function VtcInstallAlert({ installUrl, claimCode, used, reissueError, jus
         )}
         {openWarning && (
           <span className="field-hint" style={{ display: 'block', marginTop: 8, color: 'hsl(var(--destructive))' }}>
-            Copy the claim code first, then open the link.
+            Copy the claim code before opening the link.
           </span>
         )}
       </div>
@@ -239,7 +286,7 @@ export function VtcInstallConfigRow({ used, reissuing, reissueError, justReissue
           <span className="p-muted text-sm">VTC admin install</span>
           <span className="field-hint" style={{ marginTop: 4 }}>
             {justReissued
-              ? 'Reissuing restarts the VTC service — wait 10 seconds before opening the new link.'
+              ? 'After reissuing, wait 10 seconds before opening the new link.'
               : 'Link already opened. Reissue a new one to claim the VTC admin.'}
           </span>
           {reissueError && <span style={{ color: 'hsl(var(--destructive))', display: 'block', marginTop: 4 }} className="field-hint">{reissueError}</span>}
