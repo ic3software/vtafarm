@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { memoryMi, memoryOptions } from '@/lib/resourceMemory'
 import {
   api,
   type AdminSessionResources,
@@ -28,8 +29,6 @@ interface ResourceRow {
   defaults: ResourceProfile
 }
 
-const requestOptions = ['64Mi', '128Mi', '256Mi', '512Mi']
-const limitOptions = [...requestOptions, '1Gi', '2Gi']
 const labels: Record<UpgradeComponent, string> = {
   vta: 'VTA',
   mediator: 'Mediator',
@@ -53,12 +52,6 @@ function selectedComponents(sessions: ResourceSession[]) {
 
 function optionValues(current: string, options: string[]) {
   return current && !options.includes(current) ? [current, ...options] : options
-}
-
-function bytes(value: string) {
-  const match = /^(\d+)(Mi|Gi)$/.exec(value)
-  if (!match) return 0
-  return Number(match[1]) * (match[2] === 'Gi' ? 1024 : 1)
 }
 
 function hasChanged(row: ResourceRow) {
@@ -110,7 +103,13 @@ export function ResourceModal({ sessions, onClose }: Props) {
     }
     for (const row of changed) {
       const selected = selectedMemory(row)
-      if (bytes(selected.memoryRequest) > bytes(selected.memoryLimit)) {
+      const request = memoryMi(selected.memoryRequest)
+      const limit = memoryMi(selected.memoryLimit)
+      if (!Number.isFinite(request) || !Number.isFinite(limit) || request < 16 || limit > 1024) {
+        setError(`${labels[row.component]} request and limit must be between 16Mi and 1Gi.`)
+        return
+      }
+      if (request > limit) {
         setError(`${labels[row.component]} request cannot exceed its limit.`)
         return
       }
@@ -169,7 +168,7 @@ export function ResourceModal({ sessions, onClose }: Props) {
                       <SelectValue placeholder={row.defaults.memory_request} />
                     </SelectTrigger>
                     <SelectContent className="resource-select-content">
-                      {optionValues(row.memoryRequest, requestOptions).map(value => (
+                      {optionValues(row.memoryRequest, memoryOptions).map(value => (
                         <SelectItem key={value} value={value}>{value}</SelectItem>
                       ))}
                     </SelectContent>
@@ -185,7 +184,7 @@ export function ResourceModal({ sessions, onClose }: Props) {
                       <SelectValue placeholder={row.defaults.memory_limit} />
                     </SelectTrigger>
                     <SelectContent className="resource-select-content">
-                      {optionValues(row.memoryLimit, limitOptions).map(value => (
+                      {optionValues(row.memoryLimit, memoryOptions).map(value => (
                         <SelectItem key={value} value={value}>{value}</SelectItem>
                       ))}
                     </SelectContent>

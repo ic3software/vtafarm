@@ -19,6 +19,7 @@ import { AdminPanel } from '@/pages/admin/AdminPanel'
 import { DashboardView } from '@/pages/admin/DashboardView'
 import { AdminsView } from '@/pages/admin/AdminsView'
 import { UsersView } from '@/pages/admin/UsersView'
+import { ResourceDefaultsView } from '@/pages/admin/ResourceDefaultsView'
 import { SessionsView } from '@/pages/admin/SessionsView'
 import { LoadTestingView } from '@/pages/admin/LoadTestingView'
 import { LoadTestingDetailView } from '@/pages/admin/LoadTestingDetailView'
@@ -197,6 +198,7 @@ export default function App() {
               <Route path="admins" element={<AdminsView />} />
               <Route path="users" element={<UsersView />} />
               <Route path="sessions" element={<SessionsView />} />
+              <Route path="resource-defaults" element={<ResourceDefaultsView />} />
               <Route path="load-testing" element={<LoadTestingView />} />
               <Route path="load-testing/:id" element={<LoadTestingDetailView />} />
               <Route path="platform-stack" element={<PlatformStackView />} />

@@ -48,6 +48,7 @@ export function AdminPanel() {
 
   const path = location.pathname
   const crumb = path.includes('/settings') ? 'Settings'
+    : path.includes('/resource-defaults') ? 'Resource defaults'
     : path.includes('/users') ? 'Users'
     : path.includes('/platform-stack') ? 'Platform stack'
     : path.includes('/load-testing') ? 'Load testing'
@@ -101,6 +102,13 @@ export function AdminPanel() {
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg>
               Sessions
+            </div>
+            <div
+              className={`nav-item ${path.includes('/resource-defaults') ? 'active' : ''}`}
+              onClick={() => goTo('/admin/resource-defaults')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg>
+              Resource defaults
             </div>
             <div
               className={`nav-item ${path.includes('/load-testing') ? 'active' : ''}`}
