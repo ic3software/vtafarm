@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.10.0] - 2026-09-30
+
+### Added
+
+- Admin Resource Defaults page for editing component memory requests and
+  limits, restoring factory defaults, and viewing full-stack totals.
+- Success and information alerts for saved and restored defaults.
+
+### Changed
+
+- Memory resource controls support values from 16Mi to 1Gi and validate that
+  requests do not exceed limits, including when editing existing sessions.
+
+Requires vtafarm-api 0.10.0.
+
 ## [v0.9.3] - 2026-09-29
 
 ### Changed
