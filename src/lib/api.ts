@@ -353,6 +353,11 @@ export interface AdminSessionResourceSummary {
   customized: boolean
 }
 
+export interface ResourceDefaults {
+  resources: Record<UpgradeComponent, ResourceProfile>
+  factory_defaults: Record<UpgradeComponent, ResourceProfile>
+}
+
 export interface ResourceProfile {
   cpu_request: string
   cpu_limit: string
@@ -782,6 +787,9 @@ export const api = {
   // ── Admin — setup sessions ───────────────────────────────────────────────────
   adminListSessions: (page = 1, mode?: string) =>
     req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?page=${page}${mode ? `&mode=${encodeURIComponent(mode)}` : ''}`),
+  adminResourceDefaults: () => req<ResourceDefaults>('GET', '/api/v1/admin/resource-defaults'),
+  adminSaveResourceDefaults: (resources: Array<{ component: UpgradeComponent; memory_request: string; memory_limit: string }>) =>
+    req<ResourceDefaults>('PUT', '/api/v1/admin/resource-defaults', { resources }),
   adminSessionResources: (id: string) =>
     req<AdminSessionResources>('GET', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/resources`),
   adminApplySessionResources: (
