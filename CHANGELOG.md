@@ -1,5 +1,21 @@
 # Changelog
 
+## [v0.11.0] - 2026-09-30
+
+### Added
+
+- Initial setup and running VTA pages can connect administrators through local
+  PNM setup, a manual mobile QR flow, or Automatic Mobile Connection.
+- Automatic Mobile Connection displays a generated QR code, restores active
+  requests, reports connection progress, and supports expired-code replacement.
+
+### Changed
+
+- The shared connection interface keeps pending mobile requests available when
+  switching methods and removes the setup form after connection succeeds.
+
+Requires vtafarm-api 0.11.0.
+
 ## [v0.10.0] - 2026-09-30
 
 ### Added
