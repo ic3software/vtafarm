@@ -216,7 +216,9 @@ function SessionDetailContent() {
         api.getSession(sessionId).then(setSession).catch(() => {})
       }} />}
 
-      {vtaDid && <VtaConnectionCard key={sessionId} session={session} sessionId={sessionId} vtaDid={vtaDid} ready={isAwaitingAdmin} onSessionChange={setSession} />}
+      {vtaDid && !['provisioning', 'running', 'complete', 'failed'].includes(session.status) && (
+        <VtaConnectionCard key={sessionId} session={session} sessionId={sessionId} vtaDid={vtaDid} ready={isAwaitingAdmin} onSessionChange={setSession} />
+      )}
 
       {/* Enrollment/install links + collected DIDs — top of page, only once the stack is fully running */}
       {isFullStackCompleted && (

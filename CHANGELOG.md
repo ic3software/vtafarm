@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.11.1] - 2026-09-30
+
+### Fixed
+
+- Running agent pages no longer repeat the initial **Connect to your VTA**
+  card above the separate controls for connecting another device.
+- Agent creation remains on **Deploy VTA** until the API confirms the VTA is
+  ready, preventing a premature running state and **Open agent** action.
+
+Requires vtafarm-api 0.11.0.
+
 ## [v0.11.0] - 2026-09-30
 
 ### Added
