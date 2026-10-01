@@ -223,22 +223,23 @@ export function CreateVTAView() {
       if (s.status === 'failed') {
         setSetupFailed(true)
         setFailedMsg(s.error_msg ?? 'Provisioning failed')
+      } else if (s.status === 'running') {
+        setStage(3)
       }
     }
+    api.getSession(sessionId).then(check).catch(() => {})
     const iv = setInterval(() => api.getSession(sessionId).then(check).catch(() => {}), 3000)
     return () => clearInterval(iv)
   }, [stage, sessionId, setupFailed])
 
-  // Stage 2: stream provision logs immediately; advance 2s after 'done' event
+  // Stage 2: stream provision logs immediately. The job can finish before the
+  // deployment is ready, so only the session-status poll advances to stage 3.
   useEffect(() => {
     if (stage !== 2 || !sessionId) return
     let hasLog = false
-    let advanceTimer: ReturnType<typeof setTimeout> | null = null
     let retryTimer: ReturnType<typeof setTimeout> | null = null
     let es: EventSource | null = null
     let cancelled = false
-
-    const scheduleAdvance = () => { if (!advanceTimer) advanceTimer = setTimeout(() => setStage(3), 2000) }
 
     const connect = () => {
       if (cancelled) return
@@ -247,18 +248,16 @@ export function CreateVTAView() {
         setLogs(prev => [...prev, e.data])
         hasLog = true
       }
-      es.addEventListener('done', () => { es!.close(); scheduleAdvance() })
+      es.addEventListener('done', () => es!.close())
       es.onerror = () => {
         es!.close()
-        if (hasLog) { scheduleAdvance() }
-        else { retryTimer = setTimeout(connect, 4000) }
+        if (!hasLog) retryTimer = setTimeout(connect, 4000)
       }
     }
     connect()
     return () => {
       cancelled = true
       es?.close()
-      if (advanceTimer) clearTimeout(advanceTimer)
       if (retryTimer) clearTimeout(retryTimer)
     }
   }, [stage, sessionId])
