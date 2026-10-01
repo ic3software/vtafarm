@@ -14,6 +14,21 @@ if (!_apiUrl) {
 }
 export const API_BASE: string = _apiUrl
 
+export interface MobileConnection {
+  request_id: string
+  status: 'pending' | 'expired' | 'cancelled' | 'provisioning' | 'awaiting_mobile' | 'connected' | 'failed'
+  vta_did: string
+  expires_at: string
+  callback_url?: string
+  error?: string
+}
+
+export interface MobileConnectionState {
+  enabled: boolean
+  server_time: string
+  connection: MobileConnection | null
+}
+
 export type SetupStatus =
   // vta_only
   | 'dns_provisioned' | 'vta_setup_running' | 'awaiting_did_publication' | 'vta_setup_complete' | 'provisioning' | 'running'
@@ -1014,6 +1029,10 @@ export const api = {
     download(`/api/v1/setup/${encodeURIComponent(id)}/export/configs`, `${id}-configs.zip`),
   exportSessionLogs: (id: string) =>
     download(`/api/v1/setup/${encodeURIComponent(id)}/export/logs`, `${id}-logs.zip`),
+  getMobileConnection: (id: string) => req<MobileConnectionState>('GET', `/api/v1/setup/${id}/mobile-connections/current`),
+  createMobileConnection: (id: string) => req<MobileConnectionState>('POST', `/api/v1/setup/${id}/mobile-connections`),
+  refreshMobileConnection: (id: string, requestId: string) => req<MobileConnectionState>('POST', `/api/v1/setup/${id}/mobile-connections/${requestId}/refresh`),
+  cancelMobileConnection: (id: string, requestId: string) => req<MobileConnectionState>('DELETE', `/api/v1/setup/${id}/mobile-connections/${requestId}`),
   provisionAdmin: (id: string, admin_did: string) =>
     req<{ status: string }>('POST', `/api/v1/setup/${id}/admin`, { admin_did }),
   // Link another PNM to an already-running VTA. Unlike provisionAdmin, this

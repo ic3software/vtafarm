@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
-import { statusBadge, FULL_STACK_PHASES, phaseIndex, isValidAdminDid } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, phaseIndex } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
+import { VtaConnectionCard } from './VtaConnectionCard'
 
 export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: string; vtaName: string }) {
   const { loadSessions } = useOutletContext<PortalContext>()
@@ -15,20 +16,9 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
   const [logs, setLogs] = useState<string[]>([])
   const consoleBodyRef = useRef<HTMLDivElement>(null)
 
-  const [adminDid, setAdminDid] = useState('')
-  const [provisioning, setProvisioning] = useState(false)
-  const [provisionError, setProvisionError] = useState('')
-  const [copiedVta, setCopiedVta] = useState(false)
-
   const phases = FULL_STACK_PHASES
   const didsEnroll = useDidsEnroll(session)
   const vtcInstall = useVtcInstall(session)
-
-  function copyVtaDid(did: string) {
-    navigator.clipboard.writeText(did).catch(() => {})
-    setCopiedVta(true)
-    setTimeout(() => setCopiedVta(false), 2000)
-  }
 
   // Poll session status
   useEffect(() => {
@@ -66,25 +56,6 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
   function handleDone() {
     loadSessions()
     navigate('/portal')
-  }
-
-  async function handleProvision() {
-    const trimmed = adminDid.trim()
-    if (!trimmed) { setProvisionError('Enter the admin DID from pnm'); return }
-    if (!isValidAdminDid(trimmed)) {
-      setProvisionError('Invalid did:key — make sure you copied only the did:key value (e.g. did:key:z6Mk…) with no surrounding text, labels, quotes, or whitespace.')
-      return
-    }
-    setProvisionError(''); setProvisioning(true)
-    try {
-      await api.provisionAdmin(sessionId, trimmed)
-      // Leave `provisioning` true — this view's polling loop above will pick
-      // up the status change and move past the awaiting-admin screen, so
-      // there's no "done" state to reset to on success.
-    } catch (err) {
-      setProvisionError(err instanceof Error ? err.message : 'Provisioning failed')
-      setProvisioning(false)
-    }
   }
 
   const status = session?.status
@@ -144,62 +115,17 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
           </div>
         </>
       ) : status === 'awaiting_admin_did' ? (
-        <div className="p-card">
-          <div className="card-header">
-            <h3 className="card-title">Provision admin DID</h3>
-            <p className="card-desc">
-              VTA, Mediator and DID Hosting are up. Run <span className="p-mono">pnm setup</span> locally and paste the admin DID it outputs.
-            </p>
-          </div>
-          <div className="card-content p-col gap-16">
-            {session?.collected?.vta_did && (
-              <div className="p-card" style={{ background: 'hsl(var(--muted)/.4)', border: 'none' }}>
-                <div className="card-content" style={{ padding: '12px 16px' }}>
-                  <div className="p-row between center" style={{ gap: 12 }}>
-                    <div className="p-col" style={{ minWidth: 0 }}>
-                      <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
-                        VTA DID
-                      </span>
-                      <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>
-                        {session.collected.vta_did}
-                      </p>
-                    </div>
-                    <button
-                      className="btn btn-outline btn-sm"
-                      style={{ flexShrink: 0, gap: 6 }}
-                      onClick={() => copyVtaDid(session.collected!.vta_did!)}
-                    >
-                      {copiedVta
-                        ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M20 6 9 17l-5-5"/></svg>
-                        : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                      }
-                      {copiedVta ? 'Copied!' : 'Copy'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div>
-              <div className="p-label">Admin DID</div>
-              <div className="input-group">
-                <input className="p-input p-mono" type="text" placeholder="did:key:z6Mk…" autoFocus
-                  value={adminDid} onChange={e => setAdminDid(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleProvision()}
-                  disabled={provisioning} />
-              </div>
-              <div className="field-hint">Paste the <span className="p-mono">did:key:…</span> generated by your local identity tool.</div>
-            </div>
-            {provisionError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{provisionError}</p>}
-          </div>
-          <div className="card-footer between">
-            <button className="btn btn-ghost" onClick={handleDone}>Cancel</button>
-            <button className="btn btn-default" onClick={handleProvision} disabled={provisioning || !adminDid.trim() || !session?.collected?.vta_did}>
-              {provisioning
-                ? <><svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Provisioning…</>
-                : <>Provision agent <span className="arrow">→</span></>}
-            </button>
-          </div>
-        </div>
+        session?.collected?.vta_did ? (
+          <VtaConnectionCard
+            session={session}
+            sessionId={sessionId}
+            vtaDid={session.collected.vta_did}
+            ready
+            onSessionChange={setSession}
+          />
+        ) : (
+          <div className="p-card"><div className="card-content">Preparing your VTA. You can connect when it is ready.</div></div>
+        )
       ) : completed ? (
         <>
           <div className="p-alert alert-success" style={{ marginBottom: 16 }}>

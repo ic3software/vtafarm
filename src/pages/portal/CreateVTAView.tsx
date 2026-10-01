@@ -3,12 +3,13 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession, type SetupAvailability, type ConnectionInspection, type Domain } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import {
-  statusBadge, FULL_STACK_PHASES, isValidAdminDid, componentHost, useDomainInfo,
+  statusBadge, FULL_STACK_PHASES, componentHost, useDomainInfo,
 } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullStackCreateProgress } from './FullStackCreateProgress'
 import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
+import { VtaConnectionCard } from './VtaConnectionCard'
 
 type Stage = 0 | 1 | 2 | 3
 type Mode = 'vta_only' | 'full_stack'
@@ -66,13 +67,9 @@ export function CreateVTAView() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [adminDid, setAdminDid] = useState('')
-  const [provisionError, setProvisionError] = useState('')
-  const [provisioning, setProvisioning] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
   const logEndRef = useRef<HTMLDivElement>(null)
   const [liveSession, setLiveSession] = useState<SetupSession | null>(null)
-  const [copiedVta, setCopiedVta] = useState(false)
   const [setupFailed, setSetupFailed] = useState(false)
   const [failedMsg, setFailedMsg] = useState('')
   const connectionInspection = validatedConnection?.didHostingDid === didHostingDid.trim() &&
@@ -87,12 +84,6 @@ export function CreateVTAView() {
   // exactly "stage 2 has been reached". It was a useState set synchronously
   // inside the stage-2 effect, which is a render pass for a value already known.
   const provStreamStarted = stage >= 2 && !!sessionId
-
-  function copyVtaDid(did: string) {
-    navigator.clipboard.writeText(did).catch(() => {})
-    setCopiedVta(true)
-    setTimeout(() => setCopiedVta(false), 2000)
-  }
 
   useEffect(() => {
     api.listImages('vta')
@@ -161,6 +152,11 @@ export function CreateVTAView() {
       if (s.status === 'failed') {
         setSetupFailed(true)
         setFailedMsg(s.error_msg ?? 'Setup failed')
+        return
+      }
+      if (s.status === 'provisioning') {
+        setLogs([])
+        setStage(2)
         return
       }
       if (s.status === 'vta_setup_running') setSetupStreamStarted(true)
@@ -346,26 +342,6 @@ export function CreateVTAView() {
     }
   }
 
-  async function handleProvision() {
-    const trimmed = adminDid.trim()
-    if (!trimmed) { setProvisionError('Enter the admin DID from pnm'); return }
-    if (!isValidAdminDid(trimmed)) {
-      setProvisionError('Invalid did:key — make sure you copied only the did:key value (e.g. did:key:z6Mk…) with no surrounding text, labels, quotes, or whitespace.')
-      return
-    }
-    if (!sessionId) return
-    setProvisionError(''); setProvisioning(true)
-    try {
-      await api.provisionAdmin(sessionId, trimmed)
-      setLogs([])
-      setStage(2)
-    } catch (err) {
-      setProvisionError(err instanceof Error ? err.message : 'Provisioning failed')
-    } finally {
-      setProvisioning(false)
-    }
-  }
-
   function handleDone() {
     loadSessions()
     navigate('/portal')
@@ -444,16 +420,21 @@ export function CreateVTAView() {
               ? ['Create session', 'DNS & environment', 'VTA setup', 'Publish DID', 'Admin DID', 'Deploy VTA', 'Running']
               : ['Create session', 'DNS & environment', 'VTA setup', 'Admin DID', 'Deploy VTA', 'Running']
             ).map((label, i) => {
-              const s = i < currentStep ? 'done' : i === currentStep ? 'active' : ''
-              const isFailed = setupFailed && i === currentStep
-              const spinning = !setupFailed && i === currentStep && (stage === 2 || showingSetupLogs)
+              const state = setupFailed && i === currentStep
+                ? 'failed'
+                : i < currentStep || (stage === 3 && i === currentStep)
+                  ? 'done'
+                  : i === currentStep
+                    ? 'active'
+                    : ''
+              const spinning = state === 'active' && (stage === 2 || showingSetupLogs)
               return (
-                <div key={i} className={`step ${isFailed ? 'failed' : s}`}>
+                <div key={i} className={`step ${state}`}>
                   <div className="bar" />
                   <div className="node">
-                    {i < currentStep ? (
+                    {state === 'done' ? (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M20 6 9 17l-5-5"/></svg>
-                    ) : isFailed ? (
+                    ) : state === 'failed' ? (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6 6 18M6 6l12 12"/></svg>
                     ) : spinning ? (
                       <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -834,62 +815,17 @@ export function CreateVTAView() {
             }} />
           ) : showDIDForm ? (
             /* vta_setup_complete — ready for admin DID */
-            <div className="p-card">
-              <div className="card-header">
-                <h3 className="card-title">Provision admin DID</h3>
-                <p className="card-desc">
-                  VTA setup is complete. Run <span className="p-mono">pnm setup</span> locally and paste the admin DID it outputs.
-                </p>
-              </div>
-              <div className="card-content p-col gap-16">
-                {liveSession?.vta_did && (
-                  <div className="p-card" style={{ background: 'hsl(var(--muted)/.4)', border: 'none' }}>
-                    <div className="card-content" style={{ padding: '12px 16px' }}>
-                      <div className="p-row between center" style={{ gap: 12 }}>
-                        <div className="p-col" style={{ minWidth: 0 }}>
-                          <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
-                            VTA DID
-                          </span>
-                          <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>
-                            {liveSession.vta_did}
-                          </p>
-                        </div>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          style={{ flexShrink: 0, gap: 6 }}
-                          onClick={() => copyVtaDid(liveSession.vta_did!)}
-                        >
-                          {copiedVta
-                            ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M20 6 9 17l-5-5"/></svg>
-                            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                          }
-                          {copiedVta ? 'Copied!' : 'Copy'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <div className="p-label">Admin DID</div>
-                  <div className="input-group">
-                    <input className="p-input p-mono" type="text" placeholder="did:key:z6Mk…" autoFocus
-                      value={adminDid} onChange={e => setAdminDid(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleProvision()}
-                      disabled={provisioning} />
-                  </div>
-                  <div className="field-hint">Paste the <span className="p-mono">did:key:…</span> generated by your local identity tool.</div>
-                </div>
-                {provisionError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{provisionError}</p>}
-              </div>
-              <div className="card-footer between">
-                <button className="btn btn-ghost" onClick={handleDone}>Cancel</button>
-                <button className="btn btn-default" onClick={handleProvision} disabled={provisioning || !adminDid.trim() || !liveSession?.vta_did}>
-                  {provisioning
-                    ? <><svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Provisioning…</>
-                    : <>Provision agent <span className="arrow">→</span></>}
-                </button>
-              </div>
-            </div>
+            liveSession?.vta_did ? (
+              <VtaConnectionCard
+                session={liveSession}
+                sessionId={sessionId}
+                vtaDid={liveSession.vta_did}
+                ready
+                onSessionChange={setLiveSession}
+              />
+            ) : (
+              <div className="p-card"><div className="card-content">Preparing your VTA. You can connect when it is ready.</div></div>
+            )
           ) : showingSetupLogs ? (
             /* Streaming setup logs */
             <div className="p-card">
