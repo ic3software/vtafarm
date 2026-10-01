@@ -1029,10 +1029,14 @@ export const api = {
     download(`/api/v1/setup/${encodeURIComponent(id)}/export/configs`, `${id}-configs.zip`),
   exportSessionLogs: (id: string) =>
     download(`/api/v1/setup/${encodeURIComponent(id)}/export/logs`, `${id}-logs.zip`),
-  getMobileConnection: (id: string) => req<MobileConnectionState>('GET', `/api/v1/setup/${id}/mobile-connections/current`),
-  createMobileConnection: (id: string) => req<MobileConnectionState>('POST', `/api/v1/setup/${id}/mobile-connections`),
-  refreshMobileConnection: (id: string, requestId: string) => req<MobileConnectionState>('POST', `/api/v1/setup/${id}/mobile-connections/${requestId}/refresh`),
-  cancelMobileConnection: (id: string, requestId: string) => req<MobileConnectionState>('DELETE', `/api/v1/setup/${id}/mobile-connections/${requestId}`),
+  getMobileConnection: (id: string) =>
+    req<MobileConnectionState>('GET', `/api/v1/setup/${id}/mobile-connections/current`),
+  createMobileConnection: (id: string) =>
+    req<MobileConnectionState>('POST', `/api/v1/setup/${id}/mobile-connections`),
+  refreshMobileConnection: (id: string, requestId: string) =>
+    req<MobileConnectionState>('POST', `/api/v1/setup/${id}/mobile-connections/${requestId}/refresh`),
+  cancelMobileConnection: (id: string, requestId: string) =>
+    req<MobileConnectionState>('DELETE', `/api/v1/setup/${id}/mobile-connections/${requestId}`),
   provisionAdmin: (id: string, admin_did: string) =>
     req<{ status: string }>('POST', `/api/v1/setup/${id}/admin`, { admin_did }),
   // Link another PNM to an already-running VTA. Unlike provisionAdmin, this

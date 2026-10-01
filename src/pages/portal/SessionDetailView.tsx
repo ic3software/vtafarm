@@ -74,13 +74,13 @@ function SessionDetailContent() {
     return () => { active = false }
   }, [sessionId])
 
-  // Poll every 3 s until complete or failed
+  // Poll every 3 s only while setup can still change without user input.
   useEffect(() => {
-    if (!session || ['complete', 'failed'].includes(session.status)) return
+    if (!session || ['running', 'complete', 'failed'].includes(session.status)) return
     const iv = setInterval(() => {
       api.getSession(sessionId).then(s => {
         setSession(s)
-        if (['complete', 'failed'].includes(s.status)) clearInterval(iv)
+        if (['running', 'complete', 'failed'].includes(s.status)) clearInterval(iv)
       }).catch(() => {})
     }, 3000)
     return () => clearInterval(iv)

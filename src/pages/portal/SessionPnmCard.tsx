@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { api, type SessionAcl } from '@/lib/api'
+import { api, type MobileConnectionState, type SessionAcl } from '@/lib/api'
 import { isValidAdminDid } from './portalUtils'
 
 interface SessionPnmCardProps {
@@ -36,6 +36,36 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
   const [loadingAcl, setLoadingAcl] = useState(true)
   const [refreshingAcl, setRefreshingAcl] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [mobileSnapshot, setMobileSnapshot] = useState<{ data: MobileConnectionState; receivedAt: number } | null>(null)
+  const [mobileNow, setMobileNow] = useState(() => performance.now())
+  const [mobileLoading, setMobileLoading] = useState(true)
+  const [mobileBusy, setMobileBusy] = useState(false)
+  const [online, setOnline] = useState(navigator.onLine)
+  const [mobileSynchronized, setMobileSynchronized] = useState(false)
+  const [debugCopied, setDebugCopied] = useState<'payload' | 'callback' | ''>('')
+  const mobileSequence = useRef(0)
+  const mobileActive = useRef(false)
+  const mobileMutating = useRef(false)
+  const mobileShouldPoll = useRef(true)
+  const mobileRestored = useRef(false)
+  const mobileState = mobileSnapshot?.data ?? null
+  const mobileRequest = mobileState?.connection
+  const mobileProvisioning = mobileRequest?.status === 'provisioning'
+  const mobileRemaining = mobileSnapshot && mobileRequest
+    ? Math.max(0, Math.ceil((Date.parse(mobileRequest.expires_at) - Date.parse(mobileSnapshot.data.server_time) - (mobileNow - mobileSnapshot.receivedAt)) / 1000))
+    : 0
+
+  function applyMobileState(data: MobileConnectionState) {
+    const receivedAt = performance.now()
+    mobileShouldPoll.current = !!data.connection && ['pending', 'provisioning', 'awaiting_mobile'].includes(data.connection.status)
+    setMobileSnapshot({ data, receivedAt })
+    setMobileNow(receivedAt)
+    setMobileSynchronized(true)
+    if (!mobileRestored.current && data.connection && ['pending', 'provisioning', 'awaiting_mobile'].includes(data.connection.status)) {
+      setMethod('automatic')
+    }
+    mobileRestored.current = true
+  }
 
   useEffect(() => {
     let active = true
@@ -45,6 +75,80 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
       .finally(() => { if (active) setLoadingAcl(false) })
     return () => { active = false }
   }, [sessionId])
+
+  useEffect(() => {
+    mobileActive.current = true
+    mobileRestored.current = false
+    let disposed = false
+    async function sync() {
+      if (mobileMutating.current || !navigator.onLine || document.hidden) return
+      const version = ++mobileSequence.current
+      try {
+        const data = await api.getMobileConnection(sessionId)
+        if (disposed || version !== mobileSequence.current) return
+        applyMobileState(data)
+      } catch {
+        if (!disposed && version === mobileSequence.current) setMobileSynchronized(false)
+      } finally {
+        if (!disposed && version === mobileSequence.current) setMobileLoading(false)
+      }
+    }
+    function resume() {
+      setOnline(navigator.onLine)
+      setMobileSynchronized(false)
+      void sync()
+    }
+    void sync()
+    const poll = window.setInterval(() => { if (mobileShouldPoll.current) void sync() }, 3000)
+    const clock = window.setInterval(() => setMobileNow(performance.now()), 1000)
+    window.addEventListener('online', resume)
+    window.addEventListener('offline', resume)
+    document.addEventListener('visibilitychange', resume)
+    return () => {
+      disposed = true
+      mobileActive.current = false
+      window.clearInterval(poll)
+      window.clearInterval(clock)
+      window.removeEventListener('online', resume)
+      window.removeEventListener('offline', resume)
+      document.removeEventListener('visibilitychange', resume)
+    }
+  }, [sessionId])
+
+  async function mutateMobile(action: () => Promise<MobileConnectionState>) {
+    if (mobileMutating.current) return null
+    mobileMutating.current = true
+    setMobileBusy(true)
+    const version = ++mobileSequence.current
+    try {
+      const data = await action()
+      if (!mobileActive.current || version !== mobileSequence.current) return null
+      applyMobileState(data)
+      setError('')
+      return data
+    } catch (err) {
+      if (mobileActive.current && version === mobileSequence.current) {
+        setError(err instanceof Error ? err.message : 'Unable to update the mobile connection.')
+        setMobileSynchronized(false)
+      }
+      return null
+    } finally {
+      mobileMutating.current = false
+      if (mobileActive.current) setMobileBusy(false)
+    }
+  }
+
+  async function generateMobileQr() {
+    if (!online) return
+    setDebugCopied('')
+    setNotice('')
+    setWarning('')
+    if (mobileRequest) {
+      await mutateMobile(() => api.refreshMobileConnection(sessionId, mobileRequest.request_id))
+    } else {
+      await mutateMobile(() => api.createMobileConnection(sessionId))
+    }
+  }
 
   async function handleLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -110,29 +214,57 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
     }
   }
 
+  async function copyDebugValue(value: string, type: 'payload' | 'callback') {
+    try {
+      await navigator.clipboard.writeText(value)
+      setDebugCopied(type)
+    } catch {
+      setError('Unable to copy the development QR value. Select and copy it below.')
+    }
+  }
+
+  async function chooseMethod(next: ConnectionMethod) {
+    if (linking || refreshingAcl || mobileBusy || mobileProvisioning) return
+    if (next !== 'automatic' && mobileRequest?.status === 'awaiting_mobile') {
+      const data = await mutateMobile(() => api.cancelMobileConnection(sessionId, mobileRequest.request_id))
+      if (!data) return
+    }
+    setMethod(next)
+    setError('')
+    setNotice('')
+    setWarning('')
+    setDebugCopied('')
+  }
+
+  const mobileExpired = !!mobileRequest && (mobileRequest.status === 'expired' || (mobileRequest.status === 'pending' && mobileRemaining === 0))
+  const automaticQr = method === 'automatic' && mobileRequest?.callback_url && mobileRequest.vta_did === vtaDid && !mobileExpired && mobileSynchronized && online
+    ? JSON.stringify({ vta_did: mobileRequest.vta_did, callback_url: mobileRequest.callback_url }) : null
+  const automaticMessage = !mobileRequest ? 'Generate a QR code when you are ready.'
+    : mobileRequest.status === 'connected' ? 'This phone is connected. You can generate another QR code for a different phone.'
+    : mobileRequest?.status === 'awaiting_mobile' ? 'The administrator was added. Waiting for your phone to finish connecting.'
+    : mobileRequest?.status === 'provisioning' ? 'Phone confirmation received. Adding the administrator and restarting your VTA…'
+    : mobileRequest?.status === 'failed' ? mobileRequest.error ?? 'Connection failed. Generate a new QR code and try again.'
+    : mobileExpired ? 'This QR code has expired. Generate a replacement and scan it again.'
+    : 'Waiting for confirmation from your phone…'
+
   return (
     <div className="p-card">
       <div className="card-header">
         <h3 className="card-title">Connect another device</h3>
       </div>
       <div className="card-content p-col gap-16">
-        <fieldset style={{ border: 0, padding: 0, margin: 0 }} disabled={linking || refreshingAcl}>
+        <fieldset style={{ border: 0, padding: 0, margin: 0 }} disabled={linking || refreshingAcl || mobileBusy || mobileProvisioning}>
           <legend className="p-label">Connection method</legend>
           <div className="p-row gap-12 wrap-flex">
             {connectionMethods.map(option => (
-              <label key={option.value} className="p-row gap-8" style={{ cursor: option.value === 'automatic' ? 'not-allowed' : 'pointer' }}>
+              <label key={option.value} className="p-row gap-8" style={{ cursor: option.value === 'automatic' && !mobileState?.enabled ? 'not-allowed' : 'pointer' }}>
                 <input
                   type="radio"
                   name={`additional-connection-${sessionId}`}
                   value={option.value}
                   checked={method === option.value}
-                  disabled={option.value === 'automatic'}
-                  onChange={() => {
-                    setMethod(option.value)
-                    setError('')
-                    setNotice('')
-                    setWarning('')
-                  }}
+                  disabled={option.value === 'automatic' && (mobileLoading || !mobileState?.enabled)}
+                  onChange={() => void chooseMethod(option.value)}
                 />
                 {option.label}
               </label>
@@ -140,7 +272,17 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           </div>
         </fieldset>
 
-        {method === 'manual' ? (
+        {method === 'automatic' ? mobileExpired ? (
+          <div className="p-alert alert-warning" role="status" aria-live="polite">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+            <div className="grow">
+              <p className="alert-title">QR code expired</p>
+              <p className="alert-desc">This QR code is no longer valid. Generate a replacement and scan the new code.</p>
+            </div>
+          </div>
+        ) : (
+          <p role="status" aria-live="polite" style={{ margin: 0 }}>{automaticMessage}</p>
+        ) : method === 'manual' ? (
           <ol style={{ paddingLeft: 20, margin: 0, listStyleType: 'decimal' }}>
             <li>Scan the QR code with your mobile app.</li>
             <li>In the app, copy or share the displayed code, then paste it into Admin DID below.</li>
@@ -158,6 +300,30 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           </div>
         )}
 
+        {automaticQr && (
+          <div style={{ alignSelf: 'center', maxWidth: '100%' }}>
+            <QRCodeSVG value={automaticQr} size={280} level="M" marginSize={4} title="VTA mobile connection QR code" style={{ maxWidth: '100%', height: 'auto', background: '#fff' }} />
+          </div>
+        )}
+
+        {import.meta.env.DEV && automaticQr && mobileRequest?.callback_url && (
+          <div className="p-alert alert-warning" role="note">
+            <div className="grow" style={{ minWidth: 0 }}>
+              <p className="alert-title">Development QR payload</p>
+              <p className="alert-desc">This is the exact JSON encoded in the QR code. The callback URL contains a one-time credential.</p>
+              <pre className="p-mono text-xs" style={{ margin: '10px 0', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', userSelect: 'text' }}>{automaticQr}</pre>
+              <div className="p-row gap-8 wrap-flex">
+                <button className="btn btn-outline btn-sm" type="button" onClick={() => void copyDebugValue(automaticQr, 'payload')}>{debugCopied === 'payload' ? 'Payload copied' : 'Copy payload'}</button>
+                <button className="btn btn-outline btn-sm" type="button" onClick={() => void copyDebugValue(mobileRequest.callback_url!, 'callback')}>{debugCopied === 'callback' ? 'Callback URL copied' : 'Copy callback URL'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {method === 'automatic' && mobileRequest?.status === 'pending' && !mobileExpired && (
+          <p className="p-muted" aria-live="off" style={{ margin: 0 }}>QR code expires in {Math.floor(mobileRemaining / 60).toString().padStart(2, '0')}:{(mobileRemaining % 60).toString().padStart(2, '0')}</p>
+        )}
+
         <div>
           <span className="p-label">VTA DID</span>
           <div className="p-row gap-12" style={{ alignItems: 'center' }}>
@@ -168,7 +334,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           </div>
         </div>
 
-        <form className="p-col gap-16" onSubmit={handleLink}>
+        {method !== 'automatic' && <form className="p-col gap-16" onSubmit={handleLink}>
           <div>
             <label className="p-label" htmlFor="additional-pnm-did">Admin DID</label>
             <input
@@ -181,29 +347,6 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
               disabled={linking || refreshingAcl}
             />
           </div>
-
-          {error && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
-          {notice && (
-            <div className="p-alert alert-success" role="status">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-              <div className="grow">
-                <p className="alert-title">Connection ready</p>
-                <p className="alert-desc">{notice}</p>
-              </div>
-            </div>
-          )}
-          {warning && (
-            <div className="p-alert alert-warning" role="alert">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-              <div className="grow">
-                <p className="alert-title">ACL maintenance warning</p>
-                <p className="alert-desc">{warning}</p>
-              </div>
-            </div>
-          )}
-
           <div className="p-row" style={{ justifyContent: 'flex-end' }}>
             <button className="btn btn-default" type="submit" disabled={linking || refreshingAcl || !adminDid.trim()}>
               {linking
@@ -211,7 +354,37 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
                 : <>{method === 'manual' ? 'Connect to VTA' : 'Link PNM'} <span className="arrow">→</span></>}
             </button>
           </div>
-        </form>
+        </form>}
+
+        {method === 'automatic' && mobileState?.enabled && !mobileProvisioning && mobileRequest?.status !== 'pending' && (
+          <div className="p-row" style={{ justifyContent: 'flex-end' }}>
+            <button className="btn btn-outline" type="button" disabled={mobileBusy || !online} onClick={() => void generateMobileQr()}>
+              {mobileBusy ? 'Generating QR code…' : !mobileRequest ? 'Generate QR code' : mobileExpired ? 'Generate replacement QR code' : mobileRequest.status === 'awaiting_mobile' ? 'Regenerate QR code' : 'Generate new QR code'}
+            </button>
+          </div>
+        )}
+
+        {error && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
+        {notice && (
+          <div className="p-alert alert-success" role="status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+            <div className="grow">
+              <p className="alert-title">Connection ready</p>
+              <p className="alert-desc">{notice}</p>
+            </div>
+          </div>
+        )}
+        {warning && (
+          <div className="p-alert alert-warning" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+            <div className="grow">
+              <p className="alert-title">ACL maintenance warning</p>
+              <p className="alert-desc">{warning}</p>
+            </div>
+          </div>
+        )}
 
         <hr className="p-sep" />
 
