@@ -5,8 +5,8 @@ import { isValidAdminDid } from './portalUtils'
 
 type Method = 'local' | 'automatic'
 const methods: Array<{ value: Method; label: string }> = [
-  { value: 'local', label: 'Local Connection' },
-  { value: 'automatic', label: 'Automatic Mobile Connection' },
+  { value: 'automatic', label: 'Connect with Keyring' },
+  { value: 'local', label: 'Connect with PNM' },
 ]
 const accepted = (state: MobileConnectionState | null) =>
   !!state?.connection && ['provisioning', 'awaiting_mobile', 'connected', 'failed'].includes(state.connection.status)
@@ -20,8 +20,9 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
   ready: boolean
   onSessionChange: (session: SetupSession) => void
 }) {
-  const [method, setMethod] = useState<Method>('local')
+  const [method, setMethod] = useState<Method>('automatic')
   const [snapshot, setSnapshot] = useState<{ data: MobileConnectionState; receivedAt: number } | null>(null)
+  const [qrPayload, setQrPayload] = useState<{ requestId: string; value: string } | null>(null)
   const [now, setNow] = useState(() => performance.now())
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -31,7 +32,6 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
   const [adminDid, setAdminDid] = useState('')
   const [manualAccepted, setManualAccepted] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [debugCopied, setDebugCopied] = useState<'payload' | 'callback' | ''>('')
   const [online, setOnline] = useState(navigator.onLine)
   const [synchronized, setSynchronized] = useState(false)
   const sequence = useRef(0)
@@ -48,11 +48,21 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
 
   function apply(data: MobileConnectionState) {
     const receivedAt = performance.now()
+    setQrPayload(current => {
+      const connection = data.connection
+      if (connection?.status === 'pending' && connection.callback_url) {
+        return {
+          requestId: connection.request_id,
+          value: JSON.stringify({ vta_did: connection.vta_did, callback_url: connection.callback_url }),
+        }
+      }
+      return connection && current?.requestId === connection.request_id ? current : null
+    })
     shouldPoll.current = !!data.connection && ['pending', 'provisioning', 'awaiting_mobile'].includes(data.connection.status)
     setSnapshot({ data, receivedAt })
     setNow(receivedAt)
     setSynchronized(true)
-    if (!restored.current && restorable(data)) setMethod('automatic')
+    if (!restored.current) setMethod(restorable(data) || data.enabled ? 'automatic' : 'local')
     restored.current = true
   }
 
@@ -129,7 +139,6 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
 
   async function generate() {
     if (!online) return
-    setDebugCopied('')
     if (request) {
       await mutate(() => api.refreshMobileConnection(sessionId, request.request_id), 'The previous QR code is no longer valid. Please scan the new QR code.')
     } else {
@@ -142,7 +151,6 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
     setMethod(next)
     setError('')
     setNotice('')
-    setDebugCopied('')
   }
 
   async function submit() {
@@ -177,11 +185,6 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
     catch { setError('Unable to copy. Select and copy the VTA DID below.') }
   }
 
-  async function copyDebugValue(value: string, type: 'payload' | 'callback') {
-    try { await navigator.clipboard.writeText(value); setDebugCopied(type) }
-    catch { setError('Unable to copy the development QR value. Select and copy it below.') }
-  }
-
   if ((manualAccepted && session.status === 'running') || request?.status === 'connected') {
     return (
       <div className="p-alert alert-success" role="status" style={{ marginBottom: 20 }}>
@@ -192,7 +195,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
           <p className="alert-title">Connection ready</p>
           <p className="alert-desc">
             {request?.status === 'connected'
-              ? 'Your phone is connected to this VTA.'
+              ? 'Your device is connected to this VTA through Keyring.'
               : 'VTA Farm has finished connecting this administrator. Return to the app and tap “I\'ve been added”.'}
           </p>
         </div>
@@ -202,73 +205,80 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
 
   if (!ready && !request && !manualAccepted) {
     if (session.status === 'running' || session.status === 'failed') return null
-    return <div className="p-card"><div className="card-content">Preparing your VTA. You can connect when it is ready.</div></div>
+    return null
   }
   const expired = !!request && (request.status === 'expired' || (request.status === 'pending' && remaining === 0))
-  const qr = method === 'automatic' && request?.callback_url && request.vta_did === vtaDid && !expired && synchronized && online
-    ? JSON.stringify({ vta_did: request.vta_did, callback_url: request.callback_url }) : null
+  const qr = method === 'automatic' && request && ['pending', 'expired'].includes(request.status) &&
+    request.vta_did === vtaDid && qrPayload?.requestId === request.request_id && synchronized && online ? qrPayload.value : null
   const automaticMessage = !request ? 'Generate a QR code when you are ready.'
-    : request.status === 'awaiting_mobile' ? 'Your VTA is ready. Waiting for your phone to finish connecting.'
-    : request?.status === 'provisioning' ? 'Phone confirmation received. Setting up your VTA…'
+    : request.status === 'awaiting_mobile' ? 'Your VTA is ready. Waiting for Keyring to finish connecting.'
+    : request?.status === 'provisioning' ? 'Keyring confirmation received. Setting up your VTA…'
     : request?.status === 'failed' ? request.error ?? 'Connection failed. View the setup details for the next step.'
     : expired ? 'This QR code has expired. Generating a replacement requires a new scan.'
-    : 'Waiting for confirmation from your phone…'
+    : 'Waiting for confirmation in Keyring…'
 
   return <div className="p-card" style={{ marginBottom: 20, borderColor: 'hsl(var(--primary)/.35)' }}>
     <div className="card-header">
       <h3 className="card-title">Connect to your VTA</h3>
+      <p className="card-desc">Choose the setup that matches where you keep your administrator identity.</p>
     </div>
     <div className="card-content p-col gap-16">
       <fieldset style={{ border: 0, padding: 0, margin: 0 }} disabled={busy || loading || inProgress || manualAccepted}>
-        <legend className="p-label">Connection method</legend>
+        <legend className="p-label">How would you like to connect?</legend>
         <div className="p-row gap-12 wrap-flex">
-          {methods.map(option => <label key={option.value} className="p-row gap-8" style={{ cursor: 'pointer' }}>
+          {methods.map(option => <label key={option.value} className="p-row gap-8 wrap-flex" style={{ cursor: option.value === 'automatic' && !state?.enabled ? 'not-allowed' : 'pointer' }}>
             <input type="radio" name={`connection-${sessionId}`} value={option.value} checked={method === option.value} disabled={option.value === 'automatic' && !state?.enabled} onChange={() => void choose(option.value)} />
             {option.label}
+            {option.value === 'automatic' && <span className="p-badge badge-default">Recommended</span>}
           </label>)}
         </div>
       </fieldset>
       {loading && <p role="status">Loading connection options…</p>}
       {!online && <p role="status">You are offline. Reconnect to check the current connection.</p>}
-      {method === 'automatic' ? expired ? <div className="p-alert alert-warning" role="status" aria-live="polite">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-        <div className="grow">
-          <p className="alert-title">QR code expired</p>
-          <p className="alert-desc">This QR code is no longer valid. Generate a replacement and scan the new code.</p>
-        </div>
-      </div> : <p role="status" aria-live="polite">{automaticMessage}</p> : manualAccepted ? <p role="status">{session.status === 'failed'
+      {!loading && !state?.enabled && (
+        <p className="p-muted text-sm" role="status" style={{ margin: 0 }}>
+          Keyring connection is unavailable in this environment. Connect with PNM instead.
+        </p>
+      )}
+      {method === 'automatic' ? !expired && <p role="status" aria-live="polite">{automaticMessage}</p> : manualAccepted ? <p role="status">{session.status === 'failed'
           ? 'VTA setup failed. View the setup details for the next step.'
           : 'Setting up your VTA… Wait on this page. Do not tap “I\'ve been added” in the app yet.'}</p> :
-        <p>Run <span className="p-mono">pnm setup</span> locally and paste the Admin DID it provides.</p>}
-      {qr && !inProgress && !manualAccepted && ready && <div style={{ alignSelf: 'center', maxWidth: '100%' }}>
-        <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title="VTA mobile connection QR code" style={{ maxWidth: '100%', height: 'auto', background: '#fff' }} />
-      </div>}
-      {import.meta.env.DEV && method === 'automatic' && qr && request?.callback_url && <div className="p-alert alert-warning" role="note">
-        <div className="grow" style={{ minWidth: 0 }}>
-          <p className="alert-title">Development QR payload</p>
-          <p className="alert-desc">This is the exact JSON encoded in the QR code. The callback URL contains a one-time credential.</p>
-          <pre className="p-mono text-xs" style={{ margin: '10px 0', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', userSelect: 'text' }}>{qr}</pre>
-          <div className="p-row gap-8 wrap-flex">
-            <button className="btn btn-outline btn-sm" type="button" onClick={() => void copyDebugValue(qr, 'payload')}>{debugCopied === 'payload' ? 'Payload copied' : 'Copy payload'}</button>
-            <button className="btn btn-outline btn-sm" type="button" onClick={() => void copyDebugValue(request.callback_url!, 'callback')}>{debugCopied === 'callback' ? 'Callback URL copied' : 'Copy callback URL'}</button>
-          </div>
+        <p style={{ margin: 0 }}>Run <span className="p-mono">pnm setup</span> on this computer, then paste the Admin DID it generates below.</p>}
+      {(qr || expired) && !inProgress && !manualAccepted && ready && <div className="connection-qr">
+        <div className={`connection-qr-code${expired ? ' is-expired' : ''}`}>
+          {qr
+            ? <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title="Keyring connection QR code" />
+            : <div className="qr-expired-placeholder" aria-hidden="true" />}
+          {expired && <span className="qr-expired-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="m6 6 12 12M18 6 6 18"/></svg>
+          </span>}
         </div>
+        {expired ? (
+          <p className="qr-expired-message" role="status" aria-live="polite">
+            <strong>QR code expired</strong>
+            <span>Click “Generate replacement QR code” below to create a new one.</span>
+          </p>
+        ) : request?.status === 'pending' && (
+          <p className="qr-expiry" aria-live="off">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            QR code expires in <strong>{Math.floor(remaining / 60).toString().padStart(2, '0')}:{(remaining % 60).toString().padStart(2, '0')}</strong>
+          </p>
+        )}
       </div>}
-      {method === 'automatic' && request?.status === 'pending' && !expired && <p className="p-muted" aria-live="off">QR code expires in {Math.floor(remaining / 60).toString().padStart(2, '0')}:{(remaining % 60).toString().padStart(2, '0')}</p>}
       {notice && <p role="status">{notice}</p>}
-      <div>
+      {method !== 'automatic' && <div className="connection-did-field">
         <span className="p-label">VTA DID</span>
         <div className="p-row gap-12" style={{ alignItems: 'center' }}>
           <p className="p-mono text-xs" style={{ minWidth: 0, flex: 1, margin: 0, overflowWrap: 'anywhere' }}>{vtaDid}</p>
           <button className="btn btn-outline btn-sm" onClick={() => void copyDid()}>{copied ? 'Copied' : 'Copy'}</button>
         </div>
-      </div>
+      </div>}
       {method !== 'automatic' && !manualAccepted && ready && <form onSubmit={e => { e.preventDefault(); void submit() }} className="p-col gap-12">
         <label className="p-label" htmlFor="connection-admin-did">Admin DID</label>
         <input id="connection-admin-did" className="p-input p-mono" placeholder="did:key:z6Mk…" maxLength={128} value={adminDid} onChange={e => setAdminDid(e.target.value)} disabled={busy || inProgress} required />
         <button className="btn btn-default" disabled={busy || inProgress || !adminDid.trim() || !online}>{busy ? 'Submitting…' : 'Connect to VTA'}</button>
       </form>}
-      {method === 'automatic' && !inProgress && state?.enabled && <button className="btn btn-outline" disabled={busy || !online || !ready} onClick={() => void generate()}>{busy ? 'Generating QR code…' : !request ? 'Generate QR code' : expired ? 'Generate replacement QR code' : error ? 'Retry QR generation' : 'Regenerate QR code'}</button>}
+      {method === 'automatic' && !inProgress && state?.enabled && <button className="btn btn-outline" disabled={busy || !online || !ready} onClick={() => void generate()}>{busy ? 'Generating QR code…' : !request ? 'Generate Keyring QR code' : expired ? 'Generate replacement QR code' : error ? 'Retry QR generation' : 'Regenerate QR code'}</button>}
       {statusError && <p role="status">{statusError}</p>}
       {error && <p role="alert" style={{ color: 'hsl(var(--destructive))' }}>{error}</p>}
     </div>

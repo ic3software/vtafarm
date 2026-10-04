@@ -176,7 +176,7 @@
 .portal-root .p-badge {
   display: inline-flex; align-items: center; gap: 5px;
   height: 21px; padding: 0 9px;
-  font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.02em;
+  font-family: var(--mono); font-size: 11px; font-weight: 500; line-height: 1; letter-spacing: 0.02em;
   border-radius: 999px; border: 1px solid transparent; white-space: nowrap;
 }
 .portal-root .p-badge svg { width: 11px; height: 11px; }
@@ -287,6 +287,35 @@
 .portal-root .p-tabs.full .p-tab[data-active="true"] + .p-tab::before,
 .portal-root .p-tabs.full .p-tab:hover::before,
 .portal-root .p-tabs.full .p-tab:hover + .p-tab::before { opacity: 0; }
+
+/* Session detail navigation stays visually separate from compact form tabs. */
+.portal-root .session-tabs { display: flex; gap: 22px; margin: 0 0 20px; border-bottom: 1px solid hsl(var(--border)); overflow-x: auto; }
+.portal-root .session-tab { flex: none; height: 44px; padding: 0 2px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: hsl(var(--muted-foreground)); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: color .15s, border-color .15s; }
+.portal-root .session-tab:hover { color: hsl(var(--foreground)); }
+.portal-root .session-tab[aria-selected="true"] { color: hsl(var(--foreground)); border-bottom-color: hsl(var(--primary)); }
+.portal-root .session-tab:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -4px; border-radius: 3px; }
+.portal-root .p-grid-2.session-overview-grid { grid-template-columns: minmax(0, 13fr) minmax(320px, 7fr); }
+.portal-root .session-connections-layout { display: grid; grid-template-columns: minmax(0, 7fr) minmax(320px, 3fr); gap: 16px; align-items: start; }
+.portal-root .session-settings-column { display: flex; flex-direction: column; gap: 16px; }
+.portal-root .session-connections-empty { grid-column: 1 / -1; }
+.portal-root .session-acl-empty { padding: 34px 20px; }
+.portal-root .session-acl-empty p { margin-bottom: 0; }
+.portal-root .session-danger-zone { margin-top: 24px; }
+.portal-root .session-danger-zone > .p-sep { margin: 0 0 24px; }
+.portal-root .connection-qr { align-self: center; max-width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.portal-root .connection-did-field { padding: 12px 14px; border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / .35); }
+.portal-root .connection-qr-code { position: relative; display: grid; place-items: center; max-width: 100%; }
+.portal-root .connection-qr-code > svg { display: block; max-width: 100%; height: auto; background: #fff; transition: opacity .2s, filter .2s; }
+.portal-root .connection-qr-code.is-expired > svg { opacity: .18; filter: grayscale(1); }
+.portal-root .qr-expired-placeholder { width: 280px; max-width: 100%; aspect-ratio: 1; border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted)); opacity: .55; }
+.portal-root .qr-expired-mark { position: absolute; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 999px; background: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); box-shadow: 0 0 0 8px hsl(var(--background) / .78); }
+.portal-root .qr-expired-mark svg { width: 34px; height: 34px; }
+.portal-root .qr-expiry { display: inline-flex; align-items: center; gap: 7px; margin: 0; padding: 8px 12px; border-radius: var(--radius); background: hsl(var(--warning) / .1); color: hsl(var(--warning)); font-size: 13px; font-weight: 500; }
+.portal-root .qr-expiry svg { width: 16px; height: 16px; flex: none; }
+.portal-root .qr-expiry strong { font-family: var(--mono); font-size: 14px; }
+.portal-root .qr-expired-message { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 0; padding: 10px 14px; border-radius: var(--radius); background: hsl(var(--destructive) / .08); color: hsl(var(--destructive)); font-size: 13px; text-align: center; }
+.portal-root .qr-expired-message strong { font-size: 14px; }
+.portal-root .qr-expired-message span { color: hsl(var(--foreground)); }
 
 /* --- Stepper --- */
 .portal-root .stepper { display: flex; align-items: flex-start; width: 100%; }
@@ -441,6 +470,8 @@
   .portal-root .stepper .step .bar { top: 14px; }
   .portal-root .card-header, .portal-root .card-content { padding-left: 18px; padding-right: 18px; }
   .portal-root .card-footer { padding-left: 18px; padding-right: 18px; flex-wrap: wrap; }
+  .portal-root .p-grid-2.session-overview-grid,
+  .portal-root .session-connections-layout { grid-template-columns: 1fr; }
 }
 @media (max-width: 460px) {
   /* .root as well as the bare span it used to be — this rule is what collapses

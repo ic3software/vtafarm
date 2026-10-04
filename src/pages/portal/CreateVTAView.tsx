@@ -399,15 +399,12 @@ export function CreateVTAView() {
     (setupLogsDone || !setupStreamStarted)
   const showPublicationForm = stage === 1 && liveSession?.status === 'awaiting_did_publication' &&
     (setupLogsDone || !setupStreamStarted)
+  const terminalLabel = `vtafarm · setup --follow ${vtaName}`
 
   return (
     <section className="p-content">
       <div className="page-head">
-        <div>
-          <h1>Create a Verifiable Trust Agent</h1>
-          <p className="sub">Configure your VTA session — VTA Farm provisions the agent online.</p>
-        </div>
-        <button className="btn btn-outline" onClick={handleDone}>Cancel</button>
+        <h1>Create a Verifiable Trust Agent</h1>
       </div>
 
       {/* Stepper — full_stack renders its own live one inside FullStackCreateProgress once a session exists */}
@@ -822,24 +819,21 @@ export function CreateVTAView() {
                 ready
                 onSessionChange={setLiveSession}
               />
-            ) : (
-              <div className="p-card"><div className="card-content">Preparing your VTA. You can connect when it is ready.</div></div>
-            )
+            ) : null
           ) : showingSetupLogs ? (
             /* Streaming setup logs */
             <div className="p-card">
-              <div className="card-header with-action">
+              <div className="card-header">
                 <div>
                   <h3 className="card-title">VTA setup running</h3>
                   <p className="card-desc">Streaming setup output for <span className="p-mono">{vtaName}</span>.</p>
                 </div>
-                <span className="p-badge badge-warning"><span className="dot pulse-dot"/>streaming</span>
               </div>
               <div className="card-content">
                 <div className="p-console">
                   <div className="console-head">
                     <div className="dots"><span/><span/><span/></div>
-                    <span className="p-mono">vtafarm · vta-setup {vtaName}</span>
+                    <span className="p-mono">{terminalLabel}</span>
                     <span className="grow"/>
                     <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
                       <span className="dot pulse-dot"/>streaming
@@ -865,18 +859,17 @@ export function CreateVTAView() {
           ) : (
             /* Waiting for setup to start */
             <div className="p-card">
-              <div className="card-header with-action">
+              <div className="card-header">
                 <div>
                   <h3 className="card-title">VTA setup in progress</h3>
                   <p className="card-desc">VTA Farm is preparing the VTA environment. This usually takes a minute.</p>
                 </div>
-                <span className="p-badge badge-warning"><span className="dot pulse-dot"/>waiting</span>
               </div>
               <div className="card-content">
                 <div className="p-console">
                   <div className="console-head">
                     <div className="dots"><span/><span/><span/></div>
-                    <span className="p-mono">vtafarm · vta-setup {vtaName}</span>
+                    <span className="p-mono">{terminalLabel}</span>
                     <span className="grow"/>
                     <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
                       <span className="dot pulse-dot"/>polling
@@ -906,15 +899,14 @@ export function CreateVTAView() {
       {/* Stage 2 (vta_only) */}
       {mode === 'vta_only' && !setupFailed && stage === 2 && (
         <div className="p-card">
-          <div className="card-header with-action">
+          <div className="card-header">
             <div><h3 className="card-title">Provisioning agent</h3><p className="card-desc">VTA Farm is bringing <span className="p-mono">{vtaName}</span> online.</p></div>
-            <span className="p-badge badge-warning"><span className="dot pulse-dot"/>{provStreamStarted ? 'streaming' : 'waiting'}</span>
           </div>
           <div className="card-content">
             <div className="p-console">
               <div className="console-head">
                 <div className="dots"><span/><span/><span/></div>
-                <span className="p-mono">vtafarm · provision --follow {vtaName}</span>
+                <span className="p-mono">{terminalLabel}</span>
                 <span className="grow"/>
                 <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
                   <span className="dot pulse-dot"/>{provStreamStarted ? 'streaming' : 'polling'}
@@ -963,7 +955,7 @@ export function CreateVTAView() {
               <div className="p-console">
                 <div className="console-head">
                   <div className="dots"><span/><span/><span/></div>
-                  <span className="p-mono">vtafarm · provision --follow {vtaName}</span>
+                  <span className="p-mono">{terminalLabel}</span>
                   <span className="grow"/>
                   <span className="p-badge badge-success" style={{ height: 18, fontSize: 10 }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} style={{ width: 10, height: 10 }}><path d="M20 6 9 17l-5-5"/></svg>

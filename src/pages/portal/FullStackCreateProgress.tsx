@@ -4,7 +4,7 @@ import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import { statusBadge, FULL_STACK_PHASES, phaseIndex } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { VtaConnectionCard } from './VtaConnectionCard'
 
@@ -64,9 +64,20 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
   const progressStatus = failed ? session?.failed_stage ?? 'running' : status
   const currentIndex = Math.max(0, phaseIndex(phases, progressStatus))
   const currentPhaseLabel = phases[currentIndex]?.label ?? 'Setup'
+  const terminalLabel = `vtafarm · setup --follow ${vtaName}`
 
   return (
     <>
+      {completed && (
+        <div className="p-alert alert-success" style={{ marginBottom: 16 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg>
+          <div className="grow">
+            <p className="alert-title">Stack is online</p>
+            <p className="alert-desc"><span className="p-mono">{vtaName}</span> is provisioned and running.</p>
+          </div>
+        </div>
+      )}
+
       {/* Live status bar */}
       <div className="p-card" style={{ marginBottom: 16 }}>
         <div className="card-content" style={{ padding: '14px 20px' }}>
@@ -123,19 +134,9 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
             ready
             onSessionChange={setSession}
           />
-        ) : (
-          <div className="p-card"><div className="card-content">Preparing your VTA. You can connect when it is ready.</div></div>
-        )
+        ) : null
       ) : completed ? (
         <>
-          <div className="p-alert alert-success" style={{ marginBottom: 16 }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg>
-            <div className="grow">
-              <p className="alert-title">Stack is online</p>
-              <p className="alert-desc"><span className="p-mono">{vtaName}</span> is provisioned and running.</p>
-            </div>
-          </div>
-
           <DidsEnrollAlert {...didsEnroll} />
           <VtcInstallAlert {...vtcInstall} />
           <CollectedDidsCard collected={session?.collected} />
@@ -150,9 +151,7 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
             </div>
           </div>
 
-          {session && <AdminKeysCard session={session} />}
-
-          <div className="p-card" style={{ marginTop: 16 }}>
+          <div className="p-card">
             <div className="card-footer between">
               <span className="field-hint" style={{ marginTop: 0 }}>Your stack is ready to issue and verify credentials.</span>
               <div className="p-row gap-12">
@@ -167,18 +166,17 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
       ) : (
         <>
           <div className="p-card" style={{ marginBottom: 16 }}>
-            <div className="card-header with-action">
+            <div className="card-header">
               <div>
                 <h3 className="card-title">{currentPhaseLabel}</h3>
                 <p className="card-desc">Streaming setup output for <span className="p-mono">{vtaName}</span>.</p>
               </div>
-              <span className="p-badge badge-warning"><span className="dot pulse-dot"/>streaming</span>
             </div>
             <div className="card-content">
               <div className="p-console">
                 <div className="console-head">
                   <div className="dots"><span/><span/><span/></div>
-                  <span className="p-mono">vtafarm · {currentPhaseLabel.toLowerCase()} {vtaName}</span>
+                  <span className="p-mono">{terminalLabel}</span>
                   <span className="grow"/>
                   <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
                     <span className="dot pulse-dot"/>streaming

@@ -48,11 +48,7 @@ export function SessionExportCard({ session, sessionId }: { session: SetupSessio
             {busy === 'logs' ? 'Preparing…' : 'Download logs'}
           </button>
         </div>
-        {!ready ? (
-          <span className="field-hint" style={{ marginTop: 0 }}>
-            Available once the agent is running — both are read from its live containers.
-          </span>
-        ) : (
+        {ready && (
           <span className="field-hint" style={{ marginTop: 0 }}>
             The configs archive contains credentials. Treat it like a password export.
           </span>

@@ -515,7 +515,7 @@ export function PlatformStackView() {
               race the step that seeds it. */}
           <PlatformStackAdmins />
 
-          <div style={{ marginTop: 16 }}>
+          <div style={{ margin: '16px 0' }}>
             <StackConfigEditor admin />
           </div>
 
