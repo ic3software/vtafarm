@@ -210,9 +210,6 @@ export function DomainsView() {
     <div className="page-head">
       <div>
         <h1>Domains</h1>
-        <p className="sub">
-          Run a Full Stack agent under a domain you own, instead of a generated name in ours.
-        </p>
       </div>
     </div>
   )
@@ -249,7 +246,7 @@ export function DomainsView() {
     <section className="p-content">
       {head}
 
-      {/* Directly under the page's own description, not down in the card: both
+      {/* Directly under the page heading, not down in the card: both
           are the answer to "it's verified, now what?", and what the user does
           next about either happens on another page entirely. They stay a pair
           here — one slot, two mutually exclusive states — so the page doesn't
@@ -299,13 +296,6 @@ export function DomainsView() {
         <div className="p-card">
           <div className="card-header">
             <h3 className="card-title">Attach a domain</h3>
-            <p className="card-desc">
-              Your agent, community, mediator and DID hosting get fixed hostnames under a
-              domain you own — <span className="p-mono">vta.</span>,{' '}
-              <span className="p-mono">vtc.</span>, <span className="p-mono">mediator.</span> and{' '}
-              <span className="p-mono">dids.</span> You create five DNS records; we check them
-              and never touch your zone.
-            </p>
           </div>
           <div className="card-footer between">
             <span className="field-hint" style={{ marginTop: 0 }}>One domain per account.</span>

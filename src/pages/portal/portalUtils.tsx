@@ -97,6 +97,25 @@ export interface Phase {
   statuses: SetupStatus[]
 }
 
+export const VTA_ONLY_PHASES: Phase[] = [
+  { key: 'create', label: 'Create session', statuses: [] },
+  { key: 'dns_env', label: 'DNS & environment', statuses: ['dns_provisioned'] },
+  { key: 'vta_setup', label: 'VTA setup', statuses: ['vta_setup_running'] },
+  { key: 'admin_did', label: 'Admin DID', statuses: ['vta_setup_complete'] },
+  { key: 'deploy_vta', label: 'Deploy VTA', statuses: ['provisioning'] },
+  { key: 'running', label: 'Running', statuses: ['running'] },
+]
+
+export const VTA_ONLY_EXTERNAL_PHASES: Phase[] = [
+  ...VTA_ONLY_PHASES.slice(0, 3),
+  { key: 'publish_did', label: 'Publish DID', statuses: ['awaiting_did_publication'] },
+  ...VTA_ONLY_PHASES.slice(3),
+]
+
+export function vtaOnlyPhases(external: boolean): Phase[] {
+  return external ? VTA_ONLY_EXTERNAL_PHASES : VTA_ONLY_PHASES
+}
+
 // The full_stack pipeline. The two offline VTC prep steps (setup key + ACL
 // grant) run right after the admin DID is imported, so they fold into that
 // phase; the live community setup and its deploy get their own phase after

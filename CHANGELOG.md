@@ -1,5 +1,23 @@
 # Changelog
 
+## [v0.11.3] - 2026-10-04
+
+### Changed
+
+- Setup and running-agent pages now share the same Keyring and PNM connection
+  controls, progress presentation, and responsive detail navigation.
+- Agent lists use mobile-friendly cards, while settings, domain guidance, and
+  version-loading states use simpler responsive layouts.
+
+### Fixed
+
+- Expired Keyring requests no longer restore a stale QR code after refreshing;
+  users are prompted to generate a new code instead.
+- Setup phases and completion actions remain consistent between creation and
+  in-progress detail pages.
+
+Requires vtafarm-api 0.11.1.
+
 ## [v0.11.2] - 2026-10-04
 
 ### Added

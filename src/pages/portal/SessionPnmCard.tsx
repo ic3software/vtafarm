@@ -1,20 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { QRCodeSVG } from 'qrcode.react'
+import { useEffect, useRef, useState } from 'react'
 import { api, type MobileConnectionState, type SessionAcl } from '@/lib/api'
 import { isValidAdminDid } from './portalUtils'
+import { ConnectionMethodPicker, KeyringConnectionPanel, PnmAdminDidForm, PnmSetupInstructions, VtaDidCopyField, type ConnectionMethod } from './ConnectionMethodUi'
 
 interface SessionPnmCardProps {
   sessionId: string
   vtaDid: string
   onVtaRestarted: () => void
 }
-
-type ConnectionMethod = 'local' | 'automatic'
-
-const connectionMethods: Array<{ value: ConnectionMethod; label: string }> = [
-  { value: 'automatic', label: 'Connect with Keyring' },
-  { value: 'local', label: 'Connect with PNM' },
-]
 
 function formatAclCreatedAt(value: string): string {
   const match = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2}:\d{2})$/.exec(value)
@@ -164,8 +157,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
     }
   }
 
-  async function handleLink(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function handleLink() {
     const trimmed = adminDid.trim()
 
     if (!isValidAdminDid(trimmed)) {
@@ -249,13 +241,27 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
   const hiddenMobileExpired = mobileRequestExpired && !hasCurrentMobileQr
   const automaticQr = method === 'automatic' && mobileRequest && ['pending', 'expired'].includes(mobileRequest.status) &&
     mobileRequest.vta_did === vtaDid && hasCurrentMobileQr && mobileSynchronized && online ? mobileQrPayload.value : null
-  const automaticMessage = !mobileRequest || hiddenMobileExpired ? 'Generate a QR code when you are ready.'
+  const automaticMessage = mobileRequest?.status === 'cancelled' ? null
+    : !mobileRequest || hiddenMobileExpired ? 'Generate a QR code when you are ready.'
     : mobileRequest.status === 'connected' ? 'Keyring is connected. You can generate another QR code for a different device.'
     : mobileRequest?.status === 'awaiting_mobile' ? 'The administrator was added. Waiting for Keyring to finish connecting.'
     : mobileRequest?.status === 'provisioning' ? 'Keyring confirmation received. Adding the administrator and restarting your VTA…'
     : mobileRequest?.status === 'failed' ? mobileRequest.error ?? 'Connection failed. Generate a new QR code and try again.'
     : mobileExpired ? 'This QR code has expired. Generate a replacement and scan it again.'
-    : 'Waiting for confirmation in Keyring…'
+    : mobileRequest.status === 'pending' ? 'Waiting for confirmation in Keyring…'
+    : 'Generate a QR code when you are ready.'
+  const keyringActionLabel = method === 'automatic' && mobileState?.enabled && !mobileProvisioning &&
+    (mobileRequest?.status !== 'pending' || mobileRequestExpired)
+    ? mobileBusy
+      ? 'Generating QR code…'
+      : !mobileRequest || hiddenMobileExpired
+        ? 'Generate Keyring QR code'
+        : mobileExpired
+          ? 'Generate replacement QR code'
+          : mobileRequest.status === 'awaiting_mobile'
+            ? 'Regenerate QR code'
+            : 'Generate new QR code'
+    : null
 
   return (
     <div className="session-connections-layout">
@@ -274,25 +280,13 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           <h3 className="card-title">Connect another device</h3>
         </div>
         <div className="card-content p-col gap-16">
-        <fieldset style={{ border: 0, padding: 0, margin: 0 }} disabled={linking || refreshingAcl || mobileBusy || mobileProvisioning}>
-          <legend className="p-label">How would you like to connect?</legend>
-          <div className="p-row gap-12 wrap-flex">
-            {connectionMethods.map(option => (
-              <label key={option.value} className="p-row gap-8" style={{ cursor: option.value === 'automatic' && !mobileState?.enabled ? 'not-allowed' : 'pointer' }}>
-                <input
-                  type="radio"
-                  name={`additional-connection-${sessionId}`}
-                  value={option.value}
-                  checked={method === option.value}
-                  disabled={option.value === 'automatic' && (mobileLoading || !mobileState?.enabled)}
-                  onChange={() => void chooseMethod(option.value)}
-                />
-                {option.label}
-                {option.value === 'automatic' && <span className="p-badge badge-default">Recommended</span>}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <ConnectionMethodPicker
+          name={`additional-connection-${sessionId}`}
+          value={method}
+          onChange={next => void chooseMethod(next)}
+          disabled={linking || refreshingAcl || mobileBusy || mobileProvisioning}
+          automaticDisabled={mobileLoading || !mobileState?.enabled}
+        />
 
         {!mobileLoading && !mobileState?.enabled && (
           <p className="p-muted text-sm" role="status" style={{ margin: 0 }}>
@@ -300,75 +294,31 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           </p>
         )}
 
-        {method === 'automatic' ? !mobileExpired && (
-          <p role="status" aria-live="polite" style={{ margin: 0 }}>{automaticMessage}</p>
-        ) : (
-          <p style={{ margin: 0 }}>Run <span className="p-mono">pnm setup</span> on this computer, then paste the Admin DID it generates below.</p>
-        )}
+        {method === 'automatic' ? (
+          <KeyringConnectionPanel
+            message={automaticMessage}
+            qr={automaticQr}
+            expired={mobileExpired}
+            remaining={mobileRemaining}
+            actionLabel={keyringActionLabel}
+            actionDisabled={mobileBusy || !online}
+            onAction={() => void generateMobileQr()}
+          />
+        ) : <PnmSetupInstructions />}
 
-        {(automaticQr || mobileExpired) && (
-          <div className="connection-qr">
-            <div className={`connection-qr-code${mobileExpired ? ' is-expired' : ''}`}>
-              {automaticQr
-                ? <QRCodeSVG value={automaticQr} size={280} level="M" marginSize={4} title="Keyring connection QR code" />
-                : <div className="qr-expired-placeholder" aria-hidden="true" />}
-              {mobileExpired && <span className="qr-expired-mark" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="m6 6 12 12M18 6 6 18"/></svg>
-              </span>}
-            </div>
-            {mobileExpired ? (
-              <p className="qr-expired-message" role="status" aria-live="polite">
-                <strong>QR code expired</strong>
-                <span>Click “Generate replacement QR code” below to create a new one.</span>
-              </p>
-            ) : mobileRequest?.status === 'pending' && (
-              <p className="qr-expiry" aria-live="off">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                QR code expires in <strong>{Math.floor(mobileRemaining / 60).toString().padStart(2, '0')}:{(mobileRemaining % 60).toString().padStart(2, '0')}</strong>
-              </p>
-            )}
-          </div>
-        )}
+        {method !== 'automatic' && <VtaDidCopyField vtaDid={vtaDid} copied={copied} onCopy={() => void copyVtaDid()} />}
 
-        {method !== 'automatic' && <div>
-          <span className="p-label">VTA DID</span>
-          <div className="p-row gap-12" style={{ alignItems: 'center' }}>
-            <p className="p-mono text-xs" style={{ minWidth: 0, flex: 1, margin: 0, overflowWrap: 'anywhere' }}>{vtaDid}</p>
-            <button className="btn btn-outline btn-sm" type="button" onClick={() => void copyVtaDid()}>
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-          </div>
-        </div>}
-
-        {method !== 'automatic' && <form className="p-col gap-16" onSubmit={handleLink}>
-          <div>
-            <label className="p-label" htmlFor="additional-pnm-did">Admin DID</label>
-            <input
-              id="additional-pnm-did"
-              className="p-input p-mono"
-              type="text"
-              placeholder="did:key:z6Mk…"
-              value={adminDid}
-              onChange={event => setAdminDid(event.target.value)}
-              disabled={linking || refreshingAcl}
-            />
-          </div>
-          <div className="p-row" style={{ justifyContent: 'flex-end' }}>
-            <button className="btn btn-default" type="submit" disabled={linking || refreshingAcl || !adminDid.trim()}>
-              {linking
-                ? <><svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Linking — VTA restarting…</>
-                : <>Link PNM <span className="arrow">→</span></>}
-            </button>
-          </div>
-        </form>}
-
-        {method === 'automatic' && mobileState?.enabled && !mobileProvisioning && (mobileRequest?.status !== 'pending' || mobileRequestExpired) && (
-          <div className="p-row" style={{ justifyContent: 'flex-start' }}>
-            <button className="btn btn-outline" type="button" disabled={mobileBusy || !online} onClick={() => void generateMobileQr()}>
-              {mobileBusy ? 'Generating QR code…' : !mobileRequest || hiddenMobileExpired ? 'Generate Keyring QR code' : mobileExpired ? 'Generate replacement QR code' : mobileRequest.status === 'awaiting_mobile' ? 'Regenerate QR code' : 'Generate new QR code'}
-            </button>
-          </div>
-        )}
+        {method !== 'automatic' && <PnmAdminDidForm
+          id="additional-pnm-did"
+          value={adminDid}
+          onChange={setAdminDid}
+          onSubmit={() => void handleLink()}
+          busy={linking}
+          inputDisabled={linking || refreshingAcl}
+          submitDisabled={linking || refreshingAcl || !adminDid.trim()}
+          submitLabel="Link PNM"
+          busyLabel="Linking — VTA restarting…"
+        />}
 
         {error && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
         {notice && (
@@ -398,7 +348,6 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
         <div className="card-header with-action">
           <div>
             <h3 className="card-title">Connected devices</h3>
-            <p className="card-desc">Super Admin entries in this VTA’s ACL.</p>
           </div>
           <button className="btn btn-outline btn-sm" type="button" onClick={handleRefreshAcl}
             disabled={linking || refreshingAcl}>

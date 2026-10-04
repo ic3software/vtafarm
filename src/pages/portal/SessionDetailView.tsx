@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type KeyboardEvent } from 'react'
 import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
-import { statusBadge, FULL_STACK_PHASES, phaseIndex, domainTypeBadge } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, phaseIndex, domainTypeBadge, vtaOnlyPhases } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ConnectedToCard } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
@@ -12,15 +12,6 @@ import { VtaConnectionCard } from './VtaConnectionCard'
 import { StackConfigEditor } from '../StackConfigEditor'
 import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 import type { PortalContext } from './Portal'
-
-const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
-  { label: 'Create session',     sub: 'created',            status: null },
-  { label: 'DNS & environment',  sub: 'dns_provisioned',    status: 'dns_provisioned' },
-  { label: 'VTA setup',          sub: 'vta_setup_running',  status: 'vta_setup_running' },
-  { label: 'Admin DID',          sub: 'vta_setup_complete', status: 'vta_setup_complete' },
-  { label: 'Deploy VTA',         sub: 'provisioning',       status: 'provisioning' },
-  { label: 'Running',            sub: 'running',            status: 'running' },
-]
 
 type SessionTab = 'overview' | 'connections' | 'settings' | 'credentials'
 
@@ -61,27 +52,6 @@ function SessionDetailContent() {
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const didsEnroll = useDidsEnroll(session)
   const vtcInstall = useVtcInstall(session?.mode === 'full_stack' ? session : null)
-  const vtaSteps = session?.connection_source === 'external'
-    ? [...STATUS_STEPS.slice(0, 3), { label: 'Publish DID', sub: 'awaiting_did_publication', status: 'awaiting_did_publication' as const }, ...STATUS_STEPS.slice(3)]
-    : STATUS_STEPS
-
-  function stepClass(stepStatus: SetupSession['status'] | null) {
-    if (!session) return ''
-    if (session.status === 'running') return 'done'
-    if (stepStatus === null) return 'done'
-    const progressStatus = session.status === 'failed' ? session.failed_stage ?? 'running' : session.status
-    const order = vtaSteps.map(s => s.status)
-    const cur = order.indexOf(progressStatus ?? null)
-    const idx = order.indexOf(stepStatus)
-    if (session.status === 'failed') {
-      if (idx < cur) return 'done'
-      if (idx === cur) return 'failed'
-      return ''
-    }
-    if (idx < cur) return 'done'
-    if (idx === cur) return 'active'
-    return ''
-  }
 
   useEffect(() => {
     let active = true
@@ -155,24 +125,29 @@ function SessionDetailContent() {
   if (!session) return <section className="p-content"><p className="p-muted">Session not found.</p></section>
 
   const isFullStack = session.mode !== 'vta_only'
-  const fsPhases = FULL_STACK_PHASES
   const vtaDid = isFullStack ? session.collected?.vta_did : session.vta_did
   const isAwaitingAdmin = isFullStack ? session.status === 'awaiting_admin_did' : session.status === 'vta_setup_complete'
-  const fsFailed = session.status === 'failed'
-  const fsProgressStatus = fsFailed ? session.failed_stage ?? 'running' : session.status
-  const fsPhaseIndex = Math.max(0, phaseIndex(fsPhases, fsProgressStatus))
+  const setupPhases = isFullStack
+    ? FULL_STACK_PHASES
+    : vtaOnlyPhases(session.connection_source === 'external')
+  const setupFailed = session.status === 'failed'
+  const setupProgressStatus = setupFailed ? session.failed_stage ?? 'running' : session.status
+  const setupPhaseIndex = Math.max(0, phaseIndex(setupPhases, setupProgressStatus))
   const isFullStackCompleted = isFullStack && session.status === 'running'
   const sessionTabs = isFullStackCompleted
     ? [...SESSION_TABS.slice(0, 2), CREDENTIALS_TAB, SESSION_TABS[2]]
     : SESSION_TABS
   const requestedTab = searchParams.get('tab')
+  const defaultTab: SessionTab = isAwaitingAdmin || session.status === 'awaiting_did_publication'
+    ? 'connections'
+    : 'overview'
   const activeTab = sessionTabs.some(tab => tab.value === requestedTab)
     ? requestedTab as SessionTab
-    : 'overview'
+    : defaultTab
 
   function selectTab(tab: SessionTab) {
     const next = new URLSearchParams(searchParams)
-    if (tab === 'overview') next.delete('tab')
+    if (tab === defaultTab) next.delete('tab')
     else next.set('tab', tab)
     setSearchParams(next, { replace: true })
   }
@@ -258,9 +233,10 @@ function SessionDetailContent() {
         <div className="p-col" style={{ gap: 0 }}>
           <span className="text-sm fw-600">Delete Agent</span>
           <span className="p-muted text-xs" style={{ margin: '4px 0 14px' }}>
+            <strong>Permanently</strong>
             {session.domain_type === 'custom'
-              ? 'Permanently removes the agent and all session data. Your own DNS records are left untouched.'
-              : 'Permanently removes the agent, DNS record, and all session data.'}
+              ? ' removes the agent and all session data. Your own DNS records are left untouched.'
+              : ' removes the agent, DNS record, and all session data.'}
           </span>
           <div>
             <button className="btn btn-destructive btn-sm" onClick={() => setShowDeleteConfirm(true)}>
@@ -277,7 +253,7 @@ function SessionDetailContent() {
       <div className="page-head">
         <div>
           <div className="p-row gap-12" style={{ marginBottom: 6 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => { loadSessions(); navigate('/portal') }} style={{ padding: '0 8px 0 6px' }}>
+            <button className="btn btn-ghost btn-sm session-back-button" onClick={() => { loadSessions(); navigate('/portal') }} style={{ padding: '0 8px 0 6px' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="m15 18-6-6 6-6"/></svg>
               Agents
             </button>
@@ -303,154 +279,117 @@ function SessionDetailContent() {
         </div>
       )}
 
-      {/* Once an agent is running, the completed setup history no longer needs
-          to compete with its day-to-day controls. */}
-      {session.status !== 'running' && (isFullStack ? (
-          <PhaseStepper phases={fsPhases} currentIndex={fsPhaseIndex} failed={fsFailed} />
+      {session.status !== 'running' && (
+        <PhaseStepper phases={setupPhases} currentIndex={setupPhaseIndex} failed={setupFailed} />
+      )}
+
+      <div className="session-tabs" role="tablist" aria-label="Agent details">
+        {sessionTabs.map((tab, index) => (
+          <button
+            key={tab.value}
+            ref={element => { tabRefs.current[index] = element }}
+            id={`session-tab-${tab.value}`}
+            className="session-tab"
+            type="button"
+            role="tab"
+            aria-controls={`session-panel-${tab.value}`}
+            aria-selected={activeTab === tab.value}
+            tabIndex={activeTab === tab.value ? 0 : -1}
+            onClick={() => selectTab(tab.value)}
+            onKeyDown={event => handleTabKey(event, index)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <section
+        id="session-panel-overview"
+        role="tabpanel"
+        aria-labelledby="session-tab-overview"
+        hidden={activeTab !== 'overview'}
+      >
+        {isFullStackCompleted && (
+          <>
+            <DidsEnrollAlert {...didsEnroll} />
+            <VtcInstallAlert {...vtcInstall} />
+          </>
+        )}
+        <div className="p-grid-2 session-overview-grid" style={{ alignItems: 'start' }}>
+          {logConsole}
+          <div>
+            {isFullStackCompleted && <CollectedDidsCard collected={session.collected} />}
+            {!isFullStack && session.vta_did && <CollectedDidsCard collected={{ vta_did: session.vta_did }} />}
+            {!isFullStack && <ConnectedToCard session={session} />}
+            {configurationCard}
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="session-panel-connections"
+        role="tabpanel"
+        aria-labelledby="session-tab-connections"
+        hidden={activeTab !== 'connections'}
+      >
+        {!isFullStack && <ExternalDIDPublicationCard session={session} onValidated={() => {
+          api.getSession(sessionId).then(setSession).catch(() => {})
+        }} />}
+        {vtaDid && !['provisioning', 'running', 'complete', 'failed'].includes(session.status) && (
+          <VtaConnectionCard key={sessionId} session={session} sessionId={sessionId} vtaDid={vtaDid} ready={isAwaitingAdmin} onSessionChange={setSession} />
+        )}
+        {session.status === 'running' && (vtaDid ? (
+          <SessionPnmCard sessionId={sessionId} vtaDid={vtaDid} onVtaRestarted={reconnectVtaLogs} />
         ) : (
-          <div className="p-card" style={{ marginBottom: 20 }}>
-            <div className="card-content" style={{ padding: '28px 28px 24px' }}>
-              <div className="stepper">
-                {vtaSteps.map(step => (
-                  <div key={step.sub} className={`step ${stepClass(step.status)}`}>
-                    <div className="bar"/>
-                    <div className="node">
-                      {stepClass(step.status) === 'done' ? (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M20 6 9 17l-5-5"/></svg>
-                      ) : stepClass(step.status) === 'active' ? (
-                        <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                      ) : stepClass(step.status) === 'failed' ? (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6 6 18M6 6l12 12"/></svg>
-                      ) : (vtaSteps.findIndex(s => s.sub === step.sub) + 1)}
-                    </div>
-                    <div className="s-label">{step.label}</div>
-                  </div>
-                ))}
-              </div>
+          <div className="p-alert alert-warning" role="alert">
+            <div className="grow">
+              <p className="alert-title">Connection controls unavailable</p>
+              <p className="alert-desc">This agent does not have a VTA DID yet.</p>
             </div>
           </div>
         ))}
-
-      {!isFullStack && <ExternalDIDPublicationCard session={session} onValidated={() => {
-        api.getSession(sessionId).then(setSession).catch(() => {})
-      }} />}
-
-      {vtaDid && !['provisioning', 'running', 'complete', 'failed'].includes(session.status) && (
-        <VtaConnectionCard key={sessionId} session={session} sessionId={sessionId} vtaDid={vtaDid} ready={isAwaitingAdmin} onSessionChange={setSession} />
-      )}
-
-      {session.status === 'running' ? (
-        <>
-          <div className="session-tabs" role="tablist" aria-label="Agent details">
-            {sessionTabs.map((tab, index) => (
-              <button
-                key={tab.value}
-                ref={element => { tabRefs.current[index] = element }}
-                id={`session-tab-${tab.value}`}
-                className="session-tab"
-                type="button"
-                role="tab"
-                aria-controls={`session-panel-${tab.value}`}
-                aria-selected={activeTab === tab.value}
-                tabIndex={activeTab === tab.value ? 0 : -1}
-                onClick={() => selectTab(tab.value)}
-                onKeyDown={event => handleTabKey(event, index)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <section
-            id="session-panel-overview"
-            role="tabpanel"
-            aria-labelledby="session-tab-overview"
-            hidden={activeTab !== 'overview'}
-          >
-            {isFullStackCompleted && (
-              <>
-                <DidsEnrollAlert {...didsEnroll} />
-                <VtcInstallAlert {...vtcInstall} />
-              </>
-            )}
-            <div className="p-grid-2 session-overview-grid" style={{ alignItems: 'start' }}>
-              {logConsole}
-              <div>
-                {isFullStackCompleted ? (
-                  <CollectedDidsCard collected={session.collected} />
-                ) : (
-                  <>
-                    {session.vta_did && <CollectedDidsCard collected={{ vta_did: session.vta_did }} />}
-                    <ConnectedToCard session={session} />
-                  </>
-                )}
-                {configurationCard}
-              </div>
+        {isFullStack && session.status !== 'running' && !isAwaitingAdmin && (
+          <div className="p-card">
+            <div className="card-content session-acl-empty">
+              <p className="p-muted text-sm">Administrator connection controls will appear here when setup reaches the Admin DID step.</p>
             </div>
-          </section>
+          </div>
+        )}
+      </section>
 
-          <section
-            id="session-panel-connections"
-            role="tabpanel"
-            aria-labelledby="session-tab-connections"
-            hidden={activeTab !== 'connections'}
-          >
-            {vtaDid ? (
-              <SessionPnmCard sessionId={sessionId} vtaDid={vtaDid} onVtaRestarted={reconnectVtaLogs} />
-            ) : (
-              <div className="p-alert alert-warning" role="alert">
-                <div className="grow">
-                  <p className="alert-title">Connection controls unavailable</p>
-                  <p className="alert-desc">This agent does not have a VTA DID yet.</p>
-                </div>
-              </div>
-            )}
-          </section>
-
-          <section
-            id="session-panel-settings"
-            role="tabpanel"
-            aria-labelledby="session-tab-settings"
-            hidden={activeTab !== 'settings'}
-          >
-            <div className="session-settings-column">
+      <section
+        id="session-panel-settings"
+        role="tabpanel"
+        aria-labelledby="session-tab-settings"
+        hidden={activeTab !== 'settings'}
+      >
+        <div className="session-settings-column">
+          {session.status === 'running' && (
+            <>
               <SessionVersionsCard
                 session={session}
                 onUpgraded={() => api.getSession(sessionId).then(setSession).catch(() => {})}
               />
               <StackConfigEditor sessionId={sessionId} vtaOnly={!isFullStack} />
-              <SessionExportCard session={session} sessionId={sessionId} />
-            </div>
-            <div className="session-danger-zone">
-              <hr className="p-sep" />
-              {dangerZone}
-            </div>
-          </section>
-
-          {isFullStackCompleted && (
-            <section
-              id="session-panel-credentials"
-              role="tabpanel"
-              aria-labelledby="session-tab-credentials"
-              hidden={activeTab !== 'credentials'}
-            >
-              <AdminKeysCard session={session} />
-            </section>
+            </>
           )}
-        </>
-      ) : (
-        <>
-          {!isFullStack && session.vta_did && <CollectedDidsCard collected={{ vta_did: session.vta_did }} />}
-          {!isFullStack && <ConnectedToCard session={session} />}
-          <div className="p-grid-2" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'start' }}>
-            {logConsole}
-            <div className="p-col gap-16">
-              {configurationCard}
-              <SessionExportCard session={session} sessionId={sessionId} />
-              {dangerZone}
-            </div>
-          </div>
-        </>
+          <SessionExportCard session={session} sessionId={sessionId} />
+        </div>
+        <div className="session-danger-zone">
+          <hr className="p-sep" />
+          {dangerZone}
+        </div>
+      </section>
+
+      {isFullStackCompleted && (
+        <section
+          id="session-panel-credentials"
+          role="tabpanel"
+          aria-labelledby="session-tab-credentials"
+          hidden={activeTab !== 'credentials'}
+        >
+          <AdminKeysCard session={session} />
+        </section>
       )}
 
       {/* Delete confirm overlay */}

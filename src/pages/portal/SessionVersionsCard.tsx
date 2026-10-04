@@ -211,7 +211,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
           </span>
         )}
       </div>
-      <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+      <div className="card-content p-col gap-12" style={{ paddingTop: 14 }} aria-busy={rows === null}>
         {showResult && upgrade ? (
           <>
             {upgrade.tasks.map(t => (
@@ -247,7 +247,24 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
             )}
           </>
         ) : rows === null ? (
-          <p className="p-muted text-sm" style={{ margin: 0 }}>Loading versions…</p>
+          <>
+            {components.map(component => (
+              <div key={component} className="p-row between center" style={{ gap: 10 }}>
+                <span className="p-muted text-sm" style={{ minWidth: 80 }}>{componentLabels[component]}</span>
+                <select
+                  aria-label={`Loading ${componentLabels[component]} versions`}
+                  className="p-select p-mono"
+                  style={{ fontSize: 12, flex: 1, minWidth: 0 }}
+                  disabled
+                >
+                  <option>Loading versions…</option>
+                </select>
+              </div>
+            ))}
+            <div className="p-row center" style={{ justifyContent: 'flex-end' }}>
+              <button className="btn btn-default btn-sm" disabled>Update</button>
+            </div>
+          </>
         ) : (
           <>
             {components.map(component => {
@@ -283,8 +300,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
               )
             })}
             {error && <p style={{ margin: 0, fontSize: 12, color: 'hsl(var(--destructive))' }}>{error}</p>}
-            <div className="p-row between center">
-              <span className="field-hint" style={{ marginTop: 0 }}>Pick any version — newer or older.</span>
+            <div className="p-row center" style={{ justifyContent: 'flex-end' }}>
               <button className="btn btn-default btn-sm" disabled={changes.length === 0} onClick={() => setConfirming(true)}>
                 Update
               </button>
