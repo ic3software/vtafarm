@@ -3,7 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession, type SetupAvailability, type ConnectionInspection, type Domain } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import {
-  statusBadge, FULL_STACK_PHASES, componentHost, useDomainInfo,
+  statusBadge, FULL_STACK_PHASES, componentHost, phaseIndex, useDomainInfo, vtaOnlyPhases,
 } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -13,18 +13,6 @@ import { VtaConnectionCard } from './VtaConnectionCard'
 
 type Stage = 0 | 1 | 2 | 3
 type Mode = 'vta_only' | 'full_stack'
-
-function vtaOnlyStepIndex(status: SetupSession['status'] | undefined, externalFlow: boolean) {
-  switch (status) {
-    case 'dns_provisioned': return 1
-    case 'vta_setup_running': return 2
-    case 'awaiting_did_publication': return 3
-    case 'vta_setup_complete': return externalFlow ? 4 : 3
-    case 'provisioning': return externalFlow ? 5 : 4
-    case 'running': return externalFlow ? 6 : 5
-    default: return null
-  }
-}
 
 export function CreateVTAView() {
   // betaAccess comes from the portal shell, which already reads it fresh from
@@ -347,25 +335,17 @@ export function CreateVTAView() {
   }
 
   const externalFlow = connectionInspection?.manual_publication || liveSession?.connection_source === 'external'
-  const currentStep = (() => {
-    if (setupFailed) {
-      const failedStep = vtaOnlyStepIndex(liveSession?.failed_stage, externalFlow)
-      if (failedStep !== null) return failedStep
-    }
-    if (stage === 3) return externalFlow ? 6 : 5
-    if (stage === 2) return externalFlow ? 5 : 4
-    if (stage === 0) return 0
-    if (liveSession?.status === 'vta_setup_complete') return externalFlow ? 4 : 3
-    if (liveSession?.status === 'awaiting_did_publication' && setupLogsDone) return 3
-    if (setupLogsDone) return 3
-    if (!liveSession) return 1
-    switch (liveSession.status) {
-      case 'dns_provisioned': return 1
-      case 'vta_setup_running': return 2
-      case 'awaiting_did_publication': return 3
-      default: return 1
-    }
-  })()
+  const vtaPhases = vtaOnlyPhases(externalFlow)
+  const stageProgressStatus = stage === 3
+    ? 'running'
+    : stage === 2
+      ? 'provisioning'
+      : liveSession?.status
+  const progressStatus = setupFailed
+    ? liveSession?.failed_stage ?? stageProgressStatus
+    : stageProgressStatus
+  const progressIndex = phaseIndex(vtaPhases, progressStatus)
+  const currentStep = stage === 0 ? 0 : progressIndex >= 0 ? progressIndex : 1
 
   // Live hostname previews. Managed domains carry the user-chosen name in the
   // label, so these track what's typed; an empty field keeps the <name>
@@ -409,40 +389,12 @@ export function CreateVTAView() {
 
       {/* Stepper — full_stack renders its own live one inside FullStackCreateProgress once a session exists */}
       {mode === 'vta_only' ? (
-      <div className="p-card" style={{ marginBottom: 20 }}>
-        <div className="card-content" style={{ padding: '26px 28px 22px' }}>
-          <div className="stepper">
-            {(externalFlow
-              ? ['Create session', 'DNS & environment', 'VTA setup', 'Publish DID', 'Admin DID', 'Deploy VTA', 'Running']
-              : ['Create session', 'DNS & environment', 'VTA setup', 'Admin DID', 'Deploy VTA', 'Running']
-            ).map((label, i) => {
-              const state = setupFailed && i === currentStep
-                ? 'failed'
-                : i < currentStep || (stage === 3 && i === currentStep)
-                  ? 'done'
-                  : i === currentStep
-                    ? 'active'
-                    : ''
-              const spinning = state === 'active' && stage !== 0
-              return (
-                <div key={i} className={`step ${state}`}>
-                  <div className="bar" />
-                  <div className="node">
-                    {state === 'done' ? (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M20 6 9 17l-5-5"/></svg>
-                    ) : state === 'failed' ? (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6 6 18M6 6l12 12"/></svg>
-                    ) : spinning ? (
-                      <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                    ) : i + 1}
-                  </div>
-                  <div className="s-label">{label}</div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </div>
+        <PhaseStepper
+          phases={vtaPhases}
+          currentIndex={currentStep}
+          failed={setupFailed}
+          spinning={stage !== 0}
+        />
       ) : stage === 0 && (
         <PhaseStepper phases={FULL_STACK_PHASES} currentIndex={0} spinning={false} />
       )}

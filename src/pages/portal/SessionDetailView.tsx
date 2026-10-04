@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type KeyboardEvent } from 'react'
 import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
-import { statusBadge, FULL_STACK_PHASES, phaseIndex, domainTypeBadge } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, phaseIndex, domainTypeBadge, vtaOnlyPhases } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ConnectedToCard } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
@@ -12,15 +12,6 @@ import { VtaConnectionCard } from './VtaConnectionCard'
 import { StackConfigEditor } from '../StackConfigEditor'
 import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 import type { PortalContext } from './Portal'
-
-const STATUS_STEPS: Array<{ label: string; sub: string; status: SetupSession['status'] | null }> = [
-  { label: 'Create session',     sub: 'created',            status: null },
-  { label: 'DNS & environment',  sub: 'dns_provisioned',    status: 'dns_provisioned' },
-  { label: 'VTA setup',          sub: 'vta_setup_running',  status: 'vta_setup_running' },
-  { label: 'Admin DID',          sub: 'vta_setup_complete', status: 'vta_setup_complete' },
-  { label: 'Deploy VTA',         sub: 'provisioning',       status: 'provisioning' },
-  { label: 'Running',            sub: 'running',            status: 'running' },
-]
 
 type SessionTab = 'overview' | 'connections' | 'settings' | 'credentials'
 
@@ -61,27 +52,6 @@ function SessionDetailContent() {
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const didsEnroll = useDidsEnroll(session)
   const vtcInstall = useVtcInstall(session?.mode === 'full_stack' ? session : null)
-  const vtaSteps = session?.connection_source === 'external'
-    ? [...STATUS_STEPS.slice(0, 3), { label: 'Publish DID', sub: 'awaiting_did_publication', status: 'awaiting_did_publication' as const }, ...STATUS_STEPS.slice(3)]
-    : STATUS_STEPS
-
-  function stepClass(stepStatus: SetupSession['status'] | null) {
-    if (!session) return ''
-    if (session.status === 'running') return 'done'
-    if (stepStatus === null) return 'done'
-    const progressStatus = session.status === 'failed' ? session.failed_stage ?? 'running' : session.status
-    const order = vtaSteps.map(s => s.status)
-    const cur = order.indexOf(progressStatus ?? null)
-    const idx = order.indexOf(stepStatus)
-    if (session.status === 'failed') {
-      if (idx < cur) return 'done'
-      if (idx === cur) return 'failed'
-      return ''
-    }
-    if (idx < cur) return 'done'
-    if (idx === cur) return 'active'
-    return ''
-  }
 
   useEffect(() => {
     let active = true
@@ -155,12 +125,14 @@ function SessionDetailContent() {
   if (!session) return <section className="p-content"><p className="p-muted">Session not found.</p></section>
 
   const isFullStack = session.mode !== 'vta_only'
-  const fsPhases = FULL_STACK_PHASES
   const vtaDid = isFullStack ? session.collected?.vta_did : session.vta_did
   const isAwaitingAdmin = isFullStack ? session.status === 'awaiting_admin_did' : session.status === 'vta_setup_complete'
-  const fsFailed = session.status === 'failed'
-  const fsProgressStatus = fsFailed ? session.failed_stage ?? 'running' : session.status
-  const fsPhaseIndex = Math.max(0, phaseIndex(fsPhases, fsProgressStatus))
+  const setupPhases = isFullStack
+    ? FULL_STACK_PHASES
+    : vtaOnlyPhases(session.connection_source === 'external')
+  const setupFailed = session.status === 'failed'
+  const setupProgressStatus = setupFailed ? session.failed_stage ?? 'running' : session.status
+  const setupPhaseIndex = Math.max(0, phaseIndex(setupPhases, setupProgressStatus))
   const isFullStackCompleted = isFullStack && session.status === 'running'
   const sessionTabs = isFullStackCompleted
     ? [...SESSION_TABS.slice(0, 2), CREDENTIALS_TAB, SESSION_TABS[2]]
@@ -306,31 +278,9 @@ function SessionDetailContent() {
         </div>
       )}
 
-      {session.status !== 'running' && (isFullStack ? (
-        <PhaseStepper phases={fsPhases} currentIndex={fsPhaseIndex} failed={fsFailed} />
-      ) : (
-        <div className="p-card" style={{ marginBottom: 20 }}>
-          <div className="card-content" style={{ padding: '28px 28px 24px' }}>
-            <div className="stepper">
-              {vtaSteps.map(step => (
-                <div key={step.sub} className={`step ${stepClass(step.status)}`}>
-                  <div className="bar"/>
-                  <div className="node">
-                    {stepClass(step.status) === 'done' ? (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M20 6 9 17l-5-5"/></svg>
-                    ) : stepClass(step.status) === 'active' ? (
-                      <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                    ) : stepClass(step.status) === 'failed' ? (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6 6 18M6 6l12 12"/></svg>
-                    ) : (vtaSteps.findIndex(s => s.sub === step.sub) + 1)}
-                  </div>
-                  <div className="s-label">{step.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ))}
+      {session.status !== 'running' && (
+        <PhaseStepper phases={setupPhases} currentIndex={setupPhaseIndex} failed={setupFailed} />
+      )}
 
       <div className="session-tabs" role="tablist" aria-label="Agent details">
         {sessionTabs.map((tab, index) => (
