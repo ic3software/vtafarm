@@ -1,5 +1,35 @@
 # Changelog
 
+## [v0.11.2] - 2026-10-04
+
+### Added
+
+- Running agent pages organize day-to-day controls into **Overview**,
+  **Connections**, **Credentials**, and **Settings** tabs, with a larger live
+  console and focused detail panels.
+- The Admin Platform Stack page now mirrors the agent detail experience with a
+  live VTA console, administrator management, credentials, version controls,
+  configuration exports, and a guarded danger zone.
+
+### Changed
+
+- **Connect with Keyring** is the recommended default connection method, while
+  local setup is consistently labeled **Connect with PNM**.
+- Expired Keyring QR codes clearly show their expired state, replacement
+  action, and countdown immediately below an active code.
+- Completed setup progress is hidden once an agent is running, and settings,
+  credentials, consoles, and configuration details use simpler responsive
+  layouts.
+
+### Fixed
+
+- ACL refresh feedback now appears beside the connected-device list instead of
+  at the bottom of the connection form.
+- Creation and provisioning pages remove duplicate status labels and
+  nonessential setup output after the stack is online.
+
+Requires vtafarm-api 0.11.0.
+
 ## [v0.11.1] - 2026-09-30
 
 ### Fixed

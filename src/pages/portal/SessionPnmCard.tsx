@@ -12,8 +12,8 @@ interface SessionPnmCardProps {
 type ConnectionMethod = 'local' | 'automatic'
 
 const connectionMethods: Array<{ value: ConnectionMethod; label: string }> = [
-  { value: 'local', label: 'Local Connection' },
-  { value: 'automatic', label: 'Automatic Mobile Connection' },
+  { value: 'automatic', label: 'Connect with Keyring' },
+  { value: 'local', label: 'Connect with PNM' },
 ]
 
 function formatAclCreatedAt(value: string): string {
@@ -25,7 +25,7 @@ function formatAclCreatedAt(value: string): string {
 }
 
 export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnmCardProps) {
-  const [method, setMethod] = useState<ConnectionMethod>('local')
+  const [method, setMethod] = useState<ConnectionMethod>('automatic')
   const [adminDid, setAdminDid] = useState('')
   const [linking, setLinking] = useState(false)
   const [error, setError] = useState('')
@@ -34,14 +34,17 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
   const [acl, setAcl] = useState<SessionAcl | null>(null)
   const [loadingAcl, setLoadingAcl] = useState(true)
   const [refreshingAcl, setRefreshingAcl] = useState(false)
+  const [aclNotice, setAclNotice] = useState('')
+  const [aclError, setAclError] = useState('')
+  const [aclWarning, setAclWarning] = useState('')
   const [copied, setCopied] = useState(false)
   const [mobileSnapshot, setMobileSnapshot] = useState<{ data: MobileConnectionState; receivedAt: number } | null>(null)
+  const [mobileQrPayload, setMobileQrPayload] = useState<{ requestId: string; value: string } | null>(null)
   const [mobileNow, setMobileNow] = useState(() => performance.now())
   const [mobileLoading, setMobileLoading] = useState(true)
   const [mobileBusy, setMobileBusy] = useState(false)
   const [online, setOnline] = useState(navigator.onLine)
   const [mobileSynchronized, setMobileSynchronized] = useState(false)
-  const [debugCopied, setDebugCopied] = useState<'payload' | 'callback' | ''>('')
   const mobileSequence = useRef(0)
   const mobileActive = useRef(false)
   const mobileMutating = useRef(false)
@@ -56,12 +59,23 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
 
   function applyMobileState(data: MobileConnectionState) {
     const receivedAt = performance.now()
+    setMobileQrPayload(current => {
+      const connection = data.connection
+      if (connection?.status === 'pending' && connection.callback_url) {
+        return {
+          requestId: connection.request_id,
+          value: JSON.stringify({ vta_did: connection.vta_did, callback_url: connection.callback_url }),
+        }
+      }
+      return connection && current?.requestId === connection.request_id ? current : null
+    })
     mobileShouldPoll.current = !!data.connection && ['pending', 'provisioning', 'awaiting_mobile'].includes(data.connection.status)
     setMobileSnapshot({ data, receivedAt })
     setMobileNow(receivedAt)
     setMobileSynchronized(true)
-    if (!mobileRestored.current && data.connection && ['pending', 'provisioning', 'awaiting_mobile'].includes(data.connection.status)) {
-      setMethod('automatic')
+    if (!mobileRestored.current) {
+      const activeRequest = data.connection && ['pending', 'provisioning', 'awaiting_mobile'].includes(data.connection.status)
+      setMethod(activeRequest || data.enabled ? 'automatic' : 'local')
     }
     mobileRestored.current = true
   }
@@ -139,7 +153,6 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
 
   async function generateMobileQr() {
     if (!online) return
-    setDebugCopied('')
     setNotice('')
     setWarning('')
     if (mobileRequest) {
@@ -190,15 +203,18 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
     setError('')
     setNotice('')
     setWarning('')
+    setAclNotice('')
+    setAclError('')
+    setAclWarning('')
     setRefreshingAcl(true)
     try {
       const result = await api.refreshSessionAcl(sessionId)
       onVtaRestarted()
       setAcl(result)
-      setNotice('ACL refreshed.')
-      if (result.warning) setWarning(result.warning)
+      setAclNotice('Connected devices are up to date.')
+      if (result.warning) setAclWarning(result.warning)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to refresh the ACL')
+      setAclError(err instanceof Error ? err.message : 'Failed to refresh the ACL')
     } finally {
       setRefreshingAcl(false)
     }
@@ -213,15 +229,6 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
     }
   }
 
-  async function copyDebugValue(value: string, type: 'payload' | 'callback') {
-    try {
-      await navigator.clipboard.writeText(value)
-      setDebugCopied(type)
-    } catch {
-      setError('Unable to copy the development QR value. Select and copy it below.')
-    }
-  }
-
   async function chooseMethod(next: ConnectionMethod) {
     if (linking || refreshingAcl || mobileBusy || mobileProvisioning) return
     if (next !== 'automatic' && mobileRequest?.status === 'awaiting_mobile') {
@@ -232,28 +239,38 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
     setError('')
     setNotice('')
     setWarning('')
-    setDebugCopied('')
   }
 
   const mobileExpired = !!mobileRequest && (mobileRequest.status === 'expired' || (mobileRequest.status === 'pending' && mobileRemaining === 0))
-  const automaticQr = method === 'automatic' && mobileRequest?.callback_url && mobileRequest.vta_did === vtaDid && !mobileExpired && mobileSynchronized && online
-    ? JSON.stringify({ vta_did: mobileRequest.vta_did, callback_url: mobileRequest.callback_url }) : null
+  const automaticQr = method === 'automatic' && mobileRequest && ['pending', 'expired'].includes(mobileRequest.status) &&
+    mobileRequest.vta_did === vtaDid && mobileQrPayload?.requestId === mobileRequest.request_id && mobileSynchronized && online ? mobileQrPayload.value : null
   const automaticMessage = !mobileRequest ? 'Generate a QR code when you are ready.'
-    : mobileRequest.status === 'connected' ? 'This phone is connected. You can generate another QR code for a different phone.'
-    : mobileRequest?.status === 'awaiting_mobile' ? 'The administrator was added. Waiting for your phone to finish connecting.'
-    : mobileRequest?.status === 'provisioning' ? 'Phone confirmation received. Adding the administrator and restarting your VTA…'
+    : mobileRequest.status === 'connected' ? 'Keyring is connected. You can generate another QR code for a different device.'
+    : mobileRequest?.status === 'awaiting_mobile' ? 'The administrator was added. Waiting for Keyring to finish connecting.'
+    : mobileRequest?.status === 'provisioning' ? 'Keyring confirmation received. Adding the administrator and restarting your VTA…'
     : mobileRequest?.status === 'failed' ? mobileRequest.error ?? 'Connection failed. Generate a new QR code and try again.'
     : mobileExpired ? 'This QR code has expired. Generate a replacement and scan it again.'
-    : 'Waiting for confirmation from your phone…'
+    : 'Waiting for confirmation in Keyring…'
 
   return (
-    <div className="p-card">
-      <div className="card-header">
-        <h3 className="card-title">Connect another device</h3>
-      </div>
-      <div className="card-content p-col gap-16">
+    <div className="session-connections-layout">
+      {!loadingAcl && acl?.synced_at && acl.entries.length === 0 && (
+        <div className="p-alert alert-info session-connections-empty" role="status">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 5v14M5 12h14"/></svg>
+          <div className="grow">
+            <p className="alert-title">No connected devices yet</p>
+            <p className="alert-desc">Choose a connection method below to add the first device shown in this VTA’s ACL.</p>
+          </div>
+        </div>
+      )}
+
+      <div className="p-card" style={{ borderColor: 'hsl(var(--primary)/.35)' }}>
+        <div className="card-header">
+          <h3 className="card-title">Connect another device</h3>
+        </div>
+        <div className="card-content p-col gap-16">
         <fieldset style={{ border: 0, padding: 0, margin: 0 }} disabled={linking || refreshingAcl || mobileBusy || mobileProvisioning}>
-          <legend className="p-label">Connection method</legend>
+          <legend className="p-label">How would you like to connect?</legend>
           <div className="p-row gap-12 wrap-flex">
             {connectionMethods.map(option => (
               <label key={option.value} className="p-row gap-8" style={{ cursor: option.value === 'automatic' && !mobileState?.enabled ? 'not-allowed' : 'pointer' }}>
@@ -266,50 +283,49 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
                   onChange={() => void chooseMethod(option.value)}
                 />
                 {option.label}
+                {option.value === 'automatic' && <span className="p-badge badge-default">Recommended</span>}
               </label>
             ))}
           </div>
         </fieldset>
 
-        {method === 'automatic' ? mobileExpired ? (
-          <div className="p-alert alert-warning" role="status" aria-live="polite">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-            <div className="grow">
-              <p className="alert-title">QR code expired</p>
-              <p className="alert-desc">This QR code is no longer valid. Generate a replacement and scan the new code.</p>
-            </div>
-          </div>
-        ) : (
+        {!mobileLoading && !mobileState?.enabled && (
+          <p className="p-muted text-sm" role="status" style={{ margin: 0 }}>
+            Keyring connection is unavailable in this environment. Connect with PNM instead.
+          </p>
+        )}
+
+        {method === 'automatic' ? !mobileExpired && (
           <p role="status" aria-live="polite" style={{ margin: 0 }}>{automaticMessage}</p>
         ) : (
-          <p style={{ margin: 0 }}>Run <span className="p-mono">pnm setup</span> locally and paste the Admin DID it provides.</p>
+          <p style={{ margin: 0 }}>Run <span className="p-mono">pnm setup</span> on this computer, then paste the Admin DID it generates below.</p>
         )}
 
-        {automaticQr && (
-          <div style={{ alignSelf: 'center', maxWidth: '100%' }}>
-            <QRCodeSVG value={automaticQr} size={280} level="M" marginSize={4} title="VTA mobile connection QR code" style={{ maxWidth: '100%', height: 'auto', background: '#fff' }} />
-          </div>
-        )}
-
-        {import.meta.env.DEV && automaticQr && mobileRequest?.callback_url && (
-          <div className="p-alert alert-warning" role="note">
-            <div className="grow" style={{ minWidth: 0 }}>
-              <p className="alert-title">Development QR payload</p>
-              <p className="alert-desc">This is the exact JSON encoded in the QR code. The callback URL contains a one-time credential.</p>
-              <pre className="p-mono text-xs" style={{ margin: '10px 0', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', userSelect: 'text' }}>{automaticQr}</pre>
-              <div className="p-row gap-8 wrap-flex">
-                <button className="btn btn-outline btn-sm" type="button" onClick={() => void copyDebugValue(automaticQr, 'payload')}>{debugCopied === 'payload' ? 'Payload copied' : 'Copy payload'}</button>
-                <button className="btn btn-outline btn-sm" type="button" onClick={() => void copyDebugValue(mobileRequest.callback_url!, 'callback')}>{debugCopied === 'callback' ? 'Callback URL copied' : 'Copy callback URL'}</button>
-              </div>
+        {(automaticQr || mobileExpired) && (
+          <div className="connection-qr">
+            <div className={`connection-qr-code${mobileExpired ? ' is-expired' : ''}`}>
+              {automaticQr
+                ? <QRCodeSVG value={automaticQr} size={280} level="M" marginSize={4} title="Keyring connection QR code" />
+                : <div className="qr-expired-placeholder" aria-hidden="true" />}
+              {mobileExpired && <span className="qr-expired-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="m6 6 12 12M18 6 6 18"/></svg>
+              </span>}
             </div>
+            {mobileExpired ? (
+              <p className="qr-expired-message" role="status" aria-live="polite">
+                <strong>QR code expired</strong>
+                <span>Click “Generate replacement QR code” below to create a new one.</span>
+              </p>
+            ) : mobileRequest?.status === 'pending' && (
+              <p className="qr-expiry" aria-live="off">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                QR code expires in <strong>{Math.floor(mobileRemaining / 60).toString().padStart(2, '0')}:{(mobileRemaining % 60).toString().padStart(2, '0')}</strong>
+              </p>
+            )}
           </div>
         )}
 
-        {method === 'automatic' && mobileRequest?.status === 'pending' && !mobileExpired && (
-          <p className="p-muted" aria-live="off" style={{ margin: 0 }}>QR code expires in {Math.floor(mobileRemaining / 60).toString().padStart(2, '0')}:{(mobileRemaining % 60).toString().padStart(2, '0')}</p>
-        )}
-
-        <div>
+        {method !== 'automatic' && <div>
           <span className="p-label">VTA DID</span>
           <div className="p-row gap-12" style={{ alignItems: 'center' }}>
             <p className="p-mono text-xs" style={{ minWidth: 0, flex: 1, margin: 0, overflowWrap: 'anywhere' }}>{vtaDid}</p>
@@ -317,7 +333,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
               {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
-        </div>
+        </div>}
 
         {method !== 'automatic' && <form className="p-col gap-16" onSubmit={handleLink}>
           <div>
@@ -341,10 +357,10 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           </div>
         </form>}
 
-        {method === 'automatic' && mobileState?.enabled && !mobileProvisioning && mobileRequest?.status !== 'pending' && (
-          <div className="p-row" style={{ justifyContent: 'flex-end' }}>
+        {method === 'automatic' && mobileState?.enabled && !mobileProvisioning && (mobileRequest?.status !== 'pending' || mobileExpired) && (
+          <div className="p-row" style={{ justifyContent: 'flex-start' }}>
             <button className="btn btn-outline" type="button" disabled={mobileBusy || !online} onClick={() => void generateMobileQr()}>
-              {mobileBusy ? 'Generating QR code…' : !mobileRequest ? 'Generate QR code' : mobileExpired ? 'Generate replacement QR code' : mobileRequest.status === 'awaiting_mobile' ? 'Regenerate QR code' : 'Generate new QR code'}
+              {mobileBusy ? 'Generating QR code…' : !mobileRequest ? 'Generate Keyring QR code' : mobileExpired ? 'Generate replacement QR code' : mobileRequest.status === 'awaiting_mobile' ? 'Regenerate QR code' : 'Generate new QR code'}
             </button>
           </div>
         )}
@@ -370,15 +386,14 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
             </div>
           </div>
         )}
+        </div>
+      </div>
 
-        <hr className="p-sep" />
-
-        <div className="p-row between center">
+      <div className="p-card">
+        <div className="card-header with-action">
           <div>
-            <div className="text-sm fw-600">ACL</div>
-            <div className="p-muted text-xs" style={{ marginTop: 3 }}>
-              {acl?.synced_at ? `Synced ${new Date(acl.synced_at).toLocaleString()}` : 'Not synced yet'}
-            </div>
+            <h3 className="card-title">Connected devices</h3>
+            <p className="card-desc">Super Admin entries in this VTA’s ACL.</p>
           </div>
           <button className="btn btn-outline btn-sm" type="button" onClick={handleRefreshAcl}
             disabled={linking || refreshingAcl}>
@@ -387,29 +402,61 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
               : 'Refresh ACL'}
           </button>
         </div>
-        <p className="p-muted text-xs" style={{ margin: 0 }}>Refreshing temporarily stops and restarts the VTA.</p>
+        <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+          <p className="p-muted text-xs" style={{ margin: 0 }}>
+            {acl?.synced_at ? `Synced ${new Date(acl.synced_at).toLocaleString()}.` : 'Not synced yet.'}
+          </p>
 
-        {!loadingAcl && acl?.synced_at && acl.entries.length === 0 && (
-          <p className="p-muted text-sm" style={{ margin: 0 }}>No Super Admin entries.</p>
-        )}
-        {acl && acl.entries.length > 0 && (
-          <div className="p-col gap-8">
-            {acl.entries.map(entry => (
-              <div key={entry.did} style={{ border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
-                <div className="p-row between center gap-8">
-                  <span className="text-sm fw-600">{entry.label || 'Unlabeled'}</span>
-                  <span className="p-badge badge-secondary">{entry.role}</span>
-                </div>
-                <div className="p-muted text-xs" style={{ marginTop: 8 }}>Full DID</div>
-                <div className="p-mono text-xs" style={{ marginTop: 5, width: '100%', whiteSpace: 'normal', wordBreak: 'break-all', overflow: 'visible' }}>
-                  {entry.did}
-                </div>
-                <div className="p-muted text-xs" style={{ marginTop: 5 }}>Contexts: {entry.contexts}</div>
-                <div className="p-muted text-xs" style={{ marginTop: 3 }}>Created: {formatAclCreatedAt(entry.created_at)}</div>
+          {aclNotice && (
+            <div className="p-alert alert-success" role="status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              <div className="grow">
+                <p className="alert-title">ACL refreshed</p>
+                <p className="alert-desc">{aclNotice}</p>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
+          {aclError && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{aclError}</p>}
+          {aclWarning && (
+            <div className="p-alert alert-warning" role="alert">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+              <div className="grow">
+                <p className="alert-title">ACL maintenance warning</p>
+                <p className="alert-desc">{aclWarning}</p>
+              </div>
+            </div>
+          )}
+
+          {loadingAcl && <p className="p-muted text-sm" style={{ margin: 0 }}>Loading ACL…</p>}
+
+          {!loadingAcl && acl?.synced_at && acl.entries.length === 0 && (
+            <div className="p-empty session-acl-empty">
+              <h3>No devices in the ACL</h3>
+              <p>Connect a local PNM or Keyring to add a Super Admin.</p>
+            </div>
+          )}
+
+          {acl && acl.entries.length > 0 && (
+            <div className="p-col gap-8">
+              {acl.entries.map(entry => (
+                <div key={entry.did} style={{ border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
+                  <div className="p-row between center gap-8">
+                    <span className="text-sm fw-600">{entry.label || 'Unlabeled'}</span>
+                    <span className="p-badge badge-secondary">{entry.role}</span>
+                  </div>
+                  <div className="p-muted text-xs" style={{ marginTop: 8 }}>Full DID</div>
+                  <div className="p-mono text-xs" style={{ marginTop: 5, width: '100%', whiteSpace: 'normal', wordBreak: 'break-all', overflow: 'visible' }}>
+                    {entry.did}
+                  </div>
+                  <div className="p-muted text-xs" style={{ marginTop: 5 }}>Contexts: {entry.contexts}</div>
+                  <div className="p-muted text-xs" style={{ marginTop: 3 }}>Created: {formatAclCreatedAt(entry.created_at)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

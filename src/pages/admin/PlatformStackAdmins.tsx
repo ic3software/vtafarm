@@ -11,7 +11,7 @@ function formatAclCreatedAt(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
 }
 
-export function PlatformStackAdmins() {
+export function PlatformStackAdmins({ onVtaRestarted }: { onVtaRestarted?: () => void }) {
   const [acl, setAcl] = useState<SessionAcl | null>(null)
   const [loadingAcl, setLoadingAcl] = useState(true)
   const [did, setDid] = useState('')
@@ -54,6 +54,7 @@ export function PlatformStackAdmins() {
       })
       if (result.warning) setWarning(result.warning)
       await load(true)
+      onVtaRestarted?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add the administrator')
     } finally {
@@ -68,6 +69,7 @@ export function PlatformStackAdmins() {
       setAcl(result)
       setNotice({ area: 'acl', message: 'ACL refreshed.' })
       if (result.warning) setWarning(result.warning)
+      onVtaRestarted?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to refresh the ACL')
     } finally {
@@ -76,13 +78,12 @@ export function PlatformStackAdmins() {
   }
 
   return (
-    <div className="p-card" style={{ marginBottom: 16 }}>
-      <div className="card-header">
-        <h3 className="card-title">Administrators</h3>
-      </div>
-
-      <div className="card-content p-col gap-16">
-        <div className="p-col gap-12">
+    <div className="session-connections-layout">
+      <div className="p-card">
+        <div className="card-header">
+          <h3 className="card-title">Add administrator</h3>
+        </div>
+        <div className="card-content p-col gap-12">
           <div>
             <label className="p-label" htmlFor="psa-did">Admin DID</label>
             <input className="p-input p-mono" id="psa-did" type="text" placeholder="did:key:z6Mk…"
@@ -114,12 +115,12 @@ export function PlatformStackAdmins() {
             </button>
           </div>
         </div>
+      </div>
 
-        <hr className="p-sep" />
-
-        <div className="p-row between center">
+      <div className="p-card">
+        <div className="card-header with-action">
           <div>
-            <div className="text-sm fw-600">ACL</div>
+            <h3 className="card-title">Current administrators</h3>
             <div className="p-muted text-xs" style={{ marginTop: 3 }}>
               {acl?.synced_at ? `Synced ${new Date(acl.synced_at).toLocaleString()}` : 'Not synced yet'}
             </div>
@@ -132,29 +133,29 @@ export function PlatformStackAdmins() {
             {refreshing ? 'Refreshing…' : 'Refresh ACL'}
           </button>
         </div>
-        <p className="p-muted text-xs" style={{ margin: 0 }}>Refreshing temporarily stops and restarts the VTA.</p>
-
-        {!loadingAcl && acl?.synced_at && acl.entries.length === 0 && (
-          <p className="p-muted text-sm" style={{ margin: 0 }}>No Super Admin entries.</p>
-        )}
-        {acl && acl.entries.length > 0 && (
-          <div className="p-col gap-8">
-            {acl.entries.map(entry => (
-              <div key={entry.did} style={{ border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
-                <div className="p-row between center gap-8">
-                  <span className="text-sm fw-600">{entry.label || 'Unlabeled'}</span>
-                  <span className="p-badge badge-secondary">{entry.role}</span>
+        <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+          {!loadingAcl && acl?.synced_at && acl.entries.length === 0 && (
+            <p className="p-muted text-sm" style={{ margin: 0 }}>No Super Admin entries.</p>
+          )}
+          {acl && acl.entries.length > 0 && (
+            <div className="p-col gap-8">
+              {acl.entries.map(entry => (
+                <div key={entry.did} style={{ border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
+                  <div className="p-row between center gap-8">
+                    <span className="text-sm fw-600">{entry.label || 'Unlabeled'}</span>
+                    <span className="p-badge badge-secondary">{entry.role}</span>
+                  </div>
+                  <div className="p-muted text-xs" style={{ marginTop: 8 }}>Full DID</div>
+                  <div className="p-mono text-xs" style={{ marginTop: 5, width: '100%', whiteSpace: 'normal', wordBreak: 'break-all', overflow: 'visible' }}>
+                    {entry.did}
+                  </div>
+                  <div className="p-muted text-xs" style={{ marginTop: 5 }}>Contexts: {entry.contexts}</div>
+                  <div className="p-muted text-xs" style={{ marginTop: 3 }}>Created: {formatAclCreatedAt(entry.created_at)}</div>
                 </div>
-                <div className="p-muted text-xs" style={{ marginTop: 8 }}>Full DID</div>
-                <div className="p-mono text-xs" style={{ marginTop: 5, width: '100%', whiteSpace: 'normal', wordBreak: 'break-all', overflow: 'visible' }}>
-                  {entry.did}
-                </div>
-                <div className="p-muted text-xs" style={{ marginTop: 5 }}>Contexts: {entry.contexts}</div>
-                <div className="p-muted text-xs" style={{ marginTop: 3 }}>Created: {formatAclCreatedAt(entry.created_at)}</div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

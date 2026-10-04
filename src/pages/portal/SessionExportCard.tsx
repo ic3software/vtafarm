@@ -2,7 +2,15 @@ import { useState } from 'react'
 import { api, type SetupSession } from '@/lib/api'
 
 // Both read the agent's live containers, so only a running agent offers them.
-export function SessionExportCard({ session, sessionId }: { session: SetupSession; sessionId: string }) {
+export function SessionExportCard({
+  session,
+  sessionId,
+  admin = false,
+}: {
+  session: SetupSession
+  sessionId: string
+  admin?: boolean
+}) {
   const [busy, setBusy] = useState<'configs' | 'logs' | null>(null)
   const [error, setError] = useState('')
 
@@ -13,8 +21,14 @@ export function SessionExportCard({ session, sessionId }: { session: SetupSessio
     setBusy(kind)
     setError('')
     try {
-      if (kind === 'configs') await api.exportSessionConfigs(sessionId)
-      else await api.exportSessionLogs(sessionId)
+      if (kind === 'configs') {
+        if (admin) await api.adminExportSessionConfigs(sessionId)
+        else await api.exportSessionConfigs(sessionId)
+      } else if (admin) {
+        await api.adminExportSessionLogs(sessionId)
+      } else {
+        await api.exportSessionLogs(sessionId)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to download ${kind}`)
     }
@@ -48,11 +62,7 @@ export function SessionExportCard({ session, sessionId }: { session: SetupSessio
             {busy === 'logs' ? 'Preparing…' : 'Download logs'}
           </button>
         </div>
-        {!ready ? (
-          <span className="field-hint" style={{ marginTop: 0 }}>
-            Available once the agent is running — both are read from its live containers.
-          </span>
-        ) : (
+        {ready && (
           <span className="field-hint" style={{ marginTop: 0 }}>
             The configs archive contains credentials. Treat it like a password export.
           </span>

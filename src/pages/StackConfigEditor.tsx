@@ -129,7 +129,7 @@ export function StackConfigEditor({ sessionId, admin = false, vtaOnly = false }:
 
   return (
     <>
-      <div className="p-card" style={{ marginBottom: 16 }}>
+      <div className="p-card">
         <div className="card-header">
           <h3 className="card-title">TOML configuration</h3>
           <p className="card-desc">
