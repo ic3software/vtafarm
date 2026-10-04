@@ -294,7 +294,7 @@
 .portal-root .session-tab:hover { color: hsl(var(--foreground)); }
 .portal-root .session-tab[aria-selected="true"] { color: hsl(var(--foreground)); border-bottom-color: hsl(var(--primary)); }
 .portal-root .session-tab:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -4px; border-radius: 3px; }
-.portal-root .p-grid-2.session-overview-grid { grid-template-columns: minmax(0, 13fr) minmax(320px, 7fr); }
+.portal-root .p-grid-2.session-overview-grid { grid-template-columns: minmax(0, 7fr) minmax(320px, 3fr); }
 .portal-root .session-connections-layout { display: grid; grid-template-columns: minmax(0, 7fr) minmax(320px, 3fr); gap: 16px; align-items: start; }
 .portal-root .session-settings-column { display: flex; flex-direction: column; gap: 16px; }
 .portal-root .session-connections-empty { grid-column: 1 / -1; }
