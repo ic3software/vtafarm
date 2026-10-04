@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback, useRef, type KeyboardEvent, type RefObject } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, API_BASE, ALL_COMPONENTS, type PlatformStack, type SetupSession, type UpgradeComponent } from '@/lib/api'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PhaseStepper } from '../portal/PhaseStepper'
@@ -7,10 +7,12 @@ import { FULL_STACK_PHASES, phaseIndex, statusBadge, useCopyState, isValidAdminD
 import {
   DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard,
 } from '../portal/FullStackOutputs'
-import { useDidsEnroll, useVtcInstall } from '../portal/fullStackHooks'
+import { useDidsEnroll, useVtcInstall, type DidsEnrollState, type VtcInstallState } from '../portal/fullStackHooks'
 import { adminSessionActions } from '../portal/sessionActions'
 import { PlatformStackAdmins } from './PlatformStackAdmins'
 import { StackConfigEditor } from '../StackConfigEditor'
+import { SessionExportCard } from '../portal/SessionExportCard'
+import { SessionVersionsCard } from '../portal/SessionVersionsCard'
 
 // The farm's own full_stack, running under our zone's fixed labels —
 // vta.{CLUSTER_DOMAIN}, vtc., mediator., dids. This is the only place it can be
@@ -23,6 +25,15 @@ import { StackConfigEditor } from '../StackConfigEditor'
 // custom-domain UI exists.
 
 type ImageOption = { tag: string; image: string; latest?: boolean }
+
+type PlatformStackTab = 'overview' | 'administrators' | 'credentials' | 'settings'
+
+const PLATFORM_STACK_TABS: Array<{ value: PlatformStackTab; label: string }> = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'administrators', label: 'Administrators' },
+  { value: 'credentials', label: 'Credentials' },
+  { value: 'settings', label: 'Settings' },
+]
 
 const COMPONENT_LABELS: Record<UpgradeComponent, string> = {
   vta: 'VTA',
@@ -75,8 +86,275 @@ function CopyRow({
   )
 }
 
+function LogConsole({
+  label, logs, bodyRef, streaming = false,
+}: {
+  label: string
+  logs: string[]
+  bodyRef: RefObject<HTMLDivElement | null>
+  streaming?: boolean
+}) {
+  return (
+    <div className="p-console">
+      <div className="console-head">
+        <div className="dots"><span/><span/><span/></div>
+        <span className="p-mono">vtafarm · logs --follow {label}</span>
+        <span className="grow"/>
+        {streaming && (
+          <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
+            <span className="dot pulse-dot"/>streaming
+          </span>
+        )}
+      </div>
+      <div className="console-body" ref={bodyRef}>
+        {logs.length === 0 ? (
+          <div className="ln"><span className="p-muted text-xs">{streaming ? 'Waiting for output…' : 'No logs yet.'}</span></div>
+        ) : logs.map((line, index) => (
+          <div key={index} className="ln"><span className="msg">{line}</span></div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PlatformStackTabs({
+  stack,
+  session,
+  logs,
+  consoleBodyRef,
+  searchParams,
+  setSearchParams,
+  tabRefs,
+  didsEnroll,
+  vtcInstall,
+  onVtaRestarted,
+  onStackUpdated,
+  onDeleted,
+}: {
+  stack: PlatformStack
+  session: SetupSession
+  logs: string[]
+  consoleBodyRef: RefObject<HTMLDivElement | null>
+  searchParams: URLSearchParams
+  setSearchParams: ReturnType<typeof useSearchParams>[1]
+  tabRefs: RefObject<Array<HTMLButtonElement | null>>
+  didsEnroll: DidsEnrollState
+  vtcInstall: VtcInstallState
+  onVtaRestarted: () => void
+  onStackUpdated: () => Promise<void>
+  onDeleted: () => Promise<void>
+}) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteInput, setDeleteInput] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const requestedTab = searchParams.get('tab')
+  const activeTab = PLATFORM_STACK_TABS.some(tab => tab.value === requestedTab)
+    ? requestedTab as PlatformStackTab
+    : 'overview'
+
+  function selectTab(tab: PlatformStackTab) {
+    const next = new URLSearchParams(searchParams)
+    if (tab === 'overview') next.delete('tab')
+    else next.set('tab', tab)
+    setSearchParams(next, { replace: true })
+  }
+
+  function handleTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    let nextIndex: number | null = null
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % PLATFORM_STACK_TABS.length
+    if (event.key === 'ArrowLeft') nextIndex = (index - 1 + PLATFORM_STACK_TABS.length) % PLATFORM_STACK_TABS.length
+    if (event.key === 'Home') nextIndex = 0
+    if (event.key === 'End') nextIndex = PLATFORM_STACK_TABS.length - 1
+    if (nextIndex === null) return
+    event.preventDefault()
+    selectTab(PLATFORM_STACK_TABS[nextIndex].value)
+    tabRefs.current[nextIndex]?.focus()
+  }
+
+  async function handleDelete() {
+    if (deleteInput !== session.id) return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await api.adminDeleteSession(session.id, session.id)
+      await onDeleted()
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete the platform stack')
+      setDeleting(false)
+    }
+  }
+
+  const configurationCard = (
+    <div className="p-card">
+      <div className="card-header"><h3 className="card-title">Configuration</h3></div>
+      <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+        <div className="p-row between">
+          <span className="p-muted text-sm">Mode</span>
+          <span className="p-badge badge-secondary">full_stack</span>
+        </div>
+        <hr className="p-sep"/>
+        <div className="p-row between center" style={{ gap: 16 }}>
+          <span className="p-muted text-sm">Domain</span>
+          <span className="p-mono text-xs" style={{ textAlign: 'right', overflowWrap: 'anywhere' }}>{stack.domain}</span>
+        </div>
+        {stack.created_at && (
+          <>
+            <hr className="p-sep"/>
+            <div className="p-row between" style={{ gap: 16 }}>
+              <span className="p-muted text-sm">Created</span>
+              <span className="text-sm" style={{ textAlign: 'right' }}>{new Date(stack.created_at).toLocaleString()}</span>
+            </div>
+          </>
+        )}
+        <EndpointConfigRows urls={stack.urls} />
+        <DidsEnrollConfigRow {...didsEnroll} />
+        <VtcInstallConfigRow {...vtcInstall} />
+      </div>
+    </div>
+  )
+
+  return (
+    <>
+      <div className="session-tabs" role="tablist" aria-label="Platform stack details">
+        {PLATFORM_STACK_TABS.map((tab, index) => (
+          <button
+            key={tab.value}
+            ref={element => { tabRefs.current[index] = element }}
+            id={`platform-stack-tab-${tab.value}`}
+            className="session-tab"
+            type="button"
+            role="tab"
+            aria-controls={`platform-stack-panel-${tab.value}`}
+            aria-selected={activeTab === tab.value}
+            tabIndex={activeTab === tab.value ? 0 : -1}
+            onClick={() => selectTab(tab.value)}
+            onKeyDown={event => handleTabKey(event, index)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <section
+        id="platform-stack-panel-overview"
+        role="tabpanel"
+        aria-labelledby="platform-stack-tab-overview"
+        hidden={activeTab !== 'overview'}
+      >
+        <DidsEnrollAlert {...didsEnroll} />
+        <VtcInstallAlert {...vtcInstall} />
+        <div className="p-grid-2 session-overview-grid" style={{ alignItems: 'start' }}>
+          <LogConsole label={stack.label ?? session.id} logs={logs} bodyRef={consoleBodyRef} />
+          <div>
+            <CollectedDidsCard collected={stack.collected} />
+            {configurationCard}
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="platform-stack-panel-administrators"
+        role="tabpanel"
+        aria-labelledby="platform-stack-tab-administrators"
+        hidden={activeTab !== 'administrators'}
+      >
+        <PlatformStackAdmins onVtaRestarted={onVtaRestarted} />
+      </section>
+
+      <section
+        id="platform-stack-panel-credentials"
+        role="tabpanel"
+        aria-labelledby="platform-stack-tab-credentials"
+        hidden={activeTab !== 'credentials'}
+      >
+        <AdminKeysCard session={session} />
+      </section>
+
+      <section
+        id="platform-stack-panel-settings"
+        role="tabpanel"
+        aria-labelledby="platform-stack-tab-settings"
+        hidden={activeTab !== 'settings'}
+      >
+        <div className="session-settings-column">
+          <SessionVersionsCard admin session={session} onUpgraded={() => { void onStackUpdated() }} />
+          <StackConfigEditor admin />
+          <SessionExportCard admin session={session} sessionId={session.id} />
+        </div>
+        <div className="session-danger-zone">
+          <hr className="p-sep" />
+          <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
+            <div className="card-header">
+              <h3 className="card-title" style={{ color: 'hsl(var(--destructive))' }}>Danger Zone</h3>
+            </div>
+            <div className="card-content">
+              <hr className="p-sep" style={{ marginBottom: 14 }} />
+              <div className="p-col" style={{ gap: 0 }}>
+                <span className="text-sm fw-600">Delete platform stack</span>
+                <span className="p-muted text-xs" style={{ margin: '4px 0 14px' }}>
+                  Permanently removes the platform stack, its DNS records, and all session data. VTA-only agents that use its mediator or DID hosting will stop working.
+                </span>
+                <div>
+                  <button className="btn btn-destructive btn-sm" onClick={() => setShowDeleteConfirm(true)}>
+                    Delete platform stack
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {showDeleteConfirm && (
+        <div className="p-overlay">
+          <div className="p-dialog">
+            <div className="dialog-header">
+              <h3 className="dialog-title">Delete the platform stack?</h3>
+              <p className="dialog-desc">
+                This permanently destroys <span className="p-mono">{session.id}</span>, its DNS records, and all session data. VTA-only agents that depend on this stack will stop working. This cannot be undone.
+              </p>
+            </div>
+            <div className="dialog-body">
+              <div className="p-alert alert-destructive">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                <div className="grow">
+                  <p className="alert-title">This affects other agents</p>
+                  <p className="alert-desc">Do not delete this stack while any VTA-only agent still depends on it.</p>
+                </div>
+              </div>
+              <div>
+                <label className="p-label">
+                  Type the stack name <span className="p-mono">{session.id}</span> to confirm
+                </label>
+                <input
+                  className="p-input p-mono"
+                  placeholder={session.id}
+                  value={deleteInput}
+                  onChange={event => setDeleteInput(event.target.value)}
+                  disabled={deleting}
+                />
+              </div>
+              {deleteError && (
+                <p role="alert" style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{deleteError}</p>
+              )}
+            </div>
+            <div className="dialog-footer">
+              <button className="btn btn-ghost" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>Cancel</button>
+              <button className="btn btn-destructive" onClick={handleDelete} disabled={deleting || deleteInput !== session.id}>
+                {deleting ? 'Deleting…' : 'Delete platform stack'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 export function PlatformStackView() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { copiedKey, copy } = useCopyState()
   // The admin-cookie twin of the portal's route: this panel authenticates
   // differently, and the hostnames have to be nameable before they exist.
@@ -85,7 +363,9 @@ export function PlatformStackView() {
   const [stack, setStack] = useState<PlatformStack | null>(null)
   const [loading, setLoading] = useState(true)
   const [logs, setLogs] = useState<string[]>([])
+  const [logStreamGeneration, setLogStreamGeneration] = useState(0)
   const consoleBodyRef = useRef<HTMLDivElement>(null)
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   const [label, setLabel] = useState('firstperson')
   // Submitted at awaiting_admin_did, not at create: `pnm setup` mints it
@@ -125,8 +405,9 @@ export function PlatformStackView() {
   // its own Job and its own pod, so the previous stream has already ended.
   const sessionId = stack?.id
   useEffect(() => {
-    if (!sessionId || settled || status === 'awaiting_admin_did') return
-    const es = new EventSource(`${API_BASE}/api/v1/admin/setup-sessions/${sessionId}/logs`, { withCredentials: true })
+    if (!sessionId || status === 'failed' || status === 'awaiting_admin_did') return
+    const source = status === 'running' ? '?source=vta' : ''
+    const es = new EventSource(`${API_BASE}/api/v1/admin/setup-sessions/${sessionId}/logs${source}`, { withCredentials: true })
     // Clear when the new stream actually opens rather than up front, so the
     // previous step's output stays on screen instead of blanking during the
     // reconnect between two Jobs.
@@ -137,7 +418,17 @@ export function PlatformStackView() {
     es.addEventListener('done', () => es.close())
     es.onerror = () => es.close()
     return () => es.close()
-  }, [sessionId, status, settled])
+  }, [sessionId, status, logStreamGeneration])
+
+  function reconnectVtaLogs() {
+    setLogs([])
+    setLogStreamGeneration(generation => generation + 1)
+  }
+
+  async function refreshAfterUpgrade() {
+    await load()
+    reconnectVtaLogs()
+  }
 
   // Scroll the console body, not the page.
   useEffect(() => {
@@ -161,6 +452,10 @@ export function PlatformStackView() {
         vtc_install_used: stack.vtc_install_used,
         mediator_admin_key: stack.mediator_admin_key,
         webvh_admin_key: stack.webvh_admin_key,
+        vta_image: stack.images?.vta,
+        mediator_image: stack.images?.mediator,
+        dids_image: stack.images?.dids,
+        vtc_image: stack.images?.vtc,
         created_at: stack.created_at ?? '',
       }
     : null
@@ -230,14 +525,26 @@ export function PlatformStackView() {
     }
   }
 
+  const running = stack?.status === 'running'
   const head = (
     <div className="page-head">
       <div>
-        <h1>Platform stack</h1>
-        <p className="sub">
-          The farm's own full stack, on our zone's fixed hostnames — and the mediator and
-          DID host every VTA-only session points at.
-        </p>
+        {running ? (
+          <div className="p-row gap-12 center wrap-flex">
+            <h1 className="p-mono" style={{ fontFamily: 'var(--mono)', fontSize: 22, whiteSpace: 'nowrap', marginBottom: 0 }}>
+              {stack?.label}
+            </h1>
+            {statusBadge('running')}
+          </div>
+        ) : (
+          <>
+            <h1>Platform stack</h1>
+            <p className="sub">
+              The farm's own full stack, on our zone's fixed hostnames — and the mediator and
+              DID host every VTA-only session points at.
+            </p>
+          </>
+        )}
       </div>
     </div>
   )
@@ -359,7 +666,7 @@ export function PlatformStackView() {
 
   // ── Exists ─────────────────────────────────────────────────────────────────
   const failed = status === 'failed'
-  const running = status === 'running'
+  const isRunning = status === 'running'
   const awaitingAdminDid = status === 'awaiting_admin_did'
   const progressStatus = failed ? stack.failed_stage ?? 'running' : status
   const currentIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, progressStatus))
@@ -369,26 +676,30 @@ export function PlatformStackView() {
     <section className="p-content">
       {head}
 
-      <div className="p-card" style={{ marginBottom: 16 }}>
-        <div className="card-content" style={{ padding: '14px 20px' }}>
-          <div className="p-row between center">
-            <div className="p-col" style={{ gap: 4 }}>
-              <span className="p-label" style={{ marginBottom: 0 }}>
-                Session #{stack.id} · <span className="p-mono">{stack.label}</span>
-              </span>
-              <span className="p-mono text-xs p-muted">{stack.urls?.vta ?? stack.domain}</span>
-            </div>
-            <div className="p-row gap-8 center">
-              {status && statusBadge(status)}
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/admin/sessions')}>
-                Manage in Sessions
-              </button>
+      {!isRunning && (
+        <>
+          <div className="p-card" style={{ marginBottom: 16 }}>
+            <div className="card-content" style={{ padding: '14px 20px' }}>
+              <div className="p-row between center">
+                <div className="p-col" style={{ gap: 4 }}>
+                  <span className="p-label" style={{ marginBottom: 0 }}>
+                    Session #{stack.id} · <span className="p-mono">{stack.label}</span>
+                  </span>
+                  <span className="p-mono text-xs p-muted">{stack.urls?.vta ?? stack.domain}</span>
+                </div>
+                <div className="p-row gap-8 center">
+                  {status && statusBadge(status)}
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate('/admin/sessions')}>
+                    Manage in Sessions
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <PhaseStepper phases={FULL_STACK_PHASES} currentIndex={currentIndex} failed={failed} spinning={!failed && !running} />
+          <PhaseStepper phases={FULL_STACK_PHASES} currentIndex={currentIndex} failed={failed} spinning={!failed} />
+        </>
+      )}
 
       {failed && (
         <div className="p-alert alert-destructive" style={{ marginBottom: 16 }}>
@@ -399,19 +710,6 @@ export function PlatformStackView() {
               {stack.error_msg || 'An error occurred.'} Delete the stack from the Sessions
               page — deleting it takes every VTA-only session's mediator and DID host with
               it — then create it again.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {running && (
-        <div className="p-alert alert-success" style={{ marginBottom: 16 }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg>
-          <div className="grow">
-            <p className="alert-title">Platform stack is online</p>
-            <p className="alert-desc">
-              Copy the values below into the environment so VTA-only sessions point at
-              these hostnames instead of a disposable dev session.
             </p>
           </div>
         </div>
@@ -457,7 +755,7 @@ export function PlatformStackView() {
         </div>
       )}
 
-      {!running && !failed && !awaitingAdminDid && (
+      {!isRunning && !failed && !awaitingAdminDid && (
         <div className="p-card" style={{ marginBottom: 16 }}>
           <div className="card-header with-action">
             <div>
@@ -467,26 +765,14 @@ export function PlatformStackView() {
                 minutes — the page refreshes itself.
               </p>
             </div>
-            <span className="p-badge badge-warning"><span className="dot pulse-dot"/>streaming</span>
           </div>
           <div className="card-content">
-            <div className="p-console">
-              <div className="console-head">
-                <div className="dots"><span/><span/><span/></div>
-                <span className="p-mono">vtafarm · platform-stack {stack.label}</span>
-                <span className="grow"/>
-                <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
-                  <span className="dot pulse-dot"/>streaming
-                </span>
-              </div>
-              <div className="console-body" ref={consoleBodyRef}>
-                {logs.length === 0 ? (
-                  <div className="ln"><span className="p-muted text-xs">Waiting for output…<span className="caret"/></span></div>
-                ) : logs.map((line, i) => (
-                  <div key={i} className="ln"><span className="msg">{line}</span></div>
-                ))}
-              </div>
-            </div>
+            <LogConsole
+              label={stack.label ?? stack.id ?? 'platform-stack'}
+              logs={logs}
+              bodyRef={consoleBodyRef}
+              streaming
+            />
           </div>
         </div>
       )}
@@ -495,32 +781,21 @@ export function PlatformStackView() {
           user's session surfaces its own. Before that they are either empty or
           half-minted, and a half-filled configuration block invites someone to
           paste it somewhere. */}
-      {running && (
-        <>
-          <DidsEnrollAlert {...didsEnroll} />
-          <VtcInstallAlert {...vtcInstall} />
-          <CollectedDidsCard collected={stack.collected} />
-
-          <div className="p-card" style={{ marginBottom: 16 }}>
-            <div className="card-header"><h3 className="card-title">Endpoints</h3></div>
-            <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-              <EndpointConfigRows urls={stack.urls} />
-              <DidsEnrollConfigRow {...didsEnroll} />
-              <VtcInstallConfigRow {...vtcInstall} />
-            </div>
-          </div>
-
-          {/* Only once the stack is running: the ACL is written by the pipeline
-              while the VTA is still down, and a grant before `deploy_vta` would
-              race the step that seeds it. */}
-          <PlatformStackAdmins />
-
-          <div style={{ margin: '16px 0' }}>
-            <StackConfigEditor admin />
-          </div>
-
-          {sessionLike && <AdminKeysCard session={sessionLike} />}
-        </>
+      {isRunning && sessionLike && (
+        <PlatformStackTabs
+          stack={stack}
+          session={sessionLike}
+          logs={logs}
+          consoleBodyRef={consoleBodyRef}
+          searchParams={searchParams}
+          setSearchParams={setSearchParams}
+          tabRefs={tabRefs}
+          didsEnroll={didsEnroll}
+          vtcInstall={vtcInstall}
+          onVtaRestarted={reconnectVtaLogs}
+          onStackUpdated={refreshAfterUpgrade}
+          onDeleted={load}
+        />
       )}
     </section>
   )

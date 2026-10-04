@@ -4,6 +4,7 @@ import {
   type SetupSession,
   type SetupMode,
   type SessionUpgrade,
+  type UpgradeBatchDetail,
   type UpgradeComponent,
   type UpgradeTaskStatus,
 } from '@/lib/api'
@@ -67,9 +68,30 @@ interface SessionVersionsCardProps {
   session: SetupSession
   /** Called when an upgrade reaches a terminal state, so the parent refetches the session's images. */
   onUpgraded: () => void
+  /** Use the admin registry and batch-upgrade endpoints for sessions the current admin does not own. */
+  admin?: boolean
 }
 
-export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCardProps) {
+function sessionUpgradeFromBatch(batch: UpgradeBatchDetail, sessionId: string): SessionUpgrade {
+  return {
+    id: batch.id,
+    status: batch.status,
+    components: batch.components,
+    created_at: batch.created_at,
+    tasks: batch.tasks
+      .filter(task => task.session_id === sessionId)
+      .map(task => ({
+        component: task.component,
+        from_image: task.from_image,
+        to_image: task.to_image,
+        status: task.status,
+        error_msg: task.error_msg,
+        updated_at: task.updated_at,
+      })),
+  }
+}
+
+export function SessionVersionsCard({ session, onUpgraded, admin = false }: SessionVersionsCardProps) {
   const components = modeComponents(session.mode)
   const [rows, setRows] = useState<Partial<Record<UpgradeComponent, ComponentRow>> | null>(null)
   const [selected, setSelected] = useState<Partial<Record<UpgradeComponent, string>>>({})
@@ -85,7 +107,7 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
   useEffect(() => {
     let stopped = false
     Promise.all(components.map(component =>
-      api.listImages(component)
+      (admin ? api.adminListImages(component) : api.listImages(component))
         .then(images => ({ component, images, error: '' }))
         .catch((err: unknown) => ({
           component, images: [] as ImageOption[],
@@ -97,7 +119,20 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
       for (const r of results) next[r.component] = { images: r.images, unavailable: r.error || undefined }
       setRows(next)
     })
-    api.getSessionUpgrade(session.id)
+    const loadCurrentUpgrade = admin
+      ? api.listUpgrades().then(async batches => {
+          const active = batches.filter(batch => batch.status === 'running' || batch.status === 'paused')
+          for (const summary of active) {
+            const detail = await api.getUpgrade(summary.id)
+            if (detail.tasks.some(task => task.session_id === session.id)) {
+              return sessionUpgradeFromBatch(detail, session.id)
+            }
+          }
+          return null
+        })
+      : api.getSessionUpgrade(session.id)
+
+    loadCurrentUpgrade
       .then(u => {
         if (stopped) return
         setUpgrade(u)
@@ -107,14 +142,17 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
     return () => { stopped = true }
     // components is derived from the session's mode, which never changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.id])
+  }, [session.id, admin])
 
   // Progress phase: poll until the upgrade reaches a terminal state.
   useEffect(() => {
-    if (!running) return
+    if (!running || !upgrade) return
     let stopped = false
     const timer = setInterval(() => {
-      api.getSessionUpgrade(session.id)
+      const request = admin
+        ? api.getUpgrade(upgrade.id).then(batch => sessionUpgradeFromBatch(batch, session.id))
+        : api.getSessionUpgrade(session.id)
+      request
         .then(u => {
           if (stopped) return
           setUpgrade(u)
@@ -124,7 +162,7 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
     }, 3000)
     return () => { stopped = true; clearInterval(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.id, running])
+  }, [session.id, running, admin, upgrade?.id])
 
   const changes = components.flatMap(component => {
     const from = currentImage(session, component)
@@ -134,7 +172,14 @@ export function SessionVersionsCard({ session, onUpgraded }: SessionVersionsCard
 
   function submit() {
     setBusy(true); setError('')
-    api.createSessionUpgrade(session.id, changes.map(c => ({ component: c.component, image: c.to })))
+    const components = changes.map(c => ({ component: c.component, image: c.to }))
+    const request = admin
+      ? api.createUpgrade({ components, session_ids: [session.id] }).then(async result => {
+          if (!result.id) throw new Error(result.skipped[0]?.reason ?? 'No eligible components to update')
+          return sessionUpgradeFromBatch(await api.getUpgrade(result.id), session.id)
+        })
+      : api.createSessionUpgrade(session.id, components)
+    request
       .then(u => {
         setUpgrade(u)
         setShowResult(true)
