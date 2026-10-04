@@ -61,7 +61,9 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
     const receivedAt = performance.now()
     setMobileQrPayload(current => {
       const connection = data.connection
-      if (connection?.status === 'pending' && connection.callback_url) {
+      const expiredAtReceipt = !!connection && (connection.status === 'expired' ||
+        (connection.status === 'pending' && Date.parse(connection.expires_at) <= Date.parse(data.server_time)))
+      if (connection?.status === 'pending' && connection.callback_url && !expiredAtReceipt) {
         return {
           requestId: connection.request_id,
           value: JSON.stringify({ vta_did: connection.vta_did, callback_url: connection.callback_url }),
@@ -241,10 +243,13 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
     setWarning('')
   }
 
-  const mobileExpired = !!mobileRequest && (mobileRequest.status === 'expired' || (mobileRequest.status === 'pending' && mobileRemaining === 0))
+  const mobileRequestExpired = !!mobileRequest && (mobileRequest.status === 'expired' || (mobileRequest.status === 'pending' && mobileRemaining === 0))
+  const hasCurrentMobileQr = !!mobileRequest && mobileQrPayload?.requestId === mobileRequest.request_id
+  const mobileExpired = mobileRequestExpired && hasCurrentMobileQr
+  const hiddenMobileExpired = mobileRequestExpired && !hasCurrentMobileQr
   const automaticQr = method === 'automatic' && mobileRequest && ['pending', 'expired'].includes(mobileRequest.status) &&
-    mobileRequest.vta_did === vtaDid && mobileQrPayload?.requestId === mobileRequest.request_id && mobileSynchronized && online ? mobileQrPayload.value : null
-  const automaticMessage = !mobileRequest ? 'Generate a QR code when you are ready.'
+    mobileRequest.vta_did === vtaDid && hasCurrentMobileQr && mobileSynchronized && online ? mobileQrPayload.value : null
+  const automaticMessage = !mobileRequest || hiddenMobileExpired ? 'Generate a QR code when you are ready.'
     : mobileRequest.status === 'connected' ? 'Keyring is connected. You can generate another QR code for a different device.'
     : mobileRequest?.status === 'awaiting_mobile' ? 'The administrator was added. Waiting for Keyring to finish connecting.'
     : mobileRequest?.status === 'provisioning' ? 'Keyring confirmation received. Adding the administrator and restarting your VTA…'
@@ -357,10 +362,10 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           </div>
         </form>}
 
-        {method === 'automatic' && mobileState?.enabled && !mobileProvisioning && (mobileRequest?.status !== 'pending' || mobileExpired) && (
+        {method === 'automatic' && mobileState?.enabled && !mobileProvisioning && (mobileRequest?.status !== 'pending' || mobileRequestExpired) && (
           <div className="p-row" style={{ justifyContent: 'flex-start' }}>
             <button className="btn btn-outline" type="button" disabled={mobileBusy || !online} onClick={() => void generateMobileQr()}>
-              {mobileBusy ? 'Generating QR code…' : !mobileRequest ? 'Generate Keyring QR code' : mobileExpired ? 'Generate replacement QR code' : mobileRequest.status === 'awaiting_mobile' ? 'Regenerate QR code' : 'Generate new QR code'}
+              {mobileBusy ? 'Generating QR code…' : !mobileRequest || hiddenMobileExpired ? 'Generate Keyring QR code' : mobileExpired ? 'Generate replacement QR code' : mobileRequest.status === 'awaiting_mobile' ? 'Regenerate QR code' : 'Generate new QR code'}
             </button>
           </div>
         )}

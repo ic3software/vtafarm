@@ -50,7 +50,9 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
     const receivedAt = performance.now()
     setQrPayload(current => {
       const connection = data.connection
-      if (connection?.status === 'pending' && connection.callback_url) {
+      const expiredAtReceipt = !!connection && (connection.status === 'expired' ||
+        (connection.status === 'pending' && Date.parse(connection.expires_at) <= Date.parse(data.server_time)))
+      if (connection?.status === 'pending' && connection.callback_url && !expiredAtReceipt) {
         return {
           requestId: connection.request_id,
           value: JSON.stringify({ vta_did: connection.vta_did, callback_url: connection.callback_url }),
@@ -207,10 +209,13 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
     if (session.status === 'running' || session.status === 'failed') return null
     return null
   }
-  const expired = !!request && (request.status === 'expired' || (request.status === 'pending' && remaining === 0))
+  const requestExpired = !!request && (request.status === 'expired' || (request.status === 'pending' && remaining === 0))
+  const hasCurrentQr = !!request && qrPayload?.requestId === request.request_id
+  const expired = requestExpired && hasCurrentQr
+  const hiddenExpired = requestExpired && !hasCurrentQr
   const qr = method === 'automatic' && request && ['pending', 'expired'].includes(request.status) &&
-    request.vta_did === vtaDid && qrPayload?.requestId === request.request_id && synchronized && online ? qrPayload.value : null
-  const automaticMessage = !request ? 'Generate a QR code when you are ready.'
+    request.vta_did === vtaDid && hasCurrentQr && synchronized && online ? qrPayload.value : null
+  const automaticMessage = !request || hiddenExpired ? 'Generate a QR code when you are ready.'
     : request.status === 'awaiting_mobile' ? 'Your VTA is ready. Waiting for Keyring to finish connecting.'
     : request?.status === 'provisioning' ? 'Keyring confirmation received. Setting up your VTA…'
     : request?.status === 'failed' ? request.error ?? 'Connection failed. View the setup details for the next step.'
@@ -278,7 +283,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
         <input id="connection-admin-did" className="p-input p-mono" placeholder="did:key:z6Mk…" maxLength={128} value={adminDid} onChange={e => setAdminDid(e.target.value)} disabled={busy || inProgress} required />
         <button className="btn btn-default" disabled={busy || inProgress || !adminDid.trim() || !online}>{busy ? 'Submitting…' : 'Connect to VTA'}</button>
       </form>}
-      {method === 'automatic' && !inProgress && state?.enabled && <button className="btn btn-outline" disabled={busy || !online || !ready} onClick={() => void generate()}>{busy ? 'Generating QR code…' : !request ? 'Generate Keyring QR code' : expired ? 'Generate replacement QR code' : error ? 'Retry QR generation' : 'Regenerate QR code'}</button>}
+      {method === 'automatic' && !inProgress && state?.enabled && <button className="btn btn-outline" disabled={busy || !online || !ready} onClick={() => void generate()}>{busy ? 'Generating QR code…' : !request || hiddenExpired ? 'Generate Keyring QR code' : expired ? 'Generate replacement QR code' : error ? 'Retry QR generation' : 'Regenerate QR code'}</button>}
       {statusError && <p role="status">{statusError}</p>}
       {error && <p role="alert" style={{ color: 'hsl(var(--destructive))' }}>{error}</p>}
     </div>
