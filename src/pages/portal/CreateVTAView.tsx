@@ -423,7 +423,7 @@ export function CreateVTAView() {
                   : i === currentStep
                     ? 'active'
                     : ''
-              const spinning = state === 'active' && (stage === 2 || showingSetupLogs)
+              const spinning = state === 'active' && stage !== 0
               return (
                 <div key={i} className={`step ${state}`}>
                   <div className="bar" />
@@ -938,19 +938,6 @@ export function CreateVTAView() {
             </div>
           </div>
           <div className="p-card" style={{ marginBottom: 16 }}>
-            <div className="card-footer between">
-              <span className="field-hint" style={{ marginTop: 0 }}>Your agent is ready to issue and verify credentials.</span>
-              <div className="p-row gap-12">
-                <button className="btn btn-ghost" onClick={handleDone}>Back to Agents</button>
-                {sessionId && (
-                  <button className="btn btn-default" onClick={() => navigate(`/portal/session/${sessionId}`)}>
-                    Open agent <span className="arrow">→</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="p-card">
             <div className="card-content" style={{ padding: 0 }}>
               <div className="p-console">
                 <div className="console-head">
@@ -970,6 +957,19 @@ export function CreateVTAView() {
                   ))}
                   <div ref={logEndRef} />
                 </div>
+              </div>
+            </div>
+          </div>
+          <div className="p-card">
+            <div className="card-footer between">
+              <span className="field-hint" style={{ marginTop: 0 }}>Your agent is ready to issue and verify credentials.</span>
+              <div className="p-row gap-12">
+                <button className="btn btn-ghost" onClick={handleDone}>Back to Agents</button>
+                {sessionId && (
+                  <button className="btn btn-default" onClick={() => navigate(`/portal/session/${sessionId}`)}>
+                    Open agent <span className="arrow">→</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

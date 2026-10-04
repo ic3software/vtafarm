@@ -249,13 +249,15 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
   const hiddenMobileExpired = mobileRequestExpired && !hasCurrentMobileQr
   const automaticQr = method === 'automatic' && mobileRequest && ['pending', 'expired'].includes(mobileRequest.status) &&
     mobileRequest.vta_did === vtaDid && hasCurrentMobileQr && mobileSynchronized && online ? mobileQrPayload.value : null
-  const automaticMessage = !mobileRequest || hiddenMobileExpired ? 'Generate a QR code when you are ready.'
+  const automaticMessage = mobileRequest?.status === 'cancelled' ? null
+    : !mobileRequest || hiddenMobileExpired ? 'Generate a QR code when you are ready.'
     : mobileRequest.status === 'connected' ? 'Keyring is connected. You can generate another QR code for a different device.'
     : mobileRequest?.status === 'awaiting_mobile' ? 'The administrator was added. Waiting for Keyring to finish connecting.'
     : mobileRequest?.status === 'provisioning' ? 'Keyring confirmation received. Adding the administrator and restarting your VTA…'
     : mobileRequest?.status === 'failed' ? mobileRequest.error ?? 'Connection failed. Generate a new QR code and try again.'
     : mobileExpired ? 'This QR code has expired. Generate a replacement and scan it again.'
-    : 'Waiting for confirmation in Keyring…'
+    : mobileRequest.status === 'pending' ? 'Waiting for confirmation in Keyring…'
+    : 'Generate a QR code when you are ready.'
 
   return (
     <div className="session-connections-layout">
@@ -300,10 +302,10 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           </p>
         )}
 
-        {method === 'automatic' ? !mobileExpired && (
+        {method === 'automatic' ? !mobileExpired && automaticMessage && (
           <p role="status" aria-live="polite" style={{ margin: 0 }}>{automaticMessage}</p>
         ) : (
-          <p style={{ margin: 0 }}>Run <span className="p-mono">pnm setup</span> on this computer, then paste the Admin DID it generates below.</p>
+          <p style={{ margin: 0 }}>Run <code className="connection-command">pnm setup</code> on this computer, then paste the Admin DID it generates below.</p>
         )}
 
         {(automaticQr || mobileExpired) && (
@@ -330,7 +332,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           </div>
         )}
 
-        {method !== 'automatic' && <div>
+        {method !== 'automatic' && <div className="connection-did-field">
           <span className="p-label">VTA DID</span>
           <div className="p-row gap-12" style={{ alignItems: 'center' }}>
             <p className="p-mono text-xs" style={{ minWidth: 0, flex: 1, margin: 0, overflowWrap: 'anywhere' }}>{vtaDid}</p>
@@ -398,7 +400,6 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
         <div className="card-header with-action">
           <div>
             <h3 className="card-title">Connected devices</h3>
-            <p className="card-desc">Super Admin entries in this VTA’s ACL.</p>
           </div>
           <button className="btn btn-outline btn-sm" type="button" onClick={handleRefreshAcl}
             disabled={linking || refreshingAcl}>

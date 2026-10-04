@@ -215,12 +215,14 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
   const hiddenExpired = requestExpired && !hasCurrentQr
   const qr = method === 'automatic' && request && ['pending', 'expired'].includes(request.status) &&
     request.vta_did === vtaDid && hasCurrentQr && synchronized && online ? qrPayload.value : null
-  const automaticMessage = !request || hiddenExpired ? 'Generate a QR code when you are ready.'
+  const automaticMessage = request?.status === 'cancelled' ? null
+    : !request || hiddenExpired ? 'Generate a QR code when you are ready.'
     : request.status === 'awaiting_mobile' ? 'Your VTA is ready. Waiting for Keyring to finish connecting.'
     : request?.status === 'provisioning' ? 'Keyring confirmation received. Setting up your VTA…'
     : request?.status === 'failed' ? request.error ?? 'Connection failed. View the setup details for the next step.'
     : expired ? 'This QR code has expired. Generating a replacement requires a new scan.'
-    : 'Waiting for confirmation in Keyring…'
+    : request.status === 'pending' ? 'Waiting for confirmation in Keyring…'
+    : 'Generate a QR code when you are ready.'
 
   return <div className="p-card" style={{ marginBottom: 20, borderColor: 'hsl(var(--primary)/.35)' }}>
     <div className="card-header">
@@ -245,10 +247,10 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
           Keyring connection is unavailable in this environment. Connect with PNM instead.
         </p>
       )}
-      {method === 'automatic' ? !expired && <p role="status" aria-live="polite">{automaticMessage}</p> : manualAccepted ? <p role="status">{session.status === 'failed'
+      {method === 'automatic' ? !expired && automaticMessage && <p role="status" aria-live="polite">{automaticMessage}</p> : manualAccepted ? <p role="status">{session.status === 'failed'
           ? 'VTA setup failed. View the setup details for the next step.'
           : 'Setting up your VTA… Wait on this page. Do not tap “I\'ve been added” in the app yet.'}</p> :
-        <p style={{ margin: 0 }}>Run <span className="p-mono">pnm setup</span> on this computer, then paste the Admin DID it generates below.</p>}
+        <p style={{ margin: 0 }}>Run <code className="connection-command">pnm setup</code> on this computer, then paste the Admin DID it generates below.</p>}
       {(qr || expired) && !inProgress && !manualAccepted && ready && <div className="connection-qr">
         <div className={`connection-qr-code${expired ? ' is-expired' : ''}`}>
           {qr
@@ -283,7 +285,11 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
         <input id="connection-admin-did" className="p-input p-mono" placeholder="did:key:z6Mk…" maxLength={128} value={adminDid} onChange={e => setAdminDid(e.target.value)} disabled={busy || inProgress} required />
         <button className="btn btn-default" disabled={busy || inProgress || !adminDid.trim() || !online}>{busy ? 'Submitting…' : 'Connect to VTA'}</button>
       </form>}
-      {method === 'automatic' && !inProgress && state?.enabled && <button className="btn btn-outline" disabled={busy || !online || !ready} onClick={() => void generate()}>{busy ? 'Generating QR code…' : !request || hiddenExpired ? 'Generate Keyring QR code' : expired ? 'Generate replacement QR code' : error ? 'Retry QR generation' : 'Regenerate QR code'}</button>}
+      {method === 'automatic' && !inProgress && state?.enabled && <div className="p-row" style={{ justifyContent: 'flex-start' }}>
+        <button className="btn btn-outline" disabled={busy || !online || !ready} onClick={() => void generate()}>
+          {busy ? 'Generating QR code…' : !request || hiddenExpired ? 'Generate Keyring QR code' : expired ? 'Generate replacement QR code' : request.status === 'cancelled' ? 'Generate new QR code' : error ? 'Retry QR generation' : 'Regenerate QR code'}
+        </button>
+      </div>}
       {statusError && <p role="status">{statusError}</p>}
       {error && <p role="alert" style={{ color: 'hsl(var(--destructive))' }}>{error}</p>}
     </div>
