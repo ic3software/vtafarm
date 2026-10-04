@@ -9,12 +9,11 @@ interface SessionPnmCardProps {
   onVtaRestarted: () => void
 }
 
-type ConnectionMethod = 'local' | 'manual' | 'automatic'
+type ConnectionMethod = 'local' | 'automatic'
 
 const connectionMethods: Array<{ value: ConnectionMethod; label: string }> = [
   { value: 'local', label: 'Local Connection' },
-  { value: 'manual', label: 'Scan and Connect Manually' },
-  { value: 'automatic', label: 'Automatic Mobile Connection (Testing)' },
+  { value: 'automatic', label: 'Automatic Mobile Connection' },
 ]
 
 function formatAclCreatedAt(value: string): string {
@@ -282,22 +281,8 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           </div>
         ) : (
           <p role="status" aria-live="polite" style={{ margin: 0 }}>{automaticMessage}</p>
-        ) : method === 'manual' ? (
-          <ol style={{ paddingLeft: 20, margin: 0, listStyleType: 'decimal' }}>
-            <li>Scan the QR code with your mobile app.</li>
-            <li>In the app, copy or share the displayed code, then paste it into Admin DID below.</li>
-            <li>Select Connect to VTA on this page.</li>
-            <li>Wait here until VTA Farm confirms it has finished. Do not tap <strong>I’ve been added</strong> in the app yet.</li>
-            <li>Return to the app and tap <strong>I’ve been added</strong>.</li>
-          </ol>
         ) : (
           <p style={{ margin: 0 }}>Run <span className="p-mono">pnm setup</span> locally and paste the Admin DID it provides.</p>
-        )}
-
-        {method === 'manual' && (
-          <div style={{ alignSelf: 'center', maxWidth: '100%' }}>
-            <QRCodeSVG value={vtaDid} size={280} level="M" marginSize={4} title="VTA DID QR code" style={{ maxWidth: '100%', height: 'auto', background: '#fff' }} />
-          </div>
         )}
 
         {automaticQr && (
@@ -351,7 +336,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
             <button className="btn btn-default" type="submit" disabled={linking || refreshingAcl || !adminDid.trim()}>
               {linking
                 ? <><svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Linking — VTA restarting…</>
-                : <>{method === 'manual' ? 'Connect to VTA' : 'Link PNM'} <span className="arrow">→</span></>}
+                : <>Link PNM <span className="arrow">→</span></>}
             </button>
           </div>
         </form>}
