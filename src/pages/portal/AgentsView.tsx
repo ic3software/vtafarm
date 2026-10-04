@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupAvailability } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import { statusBadge, timeAgo } from './portalUtils'
@@ -33,7 +33,6 @@ export function AgentsView() {
       <div className="page-head">
         <div>
           <h1>Your Agents</h1>
-          <p className="sub">Verifiable Trust Agents provisioned to your account.</p>
         </div>
         <div className="p-row gap-8">
           <button className="btn btn-outline" onClick={loadSessions}>
@@ -90,7 +89,7 @@ export function AgentsView() {
           </p>
         </div>
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap agents-table-wrap">
           <table className="p-table">
             <thead>
               <tr>
@@ -142,6 +141,40 @@ export function AgentsView() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {!sessionsLoading && sessions.length > 0 && (
+        <div className="agents-mobile-list" aria-label="Agents">
+          {sessions.map(s => {
+            const agentUrl = (s.mode === 'vta_only' ? s.url : s.urls?.vta) ?? '—'
+            return (
+              <Link className="agent-mobile-card" to={`/portal/session/${s.id}`} key={s.id}>
+                <span className="agent-mobile-card-head">
+                  <span className="p-row agent-mobile-identity">
+                    <span className="p-avatar sq">
+                      {s.vta_name ? s.vta_name.slice(0, 2).toUpperCase() : `#${s.id}`}
+                    </span>
+                    <span className="p-col agent-mobile-name">
+                      <span className="fw-600">{s.vta_name ?? `session-${s.id}`}</span>
+                      <span className="p-mono text-xs p-muted">
+                        {s.mode}
+                        {s.domain_type && s.domain_type !== 'managed' && s.domain && <> · {s.domain}</>}
+                        {s.provider_gone && (
+                          <span style={{ color: 'hsl(var(--destructive))' }}> · stack deleted</span>
+                        )}
+                      </span>
+                    </span>
+                  </span>
+                  {statusBadge(s.status)}
+                </span>
+                <span className="agent-mobile-url">
+                  <span className="agent-mobile-url-label">URL</span>
+                  <span className="p-mono">{agentUrl}</span>
+                </span>
+                <span className="agent-mobile-created">Created {timeAgo(s.created_at)}</span>
+              </Link>
+            )
+          })}
         </div>
       )}
 

@@ -15,7 +15,6 @@ export function SessionExportCard({
   const [error, setError] = useState('')
 
   const ready = session.status === 'running'
-  const isFullStack = session.mode !== 'vta_only'
 
   async function run(kind: 'configs' | 'logs') {
     setBusy(kind)
@@ -40,9 +39,7 @@ export function SessionExportCard({
       <div className="card-header">
         <h3 className="card-title">Configs &amp; logs</h3>
         <p className="card-desc">
-          {isFullStack
-            ? 'A zip per download, holding all four components — VTA, mediator, DID hosting and VTC.'
-            : 'A zip per download, holding this agent’s own config and log.'}
+          <strong>Configs contain credentials.</strong> Treat them like passwords.
         </p>
       </div>
       <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
@@ -62,11 +59,6 @@ export function SessionExportCard({
             {busy === 'logs' ? 'Preparing…' : 'Download logs'}
           </button>
         </div>
-        {ready && (
-          <span className="field-hint" style={{ marginTop: 0 }}>
-            The configs archive contains credentials. Treat it like a password export.
-          </span>
-        )}
         {error && (
           <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
         )}

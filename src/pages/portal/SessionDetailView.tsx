@@ -233,9 +233,10 @@ function SessionDetailContent() {
         <div className="p-col" style={{ gap: 0 }}>
           <span className="text-sm fw-600">Delete Agent</span>
           <span className="p-muted text-xs" style={{ margin: '4px 0 14px' }}>
+            <strong>Permanently</strong>
             {session.domain_type === 'custom'
-              ? 'Permanently removes the agent and all session data. Your own DNS records are left untouched.'
-              : 'Permanently removes the agent, DNS record, and all session data.'}
+              ? ' removes the agent and all session data. Your own DNS records are left untouched.'
+              : ' removes the agent, DNS record, and all session data.'}
           </span>
           <div>
             <button className="btn btn-destructive btn-sm" onClick={() => setShowDeleteConfirm(true)}>
@@ -252,7 +253,7 @@ function SessionDetailContent() {
       <div className="page-head">
         <div>
           <div className="p-row gap-12" style={{ marginBottom: 6 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => { loadSessions(); navigate('/portal') }} style={{ padding: '0 8px 0 6px' }}>
+            <button className="btn btn-ghost btn-sm session-back-button" onClick={() => { loadSessions(); navigate('/portal') }} style={{ padding: '0 8px 0 6px' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="m15 18-6-6 6-6"/></svg>
               Agents
             </button>

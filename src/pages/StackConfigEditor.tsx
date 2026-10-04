@@ -133,9 +133,7 @@ export function StackConfigEditor({ sessionId, admin = false, vtaOnly = false }:
         <div className="card-header">
           <h3 className="card-title">TOML configuration</h3>
           <p className="card-desc">
-            {vtaOnly
-              ? 'Edit the runtime configuration for your VTA.'
-              : 'Edit the runtime configuration for VTA, VTC, Mediator and DID Hosting.'}
+            Applying changes <strong>{vtaOnly ? 'briefly restarts your VTA' : 'briefly restarts only the selected component'}</strong>. If it fails, the previous configuration is restored when possible.
           </p>
         </div>
         <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
@@ -146,11 +144,6 @@ export function StackConfigEditor({ sessionId, admin = false, vtaOnly = false }:
               </button>
             ))}
           </div>
-          <span className="field-hint" style={{ marginTop: 0 }}>
-            {vtaOnly
-              ? 'Applying changes briefly restarts your VTA. If it fails, the previous configuration is restored when possible.'
-              : 'Applying changes briefly restarts only the selected component. If it fails, the previous configuration is restored when possible.'}
-          </span>
           {completion && <div className="p-alert alert-success"><div className="grow"><p className="alert-desc">{completion}</p></div></div>}
         </div>
       </div>
