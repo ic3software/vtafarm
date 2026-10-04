@@ -134,8 +134,6 @@ export function PlatformStackAdmins({ onVtaRestarted }: { onVtaRestarted?: () =>
           </button>
         </div>
         <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-          <p className="p-muted text-xs" style={{ margin: 0 }}>Refreshing temporarily stops and restarts the VTA.</p>
-
           {!loadingAcl && acl?.synced_at && acl.entries.length === 0 && (
             <p className="p-muted text-sm" style={{ margin: 0 }}>No Super Admin entries.</p>
           )}

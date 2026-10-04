@@ -34,6 +34,9 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
   const [acl, setAcl] = useState<SessionAcl | null>(null)
   const [loadingAcl, setLoadingAcl] = useState(true)
   const [refreshingAcl, setRefreshingAcl] = useState(false)
+  const [aclNotice, setAclNotice] = useState('')
+  const [aclError, setAclError] = useState('')
+  const [aclWarning, setAclWarning] = useState('')
   const [copied, setCopied] = useState(false)
   const [mobileSnapshot, setMobileSnapshot] = useState<{ data: MobileConnectionState; receivedAt: number } | null>(null)
   const [mobileQrPayload, setMobileQrPayload] = useState<{ requestId: string; value: string } | null>(null)
@@ -200,15 +203,18 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
     setError('')
     setNotice('')
     setWarning('')
+    setAclNotice('')
+    setAclError('')
+    setAclWarning('')
     setRefreshingAcl(true)
     try {
       const result = await api.refreshSessionAcl(sessionId)
       onVtaRestarted()
       setAcl(result)
-      setNotice('ACL refreshed.')
-      if (result.warning) setWarning(result.warning)
+      setAclNotice('Connected devices are up to date.')
+      if (result.warning) setAclWarning(result.warning)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to refresh the ACL')
+      setAclError(err instanceof Error ? err.message : 'Failed to refresh the ACL')
     } finally {
       setRefreshingAcl(false)
     }
@@ -398,9 +404,30 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
         </div>
         <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
           <p className="p-muted text-xs" style={{ margin: 0 }}>
-            {acl?.synced_at ? `Synced ${new Date(acl.synced_at).toLocaleString()}. ` : 'Not synced yet. '}
-            Refreshing temporarily stops and restarts the VTA.
+            {acl?.synced_at ? `Synced ${new Date(acl.synced_at).toLocaleString()}.` : 'Not synced yet.'}
           </p>
+
+          {aclNotice && (
+            <div className="p-alert alert-success" role="status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              <div className="grow">
+                <p className="alert-title">ACL refreshed</p>
+                <p className="alert-desc">{aclNotice}</p>
+              </div>
+            </div>
+          )}
+          {aclError && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{aclError}</p>}
+          {aclWarning && (
+            <div className="p-alert alert-warning" role="alert">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+              <div className="grow">
+                <p className="alert-title">ACL maintenance warning</p>
+                <p className="alert-desc">{aclWarning}</p>
+              </div>
+            </div>
+          )}
 
           {loadingAcl && <p className="p-muted text-sm" style={{ margin: 0 }}>Loading ACL…</p>}
 
