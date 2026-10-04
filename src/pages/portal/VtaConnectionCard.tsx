@@ -3,10 +3,9 @@ import { QRCodeSVG } from 'qrcode.react'
 import { api, type MobileConnectionState, type SetupSession } from '@/lib/api'
 import { isValidAdminDid } from './portalUtils'
 
-type Method = 'local' | 'manual' | 'automatic'
+type Method = 'local' | 'automatic'
 const methods: Array<{ value: Method; label: string }> = [
   { value: 'local', label: 'Local Connection' },
-  { value: 'manual', label: 'Scan and Connect Manually' },
   { value: 'automatic', label: 'Automatic Mobile Connection' },
 ]
 const accepted = (state: MobileConnectionState | null) =>
@@ -206,7 +205,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
     return <div className="p-card"><div className="card-content">Preparing your VTA. You can connect when it is ready.</div></div>
   }
   const expired = !!request && (request.status === 'expired' || (request.status === 'pending' && remaining === 0))
-  const qr = method === 'manual' ? vtaDid : method === 'automatic' && request?.callback_url && request.vta_did === vtaDid && !expired && synchronized && online
+  const qr = method === 'automatic' && request?.callback_url && request.vta_did === vtaDid && !expired && synchronized && online
     ? JSON.stringify({ vta_did: request.vta_did, callback_url: request.callback_url }) : null
   const automaticMessage = !request ? 'Generate a QR code when you are ready.'
     : request.status === 'awaiting_mobile' ? 'Your VTA is ready. Waiting for your phone to finish connecting.'
@@ -225,7 +224,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
         <div className="p-row gap-12 wrap-flex">
           {methods.map(option => <label key={option.value} className="p-row gap-8" style={{ cursor: 'pointer' }}>
             <input type="radio" name={`connection-${sessionId}`} value={option.value} checked={method === option.value} disabled={option.value === 'automatic' && !state?.enabled} onChange={() => void choose(option.value)} />
-            {option.label}{option.value === 'automatic' ? ' (Testing)' : ''}
+            {option.label}
           </label>)}
         </div>
       </fieldset>
@@ -240,15 +239,9 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
       </div> : <p role="status" aria-live="polite">{automaticMessage}</p> : manualAccepted ? <p role="status">{session.status === 'failed'
           ? 'VTA setup failed. View the setup details for the next step.'
           : 'Setting up your VTA… Wait on this page. Do not tap “I\'ve been added” in the app yet.'}</p> :
-        method === 'manual' ? <ol style={{ paddingLeft: 20, margin: 0, listStyleType: 'decimal' }}>
-          <li>Scan the QR code with your mobile app.</li>
-          <li>In the app, copy or share the displayed code, then paste it into Admin DID below.</li>
-          <li>Select Connect to VTA on this page.</li>
-          <li>Wait here until VTA Farm confirms it has finished. Do not tap <strong>I’ve been added</strong> in the app yet.</li>
-          <li>Return to the app and tap <strong>I’ve been added</strong>.</li>
-        </ol> : <p>Run <span className="p-mono">pnm setup</span> locally and paste the Admin DID it provides.</p>}
+        <p>Run <span className="p-mono">pnm setup</span> locally and paste the Admin DID it provides.</p>}
       {qr && !inProgress && !manualAccepted && ready && <div style={{ alignSelf: 'center', maxWidth: '100%' }}>
-        <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title={method === 'manual' ? 'VTA DID QR code' : 'VTA mobile connection QR code'} style={{ maxWidth: '100%', height: 'auto', background: '#fff' }} />
+        <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title="VTA mobile connection QR code" style={{ maxWidth: '100%', height: 'auto', background: '#fff' }} />
       </div>}
       {import.meta.env.DEV && method === 'automatic' && qr && request?.callback_url && <div className="p-alert alert-warning" role="note">
         <div className="grow" style={{ minWidth: 0 }}>
