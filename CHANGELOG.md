@@ -1,5 +1,21 @@
 # Changelog
 
+## [v0.12.1] - 2026-10-05
+
+### Added
+
+- Keyring download dialogs display scannable QR codes for iOS TestFlight and
+  Google Play.
+- PNM downloads support macOS and show platform-specific terminal instructions
+  in dialogs, with a button to copy the commands.
+
+### Changed
+
+- Linux PNM downloads use the latest release link, and setup instructions run
+  the downloaded executable with `./pnm setup`.
+
+Requires vtafarm-api 0.12.1.
+
 ## [v0.12.0] - 2026-10-05
 
 ### Added
