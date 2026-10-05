@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.12.0] - 2026-10-05
+
+### Added
+
+- Agent lists show VTA usage and account limits; creation dialogs explain how
+  to free a slot when the two-VTA limit is reached.
+
+### Changed
+
+- Admin user controls now label **Beta Access** as **Fullstack Access**, granting
+  unlimited VTAs and Full Stack creation. Only users with access see Mode
+  selection.
+
+Requires vtafarm-api 0.12.0.
+
 ## [v0.11.3] - 2026-10-04
 
 ### Changed

@@ -273,6 +273,11 @@
 .portal-root .dialog-desc { font-size: 13px; color: hsl(var(--muted-foreground)); margin: 0; line-height: 1.5; }
 .portal-root .dialog-body { padding: 0 24px 20px; display: flex; flex-direction: column; gap: 16px; }
 .portal-root .dialog-footer { padding: 16px 24px; background: hsl(var(--muted) / 0.4); border-top: 1px solid hsl(var(--border)); display: flex; justify-content: flex-end; gap: 10px; }
+.portal-root .vta-limit-dialog { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: calc(100% - 48px); z-index: 101; }
+.portal-root .vta-limit-dialog .dialog-header { padding: 18px 24px; border-bottom: 1px solid hsl(var(--border)); }
+.portal-root .vta-limit-dialog .dialog-title { margin: 0; }
+.portal-root .vta-limit-dialog .dialog-body { padding: 20px 24px; }
+.portal-root .vta-usage { margin-top: 6px; font-size: 13px; color: hsl(var(--muted-foreground)); }
 
 /* --- Tabs --- */
 .portal-root .p-tabs { display: inline-flex; gap: 2px; padding: 3px; background: hsl(var(--muted)); border-radius: calc(var(--radius) - 1px); }
@@ -447,6 +452,10 @@
 .portal-root .p-stat .k { font-size: 12px; color: hsl(var(--muted-foreground)); font-weight: 500; }
 .portal-root .p-stat .v { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin-top: 6px; font-family: var(--serif); }
 .portal-root .p-stat .v small { font-size: 13px; font-family: var(--sans); color: hsl(var(--muted-foreground)); font-weight: 400; }
+.portal-root .vta-quota { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; min-height: 22px; margin-top: 12px; font-size: 12px; color: hsl(var(--muted-foreground)); }
+.portal-root .vta-quota-row { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.portal-root .vta-quota-row .p-badge.badge-warning { font-family: var(--sans); font-size: 12px; letter-spacing: normal; color: hsl(35 92% 30%); }
+.dark .portal-root .vta-quota-row .p-badge.badge-warning { color: hsl(var(--warning)); }
 
 /* --- Empty state --- */
 .portal-root .p-empty { text-align: center; padding: 56px 24px; border: 1px dashed hsl(var(--border)); border-radius: var(--radius); }

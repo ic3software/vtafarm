@@ -3,12 +3,12 @@ import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupAvailability } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import { statusBadge, timeAgo } from './portalUtils'
+import { VtaLimitDialog } from './VtaLimitDialog'
 
 export function AgentsView() {
-  const { sessions, sessionsLoading, loadSessions, betaAccess } = useOutletContext<PortalContext>()
-  // Refresh on entering the tab. loadSessions is a stable useCallback in
-  // Portal, so naming it here does not add a re-run.
-  useEffect(() => { loadSessions() }, [loadSessions])
+  const { sessions, sessionsLoading, sessionsError, loadSessions, fullstackAccess, vtaCount, vtaLimit } = useOutletContext<PortalContext>()
+  const [showLimitDialog, setShowLimitDialog] = useState(false)
+  const limitReached = vtaLimit !== null && vtaCount >= vtaLimit
   const navigate = useNavigate()
 
   const [availability, setAvailability] = useState<SetupAvailability | null>(null)
@@ -19,7 +19,7 @@ export function AgentsView() {
   // POST /setup remains the authoritative gate.
   const canCreate = !availability ||
     availability.vta_only.available ||
-    (betaAccess && availability.full_stack.available)
+    (fullstackAccess && availability.full_stack.available)
   // With one mode blocked the reason is unambiguous; with both, VTA-only's is
   // the one that applies to every account.
   const blockedReason = availability?.vta_only.detail
@@ -41,9 +41,9 @@ export function AgentsView() {
           </button>
           <button
             className="btn btn-default"
-            onClick={() => navigate('/portal/create')}
-            disabled={!canCreate}
-            title={canCreate ? undefined : blockedReason}
+            onClick={() => limitReached ? setShowLimitDialog(true) : navigate('/portal/create')}
+            disabled={sessionsLoading || !!sessionsError || (!limitReached && !canCreate)}
+            title={limitReached || canCreate ? undefined : blockedReason}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 5v14M5 12h14"/></svg>
             Create VTA
@@ -54,7 +54,7 @@ export function AgentsView() {
       {/* A disabled button with no reason is worse than no button. This is the
           shared mediator and DID hosting being absent — nothing the user can
           fix, so say so plainly rather than leaving them clicking. */}
-      {!canCreate && blockedReason && (
+      {!limitReached && !canCreate && blockedReason && (
         <div className="p-alert alert-warning" style={{ marginBottom: 20 }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
           <div className="grow">
@@ -65,14 +65,30 @@ export function AgentsView() {
       )}
 
       <div className="p-stats" style={{ marginBottom: 24 }}>
-        <div className="p-stat"><div className="k">Total</div><div className="v">{sessions.length}</div></div>
+        <div className="p-stat">
+          <div className="k">Total VTAs / Limit</div>
+          <div className="v vta-quota-row">
+            <span>{sessions.length} / {sessionsLoading || sessionsError ? '—' : (vtaLimit ?? '∞')}</span>
+            {!sessionsLoading && !sessionsError && limitReached && (
+              <span className="p-badge badge-warning" role="status">Limit reached</span>
+            )}
+          </div>
+          {(sessionsLoading || sessionsError) && (
+            <div className="vta-quota" role="status">
+              {sessionsLoading ? <span>Loading VTA usage…</span>
+                : <span>{sessionsError}</span>}
+            </div>
+          )}
+        </div>
         <div className="p-stat"><div className="k">Active agents</div><div className="v">{active}</div></div>
-        <div className="p-stat"><div className="k">Provisioning</div><div className="v">{provisioning}{provisioning > 0 && <small> · in progress</small>}</div></div>
+        <div className="p-stat"><div className="k">Provisioning</div><div className="v">{provisioning}</div></div>
         <div className="p-stat"><div className="k">Failed</div><div className="v">{failed}</div></div>
       </div>
 
       {sessionsLoading ? (
         <div className="p-empty"><p>Loading…</p></div>
+      ) : sessionsError && sessions.length === 0 ? (
+        <div className="p-empty"><p>Unable to load agents. Refresh to try again.</p></div>
       ) : sessions.length === 0 ? (
         <div className="p-empty">
           <div className="ic">
@@ -178,6 +194,7 @@ export function AgentsView() {
         </div>
       )}
 
+      <VtaLimitDialog open={showLimitDialog} onOpenChange={setShowLimitDialog} />
     </section>
   )
 }

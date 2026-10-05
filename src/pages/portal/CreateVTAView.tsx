@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
-import { api, API_BASE, type SetupSession, type SetupAvailability, type ConnectionInspection, type Domain } from '@/lib/api'
+import { api, API_BASE, type ApiError, type SetupSession, type SetupAvailability, type ConnectionInspection, type Domain } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import {
   statusBadge, FULL_STACK_PHASES, componentHost, phaseIndex, useDomainInfo, vtaOnlyPhases,
@@ -10,18 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FullStackCreateProgress } from './FullStackCreateProgress'
 import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 import { VtaConnectionCard } from './VtaConnectionCard'
+import { VtaLimitDialog } from './VtaLimitDialog'
+import { VTA_LIMIT_MESSAGE } from './vtaAccess'
 
 type Stage = 0 | 1 | 2 | 3
 type Mode = 'vta_only' | 'full_stack'
 
 export function CreateVTAView() {
-  // betaAccess comes from the portal shell, which already reads it fresh from
-  // the DB — the JWT doesn't carry it, and an admin can flip it at any time.
-  const { loadSessions, betaAccess } = useOutletContext<PortalContext>()
+  const { loadSessions, sessionsLoading, sessionsError, fullstackAccess, vtaCount, vtaLimit } = useOutletContext<PortalContext>()
+  const limitReached = vtaLimit !== null && vtaCount >= vtaLimit
+  const [showLimitDialog, setShowLimitDialog] = useState(false)
+  const [limitRejected, setLimitRejected] = useState(false)
   const navigate = useNavigate()
 
   const [stage, setStage] = useState<Stage>(0)
-  const [mode, setMode] = useState<Mode>('vta_only')
+  const [selectedMode, setMode] = useState<Mode>('vta_only')
+  const mode = stage === 0 && !fullstackAccess ? 'vta_only' : selectedMode
   const [connectionChoice, setConnectionChoice] = useState<'platform' | 'custom'>('platform')
   const [didHostingDid, setDidHostingDid] = useState('')
   const [mediatorDid, setMediatorDid] = useState('')
@@ -277,6 +281,12 @@ export function CreateVTAView() {
     : null
 
   async function handleCreate() {
+    if (sessionsLoading || sessionsError) return
+    if (limitReached) { setShowLimitDialog(true); return }
+    if (mode === 'full_stack' && !fullstackAccess) {
+      setCreateError('Full Stack creation requires Fullstack Access.')
+      return
+    }
     if (!selectedImage) { setCreateError('Select a VTA image'); return }
     if (mode !== 'vta_only' && (!selectedMediatorImage || !selectedDidsImage)) {
       setCreateError('Select a mediator and DID hosting image'); return
@@ -306,8 +316,16 @@ export function CreateVTAView() {
       })
       setSessionId(r.id)
       setStage(1)
+      loadSessions()
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Failed to create session')
+      if ((err as ApiError).reason === 'vta_limit_reached') {
+        setLimitRejected(true)
+        setShowLimitDialog(true)
+        loadSessions()
+      } else {
+        setCreateError(err instanceof Error ? err.message : 'Failed to create session')
+        if ((err as ApiError).reason === 'fullstack_access_required') loadSessions()
+      }
     } finally {
       setCreating(false)
     }
@@ -381,10 +399,34 @@ export function CreateVTAView() {
     (setupLogsDone || !setupStreamStarted)
   const terminalLabel = `vtafarm · setup --follow ${vtaName}`
 
+  if (stage === 0 && !limitRejected && (sessionsLoading || sessionsError || limitReached)) return (
+    <section className="p-content">
+      <div className="page-head"><h1>Create a Verifiable Trust Agent</h1></div>
+      {sessionsLoading ? <p>Loading VTA usage…</p> : (
+        <div className="p-card">
+          <div className="card-header">
+            <h3 className="card-title">{sessionsError ? 'VTA usage unavailable' : 'VTA limit reached'}</h3>
+            <p className="card-desc">{sessionsError || VTA_LIMIT_MESSAGE}</p>
+          </div>
+          <div className="card-footer">
+            {sessionsError && <button className="btn btn-outline" onClick={loadSessions}>Refresh</button>}
+            <button className="btn btn-default" onClick={() => navigate('/portal')}>Back to Your Agents</button>
+          </div>
+        </div>
+      )}
+      <VtaLimitDialog open={showLimitDialog} onOpenChange={setShowLimitDialog} />
+    </section>
+  )
+
   return (
     <section className="p-content">
       <div className="page-head">
-        <h1>Create a Verifiable Trust Agent</h1>
+        <div>
+          <h1>Create a Verifiable Trust Agent</h1>
+          {stage === 0 && sessionsError && <p className="vta-usage">
+            {sessionsError}
+          </p>}
+        </div>
       </div>
 
       {/* Stepper — full_stack renders its own live one inside FullStackCreateProgress once a session exists */}
@@ -404,7 +446,7 @@ export function CreateVTAView() {
         <div className="p-card">
           <div className="card-header">
             <h3 className="card-title">Create a session</h3>
-            <p className="card-desc">Name your agent, choose a mode, and select the images to provision.</p>
+            <p className="card-desc">{fullstackAccess ? 'Name your agent, choose a mode, and select the images to provision.' : 'Name your agent and select the images to provision.'}</p>
           </div>
           <div className="card-content p-col gap-16">
             {modeUnavailable && (
@@ -425,22 +467,13 @@ export function CreateVTAView() {
                 </div>
               </div>
             )}
-            <div>
+            {fullstackAccess && <div>
               <div className="p-label">Mode <span className="req">*</span></div>
-              {betaAccess ? (
-                <div className="p-tabs full">
-                  <button type="button" className="p-tab" data-active={mode === 'vta_only'} onClick={() => setMode('vta_only')}>VTA Only</button>
-                  <button type="button" className="p-tab" data-active={mode === 'full_stack'} onClick={() => setMode('full_stack')}>Full Stack</button>
-                </div>
-              ) : (
-                <span className="p-badge badge-secondary">VTA Only</span>
-              )}
-              <div className="field-hint">
-                {mode === 'vta_only'
-                  ? 'Deploys the VTA with the platform stack or a mediator and DID host you choose.'
-                  : 'Deploys a dedicated VTA + DIDComm Mediator + WebVH DID Hosting daemon + Verifiable Trust Community just for you.'}
+              <div className="p-tabs full">
+                <button type="button" className="p-tab" data-active={mode === 'vta_only'} onClick={() => setMode('vta_only')}>VTA Only</button>
+                <button type="button" className="p-tab" data-active={mode === 'full_stack'} onClick={() => setMode('full_stack')}>Full Stack</button>
               </div>
-            </div>
+            </div>}
 
             {mode === 'vta_only' && (
               <div className="p-col gap-12">
@@ -682,6 +715,8 @@ export function CreateVTAView() {
               </>
             )}
             {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
+            {limitReached && <p className="field-hint">{VTA_LIMIT_MESSAGE}</p>}
+            {!fullstackAccess && <p className="field-hint">All undeleted VTAs count toward your limit, including those being set up or in a failed state. Delete a failed VTA to free up a slot.</p>}
           </div>
           <div className="card-footer between">
             <span className="field-hint" style={{ marginTop: 0 }}>
@@ -692,8 +727,8 @@ export function CreateVTAView() {
                   : 'A DNS record is created immediately after session creation.'}
             </span>
             <button className="btn btn-default" onClick={handleCreate}
-              disabled={creating || modeUnavailable || (mode === 'vta_only' && connectionChoice === 'custom' && !connectionInspection)}>
-              {creating ? 'Creating…' : modeUnavailable ? 'Unavailable' : <>Create session <span className="arrow">→</span></>}
+              disabled={creating || sessionsLoading || !!sessionsError || limitReached || (mode === 'full_stack' && !fullstackAccess) || modeUnavailable || (mode === 'vta_only' && connectionChoice === 'custom' && !connectionInspection)}>
+              {creating ? 'Creating…' : limitReached ? 'Limit reached' : modeUnavailable ? 'Unavailable' : <>Create session <span className="arrow">→</span></>}
             </button>
           </div>
         </div>
@@ -927,6 +962,7 @@ export function CreateVTAView() {
           </div>
         </>
       )}
+      <VtaLimitDialog open={showLimitDialog} onOpenChange={setShowLimitDialog} />
     </section>
   )
 }
