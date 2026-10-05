@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Dialog } from 'radix-ui'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -12,7 +13,13 @@ const CONNECTION_METHODS: Array<{
   value: ConnectionMethod
   label: string
   downloadTitle: string
-  downloads: Array<{ label: string; href: string; icon: IconDefinition; qr?: { src: string; store: string } }>
+  downloads: Array<{
+    label: string
+    href: string
+    icon: IconDefinition
+    qr?: { src: string; store: string }
+    instructions?: { platform: string; commands: string }
+  }>
 }> = [
   {
     value: 'automatic',
@@ -28,8 +35,18 @@ const CONNECTION_METHODS: Array<{
     label: 'Connect to PNM',
     downloadTitle: 'Download PNM',
     downloads: [
-      { label: 'Download for Linux', href: 'https://download.firstperson.dev/releases/latest/x86/pnm', icon: faLinux },
-      { label: 'Download for macOS', href: 'https://download.firstperson.dev/releases/latest/macOS/pnm', icon: faApple },
+      {
+        label: 'Download for Linux',
+        href: 'https://download.firstperson.dev/releases/latest/x86/pnm',
+        icon: faLinux,
+        instructions: { platform: 'Linux', commands: 'chmod +x pnm\n./pnm -h # verify it runs' },
+      },
+      {
+        label: 'Download for macOS',
+        href: 'https://download.firstperson.dev/releases/latest/macOS/pnm',
+        icon: faApple,
+        instructions: { platform: 'macOS', commands: 'chmod +x pnm\nxattr -d com.apple.quarantine pnm\n./pnm -h # verify it runs' },
+      },
     ],
   },
 ]
@@ -42,6 +59,17 @@ export function ConnectionMethodPicker({ name, value, onChange, disabled, automa
   automaticDisabled?: boolean
 }) {
   const selectedMethod = CONNECTION_METHODS.find(option => option.value === value)
+  const [copyFeedback, setCopyFeedback] = useState<{ href: string; status: 'copied' | 'error' } | null>(null)
+
+  async function copyCommands(href: string, commands: string) {
+    setCopyFeedback(null)
+    try {
+      await navigator.clipboard.writeText(commands)
+      setCopyFeedback({ href, status: 'copied' })
+    } catch {
+      setCopyFeedback({ href, status: 'error' })
+    }
+  }
 
   return (
     <>
@@ -70,8 +98,8 @@ export function ConnectionMethodPicker({ name, value, onChange, disabled, automa
       <div className="connection-downloads p-col gap-8">
         <h4 className="p-label" style={{ margin: 0 }}>{selectedMethod?.downloadTitle}</h4>
         <div className="p-row gap-8 wrap-flex">
-          {selectedMethod?.downloads.map(download => download.qr ? (
-            <Dialog.Root key={download.href}>
+          {selectedMethod?.downloads.map(download => (
+            <Dialog.Root key={download.href} onOpenChange={() => setCopyFeedback(null)}>
               <Dialog.Trigger asChild>
                 <button className="btn btn-outline btn-sm" type="button">
                   <FontAwesomeIcon icon={download.icon} aria-hidden="true" />
@@ -79,29 +107,53 @@ export function ConnectionMethodPicker({ name, value, onChange, disabled, automa
                 </button>
               </Dialog.Trigger>
               <Dialog.Overlay className="p-overlay" />
-              <Dialog.Content className="p-dialog keyring-download-dialog">
+              <Dialog.Content className="p-dialog connection-download-dialog">
                 <div className="dialog-header">
-                  <Dialog.Title asChild><h3 className="dialog-title">Download Keyring</h3></Dialog.Title>
+                  <Dialog.Title asChild><h3 className="dialog-title">
+                    {download.instructions ? `Download PNM for ${download.instructions.platform}` : 'Download Keyring'}
+                  </h3></Dialog.Title>
                   <Dialog.Description asChild>
-                    <p className="dialog-desc">Scan this QR code to open {download.qr.store} on your device.</p>
+                    <p className="dialog-desc">
+                      {download.qr
+                        ? <>Scan this QR code to open {download.qr.store} on your device.</>
+                        : <>Download PNM, then open a terminal in the folder containing <code className="connection-command">pnm</code> and run these commands.</>}
+                    </p>
                   </Dialog.Description>
                 </div>
                 <div className="dialog-body">
-                  <img className="keyring-download-qr" src={download.qr.src} alt={`${download.qr.store} download QR code`} width={280} height={280} />
+                  {download.qr
+                    ? <img className="keyring-download-qr" src={download.qr.src} alt={`${download.qr.store} download QR code`} width={280} height={280} />
+                    : download.instructions && (
+                      <div className="p-console">
+                        <div className="console-head">
+                          <div className="dots" aria-hidden="true"><span /><span /><span /></div>
+                          <span>{download.instructions.platform}</span>
+                          <button
+                            className="btn btn-ghost btn-sm pnm-copy-button"
+                            type="button"
+                            aria-label={`Copy ${download.instructions.platform} commands`}
+                            onClick={() => {
+                              if (download.instructions) void copyCommands(download.href, download.instructions.commands)
+                            }}
+                          >
+                            {copyFeedback?.href === download.href && copyFeedback.status === 'copied' ? 'Copied' : 'Copy'}
+                          </button>
+                        </div>
+                        <pre className="pnm-install-commands"><code>{download.instructions.commands}</code></pre>
+                      </div>
+                    )}
+                  {copyFeedback?.href === download.href && (copyFeedback.status === 'copied'
+                    ? <span className="sr-only" role="status">Commands copied to clipboard.</span>
+                    : <p className="dialog-desc" role="alert">Unable to copy. Select and copy the commands above.</p>)}
                 </div>
                 <div className="dialog-footer">
                   <Dialog.Close asChild><button className="btn btn-outline" type="button">Close</button></Dialog.Close>
                   <a className="btn btn-default" href={download.href} target="_blank" rel="noopener noreferrer">
-                    Open {download.qr.store}
+                    {download.qr ? `Open ${download.qr.store}` : download.label}
                   </a>
                 </div>
               </Dialog.Content>
             </Dialog.Root>
-          ) : (
-            <a key={download.href} className="btn btn-outline btn-sm" href={download.href} target="_blank" rel="noopener noreferrer">
-              <FontAwesomeIcon icon={download.icon} aria-hidden="true" />
-              {download.label}
-            </a>
           ))}
         </div>
       </div>
@@ -160,7 +212,7 @@ export function KeyringConnectionPanel({ message, qr, expired, remaining, action
 export function PnmSetupInstructions() {
   return (
     <p style={{ margin: 0 }}>
-      Run <code className="connection-command">pnm setup</code> on this computer, then paste the Admin DID it generates below.
+      Run <code className="connection-command">./pnm setup</code> on this computer, then paste the Admin DID it generates below.
     </p>
   )
 }
