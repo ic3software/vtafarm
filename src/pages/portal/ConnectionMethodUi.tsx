@@ -1,7 +1,10 @@
 import { QRCodeSVG } from 'qrcode.react'
+import { Dialog } from 'radix-ui'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { type IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { faApple, faGooglePlay, faLinux } from '@fortawesome/free-brands-svg-icons'
+import androidPlayStoreQr from '@/assets/android-play-store.svg'
+import iosTestflightQr from '@/assets/ios-testflight.svg'
 
 export type ConnectionMethod = 'local' | 'automatic'
 
@@ -9,15 +12,15 @@ const CONNECTION_METHODS: Array<{
   value: ConnectionMethod
   label: string
   downloadTitle: string
-  downloads: Array<{ label: string; href: string; icon: IconDefinition }>
+  downloads: Array<{ label: string; href: string; icon: IconDefinition; qr?: { src: string; store: string } }>
 }> = [
   {
     value: 'automatic',
     label: 'Connect to Keyring',
     downloadTitle: 'Download Keyring',
     downloads: [
-      { label: 'Download for iOS', href: 'https://testflight.apple.com/join/NQYt25SQ', icon: faApple },
-      { label: 'Google Play', href: 'https://play.google.com/store/apps/details?id=asml.bkc.harvard.wallet', icon: faGooglePlay },
+      { label: 'Download for iOS', href: 'https://testflight.apple.com/join/NQYt25SQ', icon: faApple, qr: { src: iosTestflightQr, store: 'TestFlight' } },
+      { label: 'Google Play', href: 'https://play.google.com/store/apps/details?id=asml.bkc.harvard.wallet', icon: faGooglePlay, qr: { src: androidPlayStoreQr, store: 'Google Play' } },
     ],
   },
   {
@@ -66,7 +69,34 @@ export function ConnectionMethodPicker({ name, value, onChange, disabled, automa
       <div className="connection-downloads p-col gap-8">
         <h4 className="p-label" style={{ margin: 0 }}>{selectedMethod?.downloadTitle}</h4>
         <div className="p-row gap-8 wrap-flex">
-          {selectedMethod?.downloads.map(download => (
+          {selectedMethod?.downloads.map(download => download.qr ? (
+            <Dialog.Root key={download.href}>
+              <Dialog.Trigger asChild>
+                <button className="btn btn-outline btn-sm" type="button">
+                  <FontAwesomeIcon icon={download.icon} aria-hidden="true" />
+                  {download.label}
+                </button>
+              </Dialog.Trigger>
+              <Dialog.Overlay className="p-overlay" />
+              <Dialog.Content className="p-dialog keyring-download-dialog">
+                <div className="dialog-header">
+                  <Dialog.Title asChild><h3 className="dialog-title">Download Keyring</h3></Dialog.Title>
+                  <Dialog.Description asChild>
+                    <p className="dialog-desc">Scan this QR code to open {download.qr.store} on your device.</p>
+                  </Dialog.Description>
+                </div>
+                <div className="dialog-body">
+                  <img className="keyring-download-qr" src={download.qr.src} alt={`${download.qr.store} download QR code`} width={280} height={280} />
+                </div>
+                <div className="dialog-footer">
+                  <Dialog.Close asChild><button className="btn btn-outline" type="button">Close</button></Dialog.Close>
+                  <a className="btn btn-default" href={download.href} target="_blank" rel="noopener noreferrer">
+                    Open {download.qr.store}
+                  </a>
+                </div>
+              </Dialog.Content>
+            </Dialog.Root>
+          ) : (
             <a key={download.href} className="btn btn-outline btn-sm" href={download.href} target="_blank" rel="noopener noreferrer">
               <FontAwesomeIcon icon={download.icon} aria-hidden="true" />
               {download.label}
