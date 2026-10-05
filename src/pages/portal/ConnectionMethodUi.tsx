@@ -1,10 +1,33 @@
 import { QRCodeSVG } from 'qrcode.react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { type IconDefinition } from '@fortawesome/fontawesome-svg-core'
+import { faApple, faGooglePlay, faLinux } from '@fortawesome/free-brands-svg-icons'
 
 export type ConnectionMethod = 'local' | 'automatic'
 
-const CONNECTION_METHODS: Array<{ value: ConnectionMethod; label: string }> = [
-  { value: 'automatic', label: 'Connect with Keyring' },
-  { value: 'local', label: 'Connect with PNM' },
+const CONNECTION_METHODS: Array<{
+  value: ConnectionMethod
+  label: string
+  downloadTitle: string
+  downloads: Array<{ label: string; href: string; icon: IconDefinition }>
+}> = [
+  {
+    value: 'automatic',
+    label: 'Connect to Keyring',
+    downloadTitle: 'Download Keyring',
+    downloads: [
+      { label: 'Download for iOS', href: 'https://testflight.apple.com/join/NQYt25SQ', icon: faApple },
+      { label: 'Google Play', href: 'https://play.google.com/store/apps/details?id=asml.bkc.harvard.wallet', icon: faGooglePlay },
+    ],
+  },
+  {
+    value: 'local',
+    label: 'Connect to PNM',
+    downloadTitle: 'Download PNM',
+    downloads: [
+      { label: 'Download PNM', href: 'https://download.firstperson.dev/pnm/main/pnm', icon: faLinux },
+    ],
+  },
 ]
 
 export function ConnectionMethodPicker({ name, value, onChange, disabled, automaticDisabled }: {
@@ -14,29 +37,44 @@ export function ConnectionMethodPicker({ name, value, onChange, disabled, automa
   disabled?: boolean
   automaticDisabled?: boolean
 }) {
+  const selectedMethod = CONNECTION_METHODS.find(option => option.value === value)
+
   return (
-    <fieldset style={{ border: 0, padding: 0, margin: 0 }} disabled={disabled}>
-      <legend className="p-label">How would you like to connect?</legend>
-      <div className="p-row gap-12 wrap-flex">
-        {CONNECTION_METHODS.map(option => {
-          const optionDisabled = option.value === 'automatic' && automaticDisabled
-          return (
-            <label key={option.value} className="p-row gap-8 wrap-flex" style={{ cursor: optionDisabled ? 'not-allowed' : 'pointer' }}>
-              <input
-                type="radio"
-                name={name}
-                value={option.value}
-                checked={value === option.value}
-                disabled={optionDisabled}
-                onChange={() => onChange(option.value)}
-              />
-              {option.label}
-              {option.value === 'automatic' && <span className="p-badge badge-default">Recommended</span>}
-            </label>
-          )
-        })}
+    <>
+      <fieldset style={{ border: 0, padding: 0, margin: 0 }} disabled={disabled}>
+        <legend className="p-label">How would you like to connect?</legend>
+        <div className="connection-methods">
+          {CONNECTION_METHODS.map(option => {
+            const optionDisabled = option.value === 'automatic' && automaticDisabled
+            return (
+              <label key={option.value} className={`connection-method connection-method-option${value === option.value ? ' is-selected' : ''}`}>
+                <input
+                  type="radio"
+                  name={name}
+                  value={option.value}
+                  checked={value === option.value}
+                  disabled={optionDisabled}
+                  onChange={() => onChange(option.value)}
+                />
+                {option.label}
+                {option.value === 'automatic' && <span className="p-badge badge-default">Recommended</span>}
+              </label>
+            )
+          })}
+        </div>
+      </fieldset>
+      <div className="connection-downloads p-col gap-8">
+        <h4 className="p-label" style={{ margin: 0 }}>{selectedMethod?.downloadTitle}</h4>
+        <div className="p-row gap-8 wrap-flex">
+          {selectedMethod?.downloads.map(download => (
+            <a key={download.href} className="btn btn-outline btn-sm" href={download.href} target="_blank" rel="noopener noreferrer">
+              <FontAwesomeIcon icon={download.icon} aria-hidden="true" />
+              {download.label}
+            </a>
+          ))}
+        </div>
       </div>
-    </fieldset>
+    </>
   )
 }
 
