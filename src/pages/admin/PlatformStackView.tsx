@@ -378,7 +378,7 @@ export function PlatformStackView() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
-  // Remaining full_stack capacity. beta_access doesn't apply here (the caller
+  // Remaining full_stack capacity. fullstack_access doesn't apply here (the caller
   // is an admin) but capacity does — the platform stack costs the same as any
   // other full stack, and an admin needs to know before it fails to schedule.
   const [fullStackFits, setFullStackFits] = useState<boolean | null>(null)

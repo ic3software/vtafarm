@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Fragment } from 'react'
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
 import { Outlet, useNavigate, useLocation, useMatch } from 'react-router-dom'
 import '@/styles/portal.css'
 import { useUserAuth } from '@/contexts/userAuth'
@@ -9,11 +9,14 @@ import { initials } from './portalUtils'
 export interface PortalContext {
   sessions: SetupSession[]
   sessionsLoading: boolean
+  sessionsError: string
   loadSessions: () => void
   uniqueId: string
   email: string | null
-  /** Gates the full_stack mode. Read fresh from the DB, not the JWT. */
-  betaAccess: boolean
+  /** Grants Full Stack creation and unlimited VTAs. Read fresh from the DB. */
+  fullstackAccess: boolean
+  vtaCount: number
+  vtaLimit: number | null
 }
 
 export function Portal() {
@@ -26,21 +29,43 @@ export function Portal() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [sessions, setSessions] = useState<SetupSession[]>([])
   const [sessionsLoading, setSessionsLoading] = useState(true)
+  const [sessionsError, setSessionsError] = useState('')
+  const [loadedPath, setLoadedPath] = useState<string | null>(null)
+  const usageRequest = useRef(0)
   const [email, setEmail] = useState<string | null>(null)
-  const [betaAccess, setBetaAccess] = useState(false)
+  const [fullstackAccess, setFullstackAccess] = useState(false)
+  const [vtaCount, setVtaCount] = useState(0)
+  const [vtaLimit, setVtaLimit] = useState<number | null>(2)
 
-  // Split in two: the fetch never raises the spinner, so the mount effect below
-  // does no synchronous setState (`sessionsLoading` already starts true). The
-  // exported `loadSessions` — what child views call after creating or deleting
-  // an agent — raises it, which is the only case where it is visible anyway.
   const fetchSessions = useCallback(
-    () => api.listSessions()
-      .then(setSessions)
-      .catch((err: { status?: number }) => {
-        if (err.status === 401) logout()
-      })
-      .finally(() => setSessionsLoading(false)),
-    [logout],
+    () => {
+      const request = ++usageRequest.current
+      return Promise.all([
+        api.listSessions().then(nextSessions => {
+          if (request === usageRequest.current) setSessions(nextSessions)
+        }),
+        api.getMe(),
+      ])
+        .then(([, me]) => {
+          if (request !== usageRequest.current) return
+          setEmail(me.email)
+          setFullstackAccess(me.fullstack_access ?? false)
+          setVtaCount(me.vta_count)
+          setVtaLimit(me.vta_limit)
+          setSessionsError('')
+        })
+        .catch((err: { status?: number }) => {
+          if (request !== usageRequest.current) return
+          if (err.status === 401) logout()
+          setSessionsError('Unable to load VTA usage. Refresh to try again.')
+        })
+        .finally(() => {
+          if (request !== usageRequest.current) return
+          setSessionsLoading(false)
+          setLoadedPath(location.pathname)
+        })
+    },
+    [logout, location.pathname],
   )
 
   const loadSessions = useCallback(() => {
@@ -55,14 +80,6 @@ export function Portal() {
   useEffect(() => {
     if (user) void fetchSessions()
   }, [user, fetchSessions])
-
-  useEffect(() => {
-    if (user) {
-      api.getMe()
-        .then(me => { setEmail(me.email); setBetaAccess(me.beta_access) })
-        .catch(() => {})
-    }
-  }, [user])
 
   useEffect(() => {
     if (!userMenuOpen) return
@@ -193,7 +210,7 @@ export function Portal() {
             </button>
           </header>
 
-          <Outlet context={{ sessions, sessionsLoading, loadSessions, uniqueId: user.unique_id, email, betaAccess } satisfies PortalContext} />
+          <Outlet context={{ sessions, sessionsLoading: sessionsLoading || loadedPath !== location.pathname, sessionsError, loadSessions, uniqueId: user.unique_id, email, fullstackAccess, vtaCount, vtaLimit } satisfies PortalContext} />
         </div>
       </div>
     </div>

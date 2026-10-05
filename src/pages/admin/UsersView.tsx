@@ -26,12 +26,12 @@ export function UsersView() {
 
   useEffect(() => { void loadUsers() }, [loadUsers])
 
-  async function toggleBetaAccess(user: User) {
+  async function toggleFullstackAccess(user: User) {
     setUpdatingId(user.unique_id)
     try {
-      const next = !user.beta_access
-      await api.setUserBetaAccess(user.unique_id, next)
-      setUsers(prev => prev.map(u => u.unique_id === user.unique_id ? { ...u, beta_access: next } : u))
+      const next = !user.fullstack_access
+      await api.setUserFullstackAccess(user.unique_id, next)
+      setUsers(prev => prev.map(u => u.unique_id === user.unique_id ? { ...u, fullstack_access: next } : u))
     } catch {
       // leave state unchanged — user can retry
     } finally {
@@ -74,7 +74,7 @@ export function UsersView() {
               <th>ID</th>
               <th>Unique ID</th>
               <th>Email</th>
-              <th>Beta Access</th>
+              <th title="Allows Full Stack creation and removes the 2-VTA account limit.">Fullstack Access</th>
               <th>Created</th>
               <th>Updated</th>
               <th className="col-actions" />
@@ -104,21 +104,21 @@ export function UsersView() {
                 </td>
                 <td>
                   {/* The platform stack's owner is not a person: no passkey, no
-                      email, and beta access is meaningless on it — so none of
+                      email, and Fullstack Access is meaningless on it — so none of
                       the per-user controls apply. */}
                   {u.system ? (
                     <span style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>n/a</span>
                   ) : (
                     <div className="p-row gap-8" style={{ alignItems: 'center' }}>
-                      <span className={`p-badge ${u.beta_access ? 'badge-success' : 'badge-secondary'}`}>
-                        {u.beta_access ? 'Enabled' : 'Disabled'}
+                      <span className={`p-badge ${u.fullstack_access ? 'badge-success' : 'badge-secondary'}`}>
+                        {u.fullstack_access ? 'Enabled' : 'Disabled'}
                       </span>
                       <button
                         className="btn btn-outline btn-sm"
                         disabled={updatingId === u.unique_id}
-                        onClick={() => toggleBetaAccess(u)}
+                        onClick={() => toggleFullstackAccess(u)}
                       >
-                        {updatingId === u.unique_id ? 'Saving…' : u.beta_access ? 'Revoke' : 'Grant'}
+                        {updatingId === u.unique_id ? 'Saving…' : u.fullstack_access ? 'Revoke' : 'Grant'}
                       </button>
                     </div>
                   )}

@@ -274,10 +274,10 @@ export interface User {
   unique_id: string
   /** Self-declared at signup (unverified); null for pre-email and admin-invited accounts. */
   email: string | null
-  beta_access: boolean
+  fullstack_access: boolean
   /**
    * The account that owns the platform stack. Not a login — no passkey, no
-   * email — so nothing meant for a person (beta access, recovery links) should
+   * email — so nothing meant for a person (Fullstack Access, recovery links) should
    * be offered on it.
    */
   system?: boolean
@@ -793,8 +793,8 @@ export const api = {
 
   // ── User management ──────────────────────────────────────────────────────────
   listUsers: () => req<User[]>('GET', '/api/v1/admin/users'),
-  setUserBetaAccess: (id: string, betaAccess: boolean) =>
-    req<{ id: string; beta_access: boolean }>('PUT', `/api/v1/admin/users/${id}/beta-access`, { beta_access: betaAccess }),
+  setUserFullstackAccess: (id: string, fullstackAccess: boolean) =>
+    req<{ id: string; fullstack_access: boolean }>('PUT', `/api/v1/admin/users/${id}/fullstack-access`, { fullstack_access: fullstackAccess }),
 
   // ── Admin — dashboard ────────────────────────────────────────────────────────
   adminDashboard: () => req<AdminDashboard>('GET', '/api/v1/admin/dashboard'),
@@ -963,7 +963,7 @@ export const api = {
     req<{ id: number; name: string }>('POST', `/api/v1/user/passkeys/register/complete?name=${encodeURIComponent(name)}`, credential),
   listPasskeys: () => req<PasskeyRecord[]>('GET', '/api/v1/user/passkeys'),
   deletePasskey: (id: number) => req<null>('DELETE', `/api/v1/user/passkeys/${id}`),
-  getMe: () => req<{ id: string; email: string | null; beta_access: boolean; created_at: string }>('GET', '/api/v1/user/me'),
+  getMe: () => req<{ id: string; email: string | null; fullstack_access: boolean; vta_count: number; vta_limit: number | null; created_at: string }>('GET', '/api/v1/user/me'),
 
   // ── Setup sessions ───────────────────────────────────────────────────────────
   listImages: (component: 'vta' | 'mediator' | 'dids' | 'vtc' = 'vta') =>
