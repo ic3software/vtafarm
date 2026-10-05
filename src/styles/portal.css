@@ -303,6 +303,12 @@
 .portal-root .session-acl-empty p { margin-bottom: 0; }
 .portal-root .session-danger-zone { margin-top: 24px; }
 .portal-root .session-danger-zone > .p-sep { margin: 0 0 24px; }
+.portal-root .connection-methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.portal-root .connection-method { min-width: 0; padding: 14px; border: 1px solid hsl(var(--border)); border-radius: var(--radius); }
+.portal-root .connection-method.is-selected { border-color: hsl(var(--primary) / .5); background: hsl(var(--primary) / .04); }
+.portal-root .connection-method-option { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-weight: 500; cursor: pointer; }
+.portal-root .connection-method-option:has(input:disabled) { cursor: not-allowed; opacity: .5; }
+.portal-root .connection-downloads a:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
 .portal-root .connection-qr { align-self: center; max-width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .portal-root .connection-did-field { padding: 12px 14px; border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / .35); }
 .portal-root .connection-command { display: inline-block; padding: 1px 5px; border-radius: 4px; background: hsl(var(--muted)); color: hsl(var(--foreground)); font-family: var(--mono); font-size: .9em; }
