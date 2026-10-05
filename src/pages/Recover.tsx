@@ -139,13 +139,13 @@ export function Recover() {
         <div className="auth-aside">
           <div className="grid-bg" />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <span className="p-badge badge-default" style={{ background: 'hsl(252 100% 65% / .2)', color: '#c6b8ff', borderColor: 'hsl(252 100% 75% / .3)' }}>
+            <span className="p-badge badge-default" style={{ background: 'hsl(359 67% 56% / .2)', color: '#f4c7c8', borderColor: 'hsl(359 67% 65% / .3)' }}>
               <span className="dot pulse-dot" />Portal v1.0
             </span>
           </div>
           <div style={{ position: 'relative', zIndex: 1 }}>
             <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              Identity that <em style={{ fontStyle: 'italic', color: '#c6b8ff' }}>proves itself.</em>
+              Identity that <em style={{ fontStyle: 'italic', color: '#f4c7c8' }}>proves itself.</em>
             </p>
             <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
               Provision a Verifiable Trust Agent, mint a DID, and issue credentials — all from one quiet console.

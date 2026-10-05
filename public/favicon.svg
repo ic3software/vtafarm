@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <!-- Outer box -->
   <rect width="32" height="32" rx="9" fill="#0d0d0d"/>
-  <!-- Violet diamond (rotated square with rounded corners) -->
-  <rect x="7.3" y="7.3" width="17.4" height="17.4" rx="2.9" fill="#6b4eff" transform="rotate(45 16 16)"/>
+  <!-- Red diamond (rotated square with rounded corners) -->
+  <rect x="7.3" y="7.3" width="17.4" height="17.4" rx="2.9" fill="#da4346" transform="rotate(45 16 16)"/>
   <!-- Black center cutout -->
   <rect x="11.6" y="11.6" width="8.8" height="8.8" rx="1.5" fill="#0d0d0d" transform="rotate(45 16 16)"/>
 </svg>

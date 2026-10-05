@@ -7,21 +7,21 @@
   --card-foreground: 0 0% 5%;
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 5%;
-  --primary: 252 100% 65%;
+  --primary: 358 99% 31%;
   --primary-foreground: 0 0% 100%;
   --secondary: 40 20% 93%;
   --secondary-foreground: 0 0% 12%;
   --muted: 40 18% 94%;
   --muted-foreground: 40 6% 42%;
-  --accent: 252 100% 96%;
-  --accent-foreground: 252 80% 40%;
+  --accent: 359 67% 87%;
+  --accent-foreground: 358 99% 31%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
   --success: 158 64% 40%;
   --warning: 35 92% 50%;
   --border: 40 16% 88%;
   --input: 40 16% 86%;
-  --ring: 252 100% 65%;
+  --ring: 358 99% 31%;
   --radius: 0.625rem;
   --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -29,7 +29,7 @@
   --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
   --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.08);
   --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.10), 0 2px 6px -2px hsl(0 0% 0% / 0.06);
-  --shadow-lg: 0 18px 40px -16px hsl(252 40% 20% / 0.22);
+  --shadow-lg: 0 18px 40px -16px hsl(358 40% 20% / 0.22);
 
   background: hsl(var(--background));
   color: hsl(var(--foreground));
@@ -47,21 +47,21 @@
   --card-foreground: 0 0% 96%;
   --popover: 0 0% 8%;
   --popover-foreground: 0 0% 96%;
-  --primary: 252 100% 71%;
-  --primary-foreground: 0 0% 6%;
+  --primary: 359 67% 56%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 13%;
   --secondary-foreground: 0 0% 92%;
   --muted: 0 0% 12%;
   --muted-foreground: 0 0% 60%;
-  --accent: 252 40% 18%;
-  --accent-foreground: 252 100% 86%;
+  --accent: 358 45% 18%;
+  --accent-foreground: 359 67% 87%;
   --destructive: 0 62% 52%;
   --destructive-foreground: 0 0% 98%;
   --success: 158 60% 48%;
   --warning: 35 92% 58%;
   --border: 0 0% 16%;
   --input: 0 0% 18%;
-  --ring: 252 100% 71%;
+  --ring: 359 67% 56%;
   --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
   --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.5), 0 1px 2px -1px hsl(0 0% 0% / 0.5);
   --shadow-md: 0 4px 14px -2px hsl(0 0% 0% / 0.55);
@@ -366,8 +366,8 @@
 .portal-root .console-body .lvl.warn { color: hsl(35 92% 60%); }
 .portal-root .console-body .lvl.err { color: hsl(0 72% 62%); }
 .portal-root .console-body .msg { color: hsl(0 0% 82%); white-space: pre-wrap; word-break: break-all; }
-.portal-root .console-body .msg .hl { color: hsl(252 100% 80%); }
-.portal-root .caret { display: inline-block; width: 7px; height: 14px; background: hsl(252 100% 75%); transform: translateY(2px); animation: p-blink 1.05s steps(2) infinite; }
+.portal-root .console-body .msg .hl { color: hsl(359 80% 80%); }
+.portal-root .caret { display: inline-block; width: 7px; height: 14px; background: hsl(359 70% 70%); transform: translateY(2px); animation: p-blink 1.05s steps(2) infinite; }
 @keyframes p-blink { 50% { opacity: 0; } }
 
 /* --- Animations --- */
@@ -444,7 +444,7 @@
 .portal-root .auth-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 17px; margin-bottom: 32px; }
 .portal-root .auth-aside { background: hsl(0 0% 4%); color: #fff; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 48px; }
 @media (max-width: 900px) { .portal-root .auth-aside { display: none; } }
-.portal-root .auth-aside::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60% 50% at 80% 10%, hsl(252 100% 65% / 0.35), transparent 60%); }
+.portal-root .auth-aside::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60% 50% at 80% 10%, hsl(359 67% 56% / 0.35), transparent 60%); }
 .portal-root .auth-aside .grid-bg { position: absolute; inset: 0; background-image: linear-gradient(hsl(0 0% 100% / 0.05) 1px, transparent 1px), linear-gradient(90deg, hsl(0 0% 100% / 0.05) 1px, transparent 1px); background-size: 30px 30px; mask-image: radial-gradient(ellipse at 60% 40%, black, transparent 75%); }
 
 /* --- Admin pill --- */
@@ -555,9 +555,9 @@
 
 /* --- Command block --- */
 .portal-root .p-cmd { display: flex; align-items: center; gap: 10px; background: hsl(0 0% 4%); color: #e8e8e8; font-family: var(--mono); font-size: 13px; padding: 11px 12px 11px 14px; border-radius: calc(var(--radius) - 2px); border: 1px solid hsl(var(--border)); }
-.portal-root .p-cmd .prompt { color: hsl(252 100% 78%); flex: none; }
+.portal-root .p-cmd .prompt { color: hsl(359 80% 78%); flex: none; }
 .portal-root .p-cmd .grow { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.portal-root .p-cmd .hl { color: hsl(252 100% 82%); }
+.portal-root .p-cmd .hl { color: hsl(359 80% 82%); }
 .portal-root .cmd-copy { flex: none; font-family: var(--mono); font-size: 11px; color: hsl(0 0% 60%); background: hsl(0 0% 100% / .06); border: 1px solid hsl(0 0% 100% / .12); border-radius: 6px; padding: 4px 9px; cursor: pointer; transition: background .14s, color .14s; }
 .portal-root .cmd-copy:hover { background: hsl(0 0% 100% / .12); color: #fff; }
 

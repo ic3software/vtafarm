@@ -79,9 +79,9 @@ function ArtProof() {
           { n: '02', content: <span style={{ color: 'rgba(255,255,255,0.45)' }}>→ resolving did:webvh:QmNU7Zc…SVTi6</span> },
           { n: '03', content: <><span style={{ color: 'rgba(255,255,255,0.45)' }}>→ checking signature ………</span> <span style={{ color: '#34d399' }}>ok</span></> },
           { n: '04', content: <><span style={{ color: 'rgba(255,255,255,0.45)' }}>→ checking issuer trust …</span> <span style={{ color: '#34d399' }}>ok</span></> },
-          { n: '05', content: <><span style={{ color: '#c6b8ff' }}>claim</span> <span>age_over_18 = true</span></> },
-          { n: '06', content: <><span style={{ color: '#c6b8ff' }}>disclosed</span> <span>{'{}'}</span></> },
-          { n: '07', content: <><span style={{ color: '#34d399' }}>✓ proof valid · 184 ms</span><span className="inline-block h-[14px] w-[7px] translate-y-[2px] animate-blink-cursor" style={{ background: '#c6b8ff' }} /></> },
+          { n: '05', content: <><span style={{ color: '#f4c7c8' }}>claim</span> <span>age_over_18 = true</span></> },
+          { n: '06', content: <><span style={{ color: '#f4c7c8' }}>disclosed</span> <span>{'{}'}</span></> },
+          { n: '07', content: <><span style={{ color: '#34d399' }}>✓ proof valid · 184 ms</span><span className="inline-block h-[14px] w-[7px] translate-y-[2px] animate-blink-cursor" style={{ background: '#f4c7c8' }} /></> },
         ].map(row => (
           <div key={row.n} className="flex gap-2.5">
             <span style={{ color: 'rgba(255,255,255,0.25)', width: 22 }}>{row.n}</span>

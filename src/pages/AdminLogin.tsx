@@ -42,7 +42,7 @@ export function AdminLogin() {
         <div className="auth-aside">
           <div className="grid-bg" />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <span className="p-badge badge-default" style={{ background: 'hsl(252 100% 65% / .2)', color: '#c6b8ff', borderColor: 'hsl(252 100% 75% / .3)' }}>
+            <span className="p-badge badge-default" style={{ background: 'hsl(359 67% 56% / .2)', color: '#f4c7c8', borderColor: 'hsl(359 67% 65% / .3)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 13, height: 13 }}>
                 <path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z" />
               </svg>
@@ -51,7 +51,7 @@ export function AdminLogin() {
           </div>
           <div style={{ position: 'relative', zIndex: 1 }}>
             <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              The keys to the <em style={{ fontStyle: 'italic', color: '#c6b8ff' }}>trust layer.</em>
+              The keys to the <em style={{ fontStyle: 'italic', color: '#f4c7c8' }}>trust layer.</em>
             </p>
             <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
               Provision operators, manage credentials, and steward the people who run VTA Farm.
