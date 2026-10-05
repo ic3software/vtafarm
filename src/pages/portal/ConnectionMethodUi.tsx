@@ -28,7 +28,8 @@ const CONNECTION_METHODS: Array<{
     label: 'Connect to PNM',
     downloadTitle: 'Download PNM',
     downloads: [
-      { label: 'Download PNM', href: 'https://download.firstperson.dev/pnm/main/pnm', icon: faLinux },
+      { label: 'Download for Linux', href: 'https://download.firstperson.dev/releases/latest/x86/pnm', icon: faLinux },
+      { label: 'Download for macOS', href: 'https://download.firstperson.dev/releases/latest/macOS/pnm', icon: faApple },
     ],
   },
 ]
