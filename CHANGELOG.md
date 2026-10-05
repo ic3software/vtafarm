@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.12.2] - 2026-10-05
+
+### Changed
+
+- The public site and portal now use the VTA Farm red accent palette across
+  light and dark themes, including the favicon and interface highlights.
+- The landing page promotes **Create account** as the primary action and uses
+  the clearer **Login** label for returning users.
+
+Requires vtafarm-api 0.12.1.
+
 ## [v0.12.1] - 2026-10-05
 
 ### Added
