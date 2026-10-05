@@ -13,7 +13,7 @@ export function CtaSection() {
           {/* Glow */}
           <div
             className="pointer-events-none absolute -right-[100px] -top-[100px] h-[360px] w-[360px] rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(107,78,255,0.16), transparent 65%)' }}
+            style={{ background: 'radial-gradient(circle, rgba(218,67,70,0.16), transparent 65%)' }}
           />
 
           <div>

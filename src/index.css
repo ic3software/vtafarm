@@ -16,9 +16,9 @@
   --vtafarm-ink-4: #a09e96;
   --vtafarm-line: #e3e0d6;
   --vtafarm-line-2: #ececea;
-  --vtafarm-accent: #6b4eff;
-  --vtafarm-accent-2: #5a3eff;
-  --vtafarm-accent-soft: #ece8ff;
+  --vtafarm-accent: #9d0105;
+  --vtafarm-accent-2: #7f0104;
+  --vtafarm-accent-soft: #f4c7c8;
 
   /* ── shadcn tokens (mapped to VTA Farm palette) ── */
   --background: #f7f5f0;
@@ -33,21 +33,21 @@
   --secondary-foreground: #0d0d0d;
   --muted: #f0ede7;
   --muted-foreground: #6e6c66;
-  --accent: #ece8ff;
+  --accent: #f4c7c8;
   --accent-foreground: #0d0d0d;
   --destructive: oklch(0.577 0.245 27.325);
   --border: #e3e0d6;
   --input: #e3e0d6;
-  --ring: #6b4eff;
+  --ring: #9d0105;
   --radius: 0.625rem;
   --sidebar: #f7f5f0;
   --sidebar-foreground: #0d0d0d;
   --sidebar-primary: #0d0d0d;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ece8ff;
+  --sidebar-accent: #f4c7c8;
   --sidebar-accent-foreground: #0d0d0d;
   --sidebar-border: #e3e0d6;
-  --sidebar-ring: #6b4eff;
+  --sidebar-ring: #9d0105;
 
   font: 16px/1.5 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color-scheme: light;
@@ -67,7 +67,9 @@ html.dark {
   --vtafarm-ink-4: #524f4a;
   --vtafarm-line: #3a3632;
   --vtafarm-line-2: #2a2825;
-  --vtafarm-accent-soft: hsl(252 40% 18%);
+  --vtafarm-accent: #da4346;
+  --vtafarm-accent-2: #c73a3d;
+  --vtafarm-accent-soft: hsl(358 45% 18%);
 
   /* ── shadcn tokens (dark) ── */
   --background: #0a0a0a;
@@ -76,26 +78,26 @@ html.dark {
   --card-foreground: #f5f5f2;
   --popover: #141414;
   --popover-foreground: #f5f5f2;
-  --primary: hsl(252 100% 71%);
-  --primary-foreground: #0f0f0f;
+  --primary: #da4346;
+  --primary-foreground: #ffffff;
   --secondary: #212121;
   --secondary-foreground: #ebebeb;
   --muted: #1e1e1e;
   --muted-foreground: #999999;
-  --accent: hsl(252 40% 18%);
-  --accent-foreground: hsl(252 100% 86%);
+  --accent: hsl(358 45% 18%);
+  --accent-foreground: #f4c7c8;
   --destructive: oklch(0.55 0.22 27.325);
   --border: #292929;
   --input: #2e2e2e;
-  --ring: hsl(252 100% 71%);
+  --ring: #da4346;
   --sidebar: #0a0a0a;
   --sidebar-foreground: #f5f5f2;
-  --sidebar-primary: hsl(252 100% 71%);
-  --sidebar-primary-foreground: #0f0f0f;
-  --sidebar-accent: hsl(252 40% 18%);
+  --sidebar-primary: #da4346;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: hsl(358 45% 18%);
   --sidebar-accent-foreground: #f5f5f2;
   --sidebar-border: #292929;
-  --sidebar-ring: hsl(252 100% 71%);
+  --sidebar-ring: #da4346;
 
   color-scheme: dark;
 }
@@ -246,7 +248,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
   padding: 13px;
   box-shadow:
     0 2px 4px rgba(0,0,0,.4) inset,
-    0 50px 80px -30px rgba(30,25,60,.5),
+    0 50px 80px -30px rgba(60,20,22,.5),
     0 20px 40px -20px rgba(0,0,0,.35);
   transform-origin: top center;
 }
@@ -306,7 +308,18 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
   }
   .btn-ink:hover {
     background: var(--vtafarm-accent);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.06), 0 12px 28px -10px rgba(107,78,255,0.55);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.06), 0 12px 28px -10px rgba(157,1,5,0.45);
+  }
+  .btn-accent {
+    background: var(--vtafarm-accent);
+    color: #fff;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.06), 0 10px 26px -10px color-mix(in srgb, var(--vtafarm-accent) 65%, transparent);
+    transition: background 200ms, box-shadow 200ms, transform 220ms cubic-bezier(.2,.7,.2,1);
+  }
+  .btn-accent:hover {
+    background: var(--vtafarm-accent-2);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.06), 0 14px 32px -10px color-mix(in srgb, var(--vtafarm-accent) 80%, transparent);
+    transform: translateY(-1px);
   }
   .btn-ghost-light {
     background: transparent;

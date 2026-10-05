@@ -31,7 +31,7 @@ function BrandMark() {
           position: 'absolute',
           inset: 5,
           borderRadius: 2,
-          background: '#6b4eff',
+          background: '#9d0105',
           transform: 'rotate(45deg)',
         }}
       />
@@ -125,8 +125,8 @@ export function MobilePreview() {
               fontSize: 10,
               letterSpacing: '.1em',
               textTransform: 'uppercase',
-              color: '#6b4eff',
-              background: '#ece8ff',
+              color: '#9d0105',
+              background: '#f4c7c8',
               border: '1px solid #d9d0ff',
               padding: '2px 7px',
               borderRadius: 999,
@@ -184,7 +184,7 @@ export function MobilePreview() {
         <span style={{ fontSize: 12.5, color: '#6e6c66' }}>
           Live, interactive — scroll &amp; tap inside.{' '}
           <span
-            style={{ color: '#6b4eff', fontWeight: 500, cursor: 'pointer' }}
+            style={{ color: '#9d0105', fontWeight: 500, cursor: 'pointer' }}
             onClick={() => window.open(app.src, '_blank')}
             onMouseOver={e => ((e.currentTarget as HTMLElement).style.textDecoration = 'underline')}
             onMouseOut={e => ((e.currentTarget as HTMLElement).style.textDecoration = 'none')}

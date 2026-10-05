@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 
 const DID_HTML =
-  '<span style="color:#c6b8ff">did:webvh</span>' +
+  '<span style="color:#f4c7c8">did:webvh</span>' +
   ':QmNU7ZcZz2odb3SXCrXHV1SnqjV296haTGPPDvQZd' +
-  '<span style="color:#c6b8ff">SVTi6</span>' +
+  '<span style="color:#f4c7c8">SVTi6</span>' +
   ':<span style="color:#8f86c9;border-bottom:1px dashed rgba(198,184,255,0.5);padding-bottom:1px">' +
   '&lt;bring-your-domain&gt;</span>' +
-  ':<span style="color:#c6b8ff">vta</span>'
+  ':<span style="color:#f4c7c8">vta</span>'
 
 function scrambleDID(el: HTMLElement) {
   const finalHTML = el.innerHTML
@@ -71,7 +71,7 @@ function IdentityCard() {
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            'radial-gradient(60% 50% at 85% 0%, rgba(107,78,255,0.45), transparent 60%), radial-gradient(40% 40% at 0% 100%, rgba(107,78,255,0.18), transparent 70%)',
+            'radial-gradient(60% 50% at 85% 0%, rgba(218,67,70,0.45), transparent 60%), radial-gradient(40% 40% at 0% 100%, rgba(218,67,70,0.18), transparent 70%)',
         }}
       />
       {/* Grid pattern */}
@@ -131,7 +131,7 @@ function IdentityCard() {
               className="chip rounded-full px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em]"
               style={
                 accent
-                  ? { background: 'rgba(107,78,255,0.22)', border: '1px solid rgba(167,148,255,0.35)', color: '#d8cdff' }
+                  ? { background: 'rgba(218,67,70,0.22)', border: '1px solid rgba(244,199,200,0.35)', color: '#f4c7c8' }
                   : { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' }
               }
             >
@@ -147,7 +147,7 @@ function IdentityCard() {
         >
           <div className="absolute animate-spin-slow rounded-full" style={{ inset: 4, border: '1px dashed rgba(255,255,255,0.18)' }} />
           <div className="absolute animate-spin-slower rounded-full" style={{ inset: 10, border: '1px solid rgba(255,255,255,0.08)' }} />
-          <span className="font-serif text-xl" style={{ color: '#c6b8ff' }}>✦</span>
+          <span className="font-serif text-xl" style={{ color: '#f4c7c8' }}>✦</span>
         </div>
       </div>
     </div>

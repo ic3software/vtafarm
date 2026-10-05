@@ -85,7 +85,7 @@ function HomePage() {
     <main className="flex min-h-dvh items-center justify-center">
       <div className="section-wrap flex flex-col items-center text-center">
         <h1
-          className="font-serif font-normal leading-[1.05] tracking-[-0.02em]"
+          className="font-serif font-normal leading-[1.05] tracking-[-0.02em] text-vtafarm-accent"
           style={{ fontSize: 'clamp(48px, 7vw, 96px)' }}
         >
           VTA Farm
@@ -94,11 +94,23 @@ function HomePage() {
           A demo hosting service for Verifiable Trust Agents
         </p>
         <div className="mt-9 flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => handleOpenChange(true)}
+            className="btn-accent group flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
+          >
+            {/* Closed envelope crossfades into an open one on hover. */}
+            <span className="relative size-4" aria-hidden="true">
+              <Mail className="absolute inset-0 size-4 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:opacity-0" />
+              <MailOpen className="absolute inset-0 size-4 opacity-0 transition-all duration-200 group-hover:opacity-100" />
+            </span>
+            Create account
+          </button>
           <a
             href="/portal"
             className="btn-ink group flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
           >
-            Open Portal
+            Login
             <span className="inline-block transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true">→</span>
           </a>
           <a
@@ -110,19 +122,6 @@ function HomePage() {
             Docs
           </a>
         </div>
-
-        <button
-          type="button"
-          onClick={() => handleOpenChange(true)}
-          className="btn-ghost-light group mt-4 flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
-        >
-          {/* Closed envelope crossfades into an open one on hover. */}
-          <span className="relative size-4" aria-hidden="true">
-            <Mail className="absolute inset-0 size-4 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:opacity-0" />
-            <MailOpen className="absolute inset-0 size-4 opacity-0 transition-all duration-200 group-hover:opacity-100" />
-          </span>
-          Create account
-        </button>
 
         <Dialog open={open} onOpenChange={handleOpenChange}>
           <DialogContent>
