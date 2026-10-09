@@ -271,7 +271,7 @@ export function DomainsView() {
           <div className="grow">
             <p className="alert-title">Ready to use</p>
             <p className="alert-desc">
-              Pick it under <strong>Domain</strong> when you create a Full Stack agent.
+              Pick it under <strong>Domain</strong> when you create a VTC.
               You can delete the TXT record now — it's only checked at verification.
             </p>
           </div>
@@ -313,7 +313,7 @@ export function DomainsView() {
                 {domain.verified
                   ? domain.in_use_by
                     ? 'In use by one of your agents.'
-                    : 'Verified. Select it when you create a Full Stack agent.'
+                    : 'Verified. Select it when you create a VTC.'
                   : 'Create these five records at your DNS provider, then check them.'}
               </p>
             </div>

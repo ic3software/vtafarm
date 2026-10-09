@@ -38,14 +38,14 @@ export function CreateVTAView() {
   const [inspecting, setInspecting] = useState(false)
   const domainInfo = useDomainInfo()
   const [availability, setAvailability] = useState<SetupAvailability | null>(null)
-  const [vtaName, setVtaName] = useState('myvta')
+  const [vtaName, setVtaName] = useState('')
   const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedImage, setSelectedImage] = useState('')
   const [mediatorImages, setMediatorImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedMediatorImage, setSelectedMediatorImage] = useState('')
   const [didsImages, setDidsImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedDidsImage, setSelectedDidsImage] = useState('')
-  const [vtcName, setVtcName] = useState('myvtc')
+  const [vtcName, setVtcName] = useState('')
   const [vtcImages, setVtcImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
   const [selectedVtcImage, setSelectedVtcImage] = useState('')
   // Custom domains the caller has attached. Empty when they have none — and
@@ -287,6 +287,8 @@ export function CreateVTAView() {
       setCreateError('Full Stack creation requires Fullstack Access.')
       return
     }
+    if (!selectedDomain && !vtaName) { setCreateError('Enter an agent name'); return }
+    if (mode === 'full_stack' && !selectedDomain && !vtcName) { setCreateError('Enter a community name'); return }
     if (!selectedImage) { setCreateError('Select a VTA image'); return }
     if (mode !== 'vta_only' && (!selectedMediatorImage || !selectedDidsImage)) {
       setCreateError('Select a mediator and DID hosting image'); return
@@ -401,7 +403,7 @@ export function CreateVTAView() {
 
   if (stage === 0 && !limitRejected && (sessionsLoading || sessionsError || limitReached)) return (
     <section className="p-content">
-      <div className="page-head"><h1>Create a Verifiable Trust Agent</h1></div>
+      <div className="page-head"><h1>Create a Trust Agent</h1></div>
       {sessionsLoading ? <p>Loading VTA usage…</p> : (
         <div className="p-card">
           <div className="card-header">
@@ -410,7 +412,7 @@ export function CreateVTAView() {
           </div>
           <div className="card-footer">
             {sessionsError && <button className="btn btn-outline" onClick={loadSessions}>Refresh</button>}
-            <button className="btn btn-default" onClick={() => navigate('/portal')}>Back to Your Agents</button>
+            <button className="btn btn-default" onClick={() => navigate('/portal')}>Back to Your Trust Agents</button>
           </div>
         </div>
       )}
@@ -422,7 +424,7 @@ export function CreateVTAView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Create a Verifiable Trust Agent</h1>
+          <h1>Create a Trust Agent</h1>
           {stage === 0 && sessionsError && <p className="vta-usage">
             {sessionsError}
           </p>}
@@ -445,8 +447,8 @@ export function CreateVTAView() {
       {stage === 0 && (
         <div className="p-card">
           <div className="card-header">
-            <h3 className="card-title">Create a session</h3>
-            <p className="card-desc">{fullstackAccess ? 'Name your agent, choose a mode, and select the images to provision.' : 'Name your agent and select the images to provision.'}</p>
+            <h3 className="card-title">Create your own Trust Agent or VTC</h3>
+            <p className="card-desc">{fullstackAccess ? 'Choose an option, name your agent and select the image to use.' : 'Name your agent and select the images to provision.'}</p>
           </div>
           <div className="card-content p-col gap-16">
             {modeUnavailable && (
@@ -468,20 +470,20 @@ export function CreateVTAView() {
               </div>
             )}
             {fullstackAccess && <div>
-              <div className="p-label">Mode <span className="req">*</span></div>
+              <div className="p-label">Options <span className="req">*</span></div>
               <div className="p-tabs full">
-                <button type="button" className="p-tab" data-active={mode === 'vta_only'} onClick={() => setMode('vta_only')}>VTA Only</button>
-                <button type="button" className="p-tab" data-active={mode === 'full_stack'} onClick={() => setMode('full_stack')}>Full Stack</button>
+                <button type="button" className="p-tab" data-active={mode === 'vta_only'} onClick={() => setMode('vta_only')}>Personal Trust Agent</button>
+                <button type="button" className="p-tab" data-active={mode === 'full_stack'} onClick={() => setMode('full_stack')}>Verifiable Trust Community (VTC)</button>
               </div>
             </div>}
 
             {mode === 'vta_only' && (
               <div className="p-col gap-12">
                 <div>
-                  <div className="p-label">Connect to</div>
+                  <div className="p-label">Connect to <span className="req">*</span></div>
                   <div className="p-tabs full">
-                    <button type="button" className="p-tab" data-active={connectionChoice === 'platform'} onClick={() => setConnectionChoice('platform')}>Platform stack</button>
-                    <button type="button" className="p-tab" data-active={connectionChoice === 'custom'} onClick={() => setConnectionChoice('custom')}>Customize</button>
+                    <button type="button" className="p-tab" data-active={connectionChoice === 'platform'} onClick={() => setConnectionChoice('platform')}>VTA Farm&rsquo;s messaging service</button>
+                    <button type="button" className="p-tab" data-active={connectionChoice === 'custom'} onClick={() => setConnectionChoice('custom')}>Another messaging service</button>
                   </div>
                 </div>
                 {connectionChoice === 'custom' && (
@@ -550,7 +552,7 @@ export function CreateVTAView() {
                         onClick={() => navigate('/portal/domains')}>
                         Attach it under Domains
                       </button>
-                      {' '}to run this agent under your own hostnames.
+                      {' '}to run this VTC under your own domain.
                     </>
                   ) : selectedDomain ? (
                     <>Your agent gets fixed hostnames under <span className="p-mono">{selectedDomain.domain}</span>.</>
@@ -576,7 +578,7 @@ export function CreateVTAView() {
               </div>
             )}
 
-            <div className="p-section-title" style={{ marginTop: 4 }}>Personal setup</div>
+            <div className="p-section-title" style={{ marginTop: 4 }}>Agent setup</div>
             {selectedDomain ? (
               <div>
                 <label className="p-label" htmlFor="cv-label">Label <span className="req">*</span></label>
@@ -598,7 +600,7 @@ export function CreateVTAView() {
                 <label className="p-label" htmlFor="cv-name">Agent name <span className="req">*</span></label>
                 <div className="input-group">
                   <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
-                  <input className="p-input p-mono" id="cv-name" type="text" value={vtaName}
+                  <input className="p-input p-mono" id="cv-name" type="text" placeholder="my-agent" value={vtaName}
                     onChange={e => setVtaName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
                 </div>
                 <div className="field-hint">
@@ -625,6 +627,7 @@ export function CreateVTAView() {
               ) : (
                 <input className="p-input p-mono" placeholder="Loading images…" disabled />
               )}
+              <div className="field-hint">Stay with the default 'latest' image unless you have been told otherwise.</div>
             </div>
             {mode !== 'vta_only' && (
               <>
@@ -679,7 +682,7 @@ export function CreateVTAView() {
                     <label className="p-label" htmlFor="cv-vtc-name">Community name <span className="req">*</span></label>
                     <div className="input-group">
                       <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                      <input className="p-input p-mono" id="cv-vtc-name" type="text" value={vtcName}
+                      <input className="p-input p-mono" id="cv-vtc-name" type="text" placeholder="my-vtc" value={vtcName}
                         onChange={e => setVtcName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
                     </div>
                     <div className="field-hint">
@@ -716,7 +719,7 @@ export function CreateVTAView() {
             )}
             {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
             {limitReached && <p className="field-hint">{VTA_LIMIT_MESSAGE}</p>}
-            {!fullstackAccess && <p className="field-hint">All undeleted VTAs count toward your limit, including those being set up or in a failed state. Delete a failed VTA to free up a slot.</p>}
+            {!fullstackAccess && <p className="field-hint">All undeleted agents count toward your limit, including those being set up or in a failed state. Delete a failed agent to free up a slot.</p>}
           </div>
           <div className="card-footer between">
             <span className="field-hint" style={{ marginTop: 0 }}>
@@ -724,7 +727,7 @@ export function CreateVTAView() {
                 ? 'Your domain is already verified — provisioning starts right away.'
                 : mode === 'full_stack'
                   ? '4 DNS records are created immediately after session creation.'
-                  : 'A DNS record is created immediately after session creation.'}
+                  : ''}
             </span>
             <button className="btn btn-default" onClick={handleCreate}
               disabled={creating || sessionsLoading || !!sessionsError || limitReached || (mode === 'full_stack' && !fullstackAccess) || modeUnavailable || (mode === 'vta_only' && connectionChoice === 'custom' && !connectionInspection)}>
@@ -887,7 +890,7 @@ export function CreateVTAView() {
       {mode === 'vta_only' && !setupFailed && stage === 2 && (
         <div className="p-card">
           <div className="card-header">
-            <div><h3 className="card-title">Provisioning agent</h3><p className="card-desc">VTA Farm is bringing <span className="p-mono">{vtaName}</span> online.</p></div>
+            <div><h3 className="card-title">Provisioning your Trust Agent</h3><p className="card-desc">VTA Farm is bringing <span className="p-mono">{vtaName}</span> online.</p></div>
           </div>
           <div className="card-content">
             <div className="p-console">
@@ -920,7 +923,7 @@ export function CreateVTAView() {
           <div className="p-alert alert-success" style={{ marginBottom: 16 }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg>
             <div className="grow">
-              <p className="alert-title">Agent is online</p>
+              <p className="alert-title">Your Trust Agent is now online</p>
               <p className="alert-desc"><span className="p-mono">{vtaName}</span> is provisioned and running.</p>
             </div>
           </div>

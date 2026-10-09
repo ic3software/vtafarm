@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { api, type DomainInfo, type DomainType, type SetupSession, type SetupStatus } from '@/lib/api'
+import { api, type DomainInfo, type DomainType, type SetupMode, type SetupSession, type SetupStatus } from '@/lib/api'
 
 const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   // vta_only
@@ -17,7 +17,7 @@ const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   env_provision:          { cls: 'badge-warning',   label: 'env provisioning' },
   k8s_provision:          { cls: 'badge-warning',   label: 'k8s provisioning' },
   tls_provision:          { cls: 'badge-warning',   label: 'issuing certificate' },
-  step_vta_setup:         { cls: 'badge-warning',   label: 'VTA setup' },
+  step_vta_setup:         { cls: 'badge-warning',   label: 'Agent setup' },
   step_mediator_p1:       { cls: 'badge-warning',   label: 'mediator setup (1/3)' },
   step_mediator_reprov:   { cls: 'badge-warning',   label: 'mediator setup (2/3)' },
   step_mediator_p2:       { cls: 'badge-warning',   label: 'mediator setup (3/3)' },
@@ -62,6 +62,15 @@ export function statusBadge(status: SetupSession['status']) {
   )
 }
 
+/**
+ * What a session's mode is called in the portal. The raw `vta_only` /
+ * `full_stack` values are database identifiers and mean nothing to the person
+ * who owns the agent; the admin panel keeps its own operator-facing labels.
+ */
+export function modeLabel(mode: SetupMode): string {
+  return mode === 'vta_only' ? 'Trust Agent' : 'VTC'
+}
+
 export function initials(uniqueId: string) {
   return uniqueId.slice(0, 2).toUpperCase() || '??'
 }
@@ -100,9 +109,9 @@ export interface Phase {
 export const VTA_ONLY_PHASES: Phase[] = [
   { key: 'create', label: 'Create session', statuses: [] },
   { key: 'dns_env', label: 'DNS & environment', statuses: ['dns_provisioned'] },
-  { key: 'vta_setup', label: 'VTA setup', statuses: ['vta_setup_running'] },
+  { key: 'vta_setup', label: 'Agent setup', statuses: ['vta_setup_running'] },
   { key: 'admin_did', label: 'Admin DID', statuses: ['vta_setup_complete'] },
-  { key: 'deploy_vta', label: 'Deploy VTA', statuses: ['provisioning'] },
+  { key: 'deploy_vta', label: 'Deploy agent', statuses: ['provisioning'] },
   { key: 'running', label: 'Running', statuses: ['running'] },
 ]
 
@@ -126,12 +135,12 @@ export const FULL_STACK_PHASES: Phase[] = [
   // both pre-flight for the same phase, and the stepper keeps one shape for
   // every mode and domain kind.
   { key: 'dns_env',   label: 'DNS & environment', statuses: ['dns_provision', 'dns_wait', 'env_provision', 'k8s_provision', 'tls_provision'] },
-  { key: 'vta_setup', label: 'VTA setup',         statuses: ['step_vta_setup'] },
+  { key: 'vta_setup', label: 'Agent setup',         statuses: ['step_vta_setup'] },
   { key: 'mediator',  label: 'Mediator setup',    statuses: ['step_mediator_p1', 'step_mediator_reprov', 'step_mediator_p2'] },
   { key: 'dids',      label: 'DID hosting setup', statuses: ['step_dids_p1', 'step_dids_provision', 'step_dids_p2', 'step_dids_invite', 'step_dids_load_did', 'step_dids_grant_farm'] },
   { key: 'going_live', label: 'Deploy D+M',       statuses: ['deploy_dids', 'deploy_mediator', 'step_vta_register_dids'] },
   { key: 'admin_did', label: 'Admin DID',         statuses: ['awaiting_admin_did', 'step_import_admin_did', 'step_vtc_setup_key', 'step_vtc_acl_grant'] },
-  { key: 'deploy_vta', label: 'Deploy VTA',       statuses: ['deploy_vta'] },
+  { key: 'deploy_vta', label: 'Deploy agent',       statuses: ['deploy_vta'] },
   { key: 'vtc',       label: 'VTC setup',         statuses: ['step_vtc_setup', 'deploy_vtc'] },
   { key: 'running',   label: 'Running',           statuses: ['running'] },
 ]

@@ -39,26 +39,18 @@ export function AdminLogin() {
     <div className="portal-root">
       <div className="p-auth">
         {/* Aside */}
-        <div className="auth-aside">
+        {/* Only one block left in the aside, so center it: the shared
+            `space-between` rule is written for the three-block version the
+            other auth screens still use. */}
+        <div className="auth-aside" style={{ justifyContent: 'center' }}>
           <div className="grid-bg" />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <span className="p-badge badge-default" style={{ background: 'hsl(359 67% 56% / .2)', color: '#f4c7c8', borderColor: 'hsl(359 67% 65% / .3)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 13, height: 13 }}>
-                <path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z" />
-              </svg>
-              Admin console
-            </span>
-          </div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
             <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              The keys to the <em style={{ fontStyle: 'italic', color: '#f4c7c8' }}>trust layer.</em>
+              Create and manage your <em style={{ fontStyle: 'italic', color: '#f4c7c8' }}>Verifiable Trust Community</em>
             </p>
             <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
-              Provision operators, manage credentials, and steward the people who run VTA Farm.
+              Provision your VTC and manage your community members&rsquo; Trust Agents
             </p>
-          </div>
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
-            <span>Role-scoped</span><span>Audit-logged</span><span>MFA enforced</span>
           </div>
         </div>
 

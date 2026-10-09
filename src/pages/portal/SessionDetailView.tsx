@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type KeyboardEvent } from 'react'
 import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
-import { statusBadge, FULL_STACK_PHASES, phaseIndex, domainTypeBadge, vtaOnlyPhases } from './portalUtils'
+import { statusBadge, FULL_STACK_PHASES, phaseIndex, domainTypeBadge, vtaOnlyPhases, modeLabel } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ConnectedToCard } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
@@ -192,7 +192,7 @@ function SessionDetailContent() {
     <div className="p-card">
       <div className="card-header"><h3 className="card-title">Configuration</h3></div>
       <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-        <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">{session.mode}</span></div>
+        <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">{modeLabel(session.mode)}</span></div>
         <hr className="p-sep"/>
         <div className="p-row between center">
           <span className="p-muted text-sm">Domain</span>
