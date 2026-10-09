@@ -115,7 +115,7 @@ export function Portal() {
   // The agent's name comes straight from the route param, so this is right
   // before the session list has loaded rather than after.
   const trail: Array<{ label: string; path?: string }> =
-    path.includes('/create') ? [{ label: 'Create VTA' }]
+    path.includes('/create') ? [{ label: 'Create Agent' }]
     : matchSession ? [{ label: 'Agents', path: '/portal' }, { label: sessionId ?? 'Detail' }]
     : path.includes('/domains') ? [{ label: 'Domains' }]
     : path.includes('/settings') ? [{ label: 'Settings' }]
@@ -146,14 +146,18 @@ export function Portal() {
             </div>
             {/* Top level, next to Agents: a domain has to be verified *before*
                 an agent is created, so burying it under Settings would hide the
-                only step that has to come first. */}
-            <div
-              className={`nav-item ${isDomains ? 'active' : ''}`}
-              onClick={() => goTo('/portal/domains')}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-              Domains
-            </div>
+                only step that has to come first. Domains only matter for Full
+                Stack agents, so the item is hidden until the account has
+                Fullstack Access. */}
+            {fullstackAccess && (
+              <div
+                className={`nav-item ${isDomains ? 'active' : ''}`}
+                onClick={() => goTo('/portal/domains')}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Domains
+              </div>
+            )}
           </div>
           <div className="sidebar-foot">
             <div className="user-pop" data-open={userMenuOpen ? 'true' : 'false'}>

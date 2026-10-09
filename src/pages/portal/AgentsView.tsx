@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { api, type SetupAvailability } from '@/lib/api'
 import type { PortalContext } from './Portal'
-import { statusBadge, timeAgo } from './portalUtils'
+import { statusBadge, timeAgo, modeLabel } from './portalUtils'
 import { VtaLimitDialog } from './VtaLimitDialog'
 
 export function AgentsView() {
@@ -32,7 +32,7 @@ export function AgentsView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Your Agents</h1>
+          <h1>Your Trust Agents</h1>
         </div>
         <div className="p-row gap-8">
           <button className="btn btn-outline" onClick={loadSessions}>
@@ -46,7 +46,7 @@ export function AgentsView() {
             title={limitReached || canCreate ? undefined : blockedReason}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 5v14M5 12h14"/></svg>
-            Create VTA
+            Create Agent
           </button>
         </div>
       </div>
@@ -66,7 +66,7 @@ export function AgentsView() {
 
       <div className="p-stats" style={{ marginBottom: 24 }}>
         <div className="p-stat">
-          <div className="k">Total VTAs / Limit</div>
+          <div className="k">Total / Limit</div>
           <div className="v vta-quota-row">
             <span>{sessions.length} / {sessionsLoading || sessionsError ? '—' : (vtaLimit ?? '∞')}</span>
             {!sessionsLoading && !sessionsError && limitReached && (
@@ -100,7 +100,7 @@ export function AgentsView() {
           <h3>No agents yet</h3>
           <p>
             {canCreate
-              ? 'Create your first Verifiable Trust Agent to get started.'
+              ? 'Create your first Trust Agent to get started.'
               : 'Agent creation isn’t available yet — check back once an admin has finished setting up the platform.'}
           </p>
         </div>
@@ -126,11 +126,11 @@ export function AgentsView() {
                       </span>
                       <div className="p-col">
                         <span className="fw-600">{s.vta_name ?? `session-${s.id}`}</span>
-                        <span className="p-mono text-xs p-muted">
-                          {s.mode}
+                        <span className="text-xs p-muted">
+                          {modeLabel(s.mode)}
                           {/* Only worth naming when it isn't the default — a
                               "managed" tag on every row is noise. */}
-                          {s.domain_type && s.domain_type !== 'managed' && s.domain && <> · {s.domain}</>}
+                          {s.domain_type && s.domain_type !== 'managed' && s.domain && <> · <span className="p-mono">{s.domain}</span></>}
                           {/* An orphaned agent still reads `running`, because it
                               is — nothing of its own was touched. Without a
                               marker here nothing on this row would give away
@@ -172,9 +172,9 @@ export function AgentsView() {
                     </span>
                     <span className="p-col agent-mobile-name">
                       <span className="fw-600">{s.vta_name ?? `session-${s.id}`}</span>
-                      <span className="p-mono text-xs p-muted">
-                        {s.mode}
-                        {s.domain_type && s.domain_type !== 'managed' && s.domain && <> · {s.domain}</>}
+                      <span className="text-xs p-muted">
+                        {modeLabel(s.mode)}
+                        {s.domain_type && s.domain_type !== 'managed' && s.domain && <> · <span className="p-mono">{s.domain}</span></>}
                         {s.provider_gone && (
                           <span style={{ color: 'hsl(var(--destructive))' }}> · stack deleted</span>
                         )}

@@ -1,5 +1,35 @@
 # Changelog
 
+## [v0.12.3] - 2026-10-09
+
+### Added
+
+- The user login page carries a demo-site notice, warning that the site may be
+  torn down or stop accepting new agents, and links to the `vtafarm-k8s`
+  deployment code for running your own instance.
+- Image pickers advise staying with the default `latest` image unless told
+  otherwise.
+
+### Changed
+
+- The portal talks about **Trust Agents** and **Verifiable Trust Communities**
+  rather than raw `vta_only` / `full_stack` identifiers: agent lists, mode
+  badges, setup phases, and the create flow all use the member-facing names.
+- Agent creation presents **Personal Trust Agent** and **Verifiable Trust
+  Community (VTC)** as the two options, and names the connection choice after
+  the messaging service it points at.
+- Agent and community name fields start empty with example placeholders, and
+  creation reports a clear error when either is left blank.
+- Wallet sign-in is now the **VTA Browser Plugin**, with a link to the plugin
+  repository when it isn't enabled for the site.
+- The user and admin login asides lead with creating and managing your Trust
+  Agent or Verifiable Trust Community, replacing the earlier tagline and
+  feature strips.
+- **Domains** appears in the sidebar only for accounts with Fullstack Access,
+  since custom domains apply to VTCs.
+
+Requires vtafarm-api 0.12.1.
+
 ## [v0.12.2] - 2026-10-05
 
 ### Changed

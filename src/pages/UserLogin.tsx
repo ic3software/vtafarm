@@ -48,7 +48,7 @@ export function UserLogin() {
               Welcome back
             </h1>
             <p className="p-muted" style={{ margin: '0 0 32px', fontSize: 14 }}>
-              Sign in with your passkey to manage your Verifiable Trust Agents.
+              Sign in with your passkey to manage your Trust Agent.
             </p>
 
             <button
@@ -79,28 +79,40 @@ export function UserLogin() {
             />
 
             <p className="p-muted text-xs mt-24" style={{ textAlign: 'center' }}>
-              Protected by passkey or a linked VTA Wallet identity
+              Protected by passkey or a linked identity in the browser plugin.
             </p>
           </div>
         </div>
 
-        <div className="auth-aside">
+        {/* Only one block left in the aside, so center it: the shared
+            `space-between` rule is written for the three-block version the
+            other auth screens still use. */}
+        <div className="auth-aside" style={{ justifyContent: 'center' }}>
           <div className="grid-bg" />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <span className="p-badge badge-default" style={{ background: 'hsl(359 67% 56% / .2)', color: '#f4c7c8', borderColor: 'hsl(359 67% 65% / .3)' }}>
-              <span className="dot pulse-dot" />Portal v1.0
-            </span>
-          </div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
             <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              Identity that <em style={{ fontStyle: 'italic', color: '#f4c7c8' }}>proves itself.</em>
+              Create and manage your <em style={{ fontStyle: 'italic', color: '#f4c7c8' }}>Trust Agent.</em>
             </p>
             <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
-              Provision a Verifiable Trust Agent, mint a DID, and issue credentials — all from one quiet console.
+              Provision a Trust Agent in a couple of minutes and link it to your Keyring wallet or personal network manager.
             </p>
-          </div>
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
-            <span>256-bit keys</span><span>W3C DID</span><span>Zero leakage</span>
+            {/* Sets expectations before anyone invests in an agent here: the
+                hostnames and DIDs an agent mints are permanent, so "this may
+                go away" has to be said before sign-up, not after. */}
+            <div style={{ marginTop: 28, maxWidth: '42ch', padding: '14px 16px', borderRadius: 'var(--radius)', border: '1px solid hsl(359 67% 65% / .28)', background: 'hsl(359 67% 56% / .12)' }}>
+              <p style={{ color: 'hsl(0 0% 100% / .9)', fontSize: 19, fontWeight: 600, margin: '0 0 8px' }}>
+                This is a demo site
+              </p>
+              <p style={{ color: 'hsl(0 0% 100% / .6)', fontSize: 13, lineHeight: 1.55, margin: 0 }}>
+                It may be torn down at a future date, and it may stop accepting
+                new agents once it runs out of space. To run your own instance,
+                the deployment code lives in{' '}
+                <a href="https://github.com/ic3software/vtafarm-k8s" target="_blank" rel="noreferrer noopener"
+                  style={{ color: '#f4c7c8', textDecoration: 'underline' }}>
+                  vtafarm-k8s
+                </a>.
+              </p>
+            </div>
           </div>
         </div>
       </div>

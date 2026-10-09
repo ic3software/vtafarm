@@ -59,7 +59,7 @@ export function WalletLoginOption({
             style={{ gap: 10 }}
           >
             <span aria-hidden="true" style={{ fontSize: 18 }}>◈</span>
-            {loading ? 'Waiting for VTA Wallet…' : 'Continue with VTA Wallet'}
+            {loading ? 'Waiting for the plugin…' : 'Continue with VTA Browser Plugin'}
             {!loading && <span className="arrow">→</span>}
           </button>
           <p className="p-muted" style={{ margin: '8px 0 0', fontSize: 12, textAlign: 'center' }}>
@@ -68,7 +68,14 @@ export function WalletLoginOption({
         </>
       ) : (
         <p className="p-muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5, textAlign: 'center' }}>
-          Enable the VTA Wallet extension for this site, then reload to use wallet sign-in.
+          Enable the{' '}
+          {/* `.portal-root a` resets color and underline, so a link in here
+              is indistinguishable from the surrounding text without this. */}
+          <a href="https://github.com/OpenVTC/vta-browser-plugin" target="_blank" rel="noreferrer noopener"
+            style={{ color: 'hsl(var(--primary))', textDecoration: 'underline' }}>
+            VTA Browser Plugin
+          </a>{' '}
+          for this site, then reload to sign in using the plugin.
         </p>
       )}
       {error && (

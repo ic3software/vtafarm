@@ -235,8 +235,8 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
 
   return <div className="p-card" style={{ marginBottom: 20, borderColor: 'hsl(var(--primary)/.35)' }}>
     <div className="card-header">
-      <h3 className="card-title">Connect to your VTA</h3>
-      <p className="card-desc">Choose the setup that matches where you keep your administrator identity.</p>
+      <h3 className="card-title">Connect to your Trust Agent</h3>
+      <p className="card-desc">Choose Keyring if you want to manage it from your phone, or PNM if from your computer.</p>
     </div>
     <div className="card-content p-col gap-16">
       <ConnectionMethodPicker
