@@ -196,9 +196,18 @@ export function KeyringConnectionPanel({ message, qr, expired, remaining, action
 
       {(qr || expired) && (
         <div className="connection-qr">
+          {!expired && qr && (
+            <a className="btn btn-default btn-sm connection-same-device-link" href={qr}>
+              Open in Keyring
+            </a>
+          )}
           <div className={`connection-qr-code${expired ? ' is-expired' : ''}`}>
             {qr
-              ? <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title="Keyring connection QR code" />
+              ? expired
+                ? <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title="Expired Keyring connection QR code" />
+                : <a className="connection-qr-link" href={qr} aria-label="Open this connection in Keyring">
+                    <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title="Keyring connection QR code" />
+                  </a>
               : <div className="qr-expired-placeholder" aria-hidden="true" />}
             {expired && <span className="qr-expired-mark" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="m6 6 12 12M18 6 6 18"/></svg>
@@ -215,7 +224,7 @@ export function KeyringConnectionPanel({ message, qr, expired, remaining, action
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                 QR code expires in <strong>{Math.floor((remaining ?? 0) / 60).toString().padStart(2, '0')}:{((remaining ?? 0) % 60).toString().padStart(2, '0')}</strong>
               </p>
-              {qr && <a className="btn btn-outline btn-sm" href={qr}>Open in Keyring</a>}
+              {qr && <a className="btn btn-outline btn-sm connection-desktop-device-link" href={qr}>Open in Keyring</a>}
               {import.meta.env.DEV && qr && (
                 <div className="qr-development-payload">
                   <span>QR payload (development only)</span>
