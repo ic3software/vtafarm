@@ -216,6 +216,12 @@ export function KeyringConnectionPanel({ message, qr, expired, remaining, action
                 QR code expires in <strong>{Math.floor((remaining ?? 0) / 60).toString().padStart(2, '0')}:{((remaining ?? 0) % 60).toString().padStart(2, '0')}</strong>
               </p>
               {qr && <a className="btn btn-outline btn-sm" href={qr}>Open in Keyring</a>}
+              {import.meta.env.DEV && qr && (
+                <div className="qr-development-payload">
+                  <span>QR payload (development only)</span>
+                  <code>{qr}</code>
+                </div>
+              )}
             </>
           )}
         </div>

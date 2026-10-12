@@ -331,6 +331,9 @@
 .portal-root .qr-expiry { display: inline-flex; align-items: center; gap: 7px; margin: 0; padding: 8px 12px; border-radius: var(--radius); background: hsl(var(--warning) / .1); color: hsl(var(--warning)); font-size: 13px; font-weight: 500; }
 .portal-root .qr-expiry svg { width: 16px; height: 16px; flex: none; }
 .portal-root .qr-expiry strong { font-family: var(--mono); font-size: 14px; }
+.portal-root .qr-development-payload { width: min(640px, 100%); padding: 10px 12px; border: 1px dashed hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / .35); }
+.portal-root .qr-development-payload span { display: block; margin-bottom: 6px; color: hsl(var(--muted-foreground)); font-size: 12px; font-weight: 600; }
+.portal-root .qr-development-payload code { display: block; color: hsl(var(--foreground)); font-family: var(--mono); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; user-select: all; }
 .portal-root .qr-expired-message { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 0; padding: 10px 14px; border-radius: var(--radius); background: hsl(var(--destructive) / .08); color: hsl(var(--destructive)); font-size: 13px; text-align: center; }
 .portal-root .qr-expired-message strong { font-size: 14px; }
 .portal-root .qr-expired-message span { color: hsl(var(--foreground)); }
