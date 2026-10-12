@@ -4,7 +4,6 @@ import { startAuthentication } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
 import { useAdminAuth } from '@/contexts/adminAuth'
-import { WalletLoginOption } from '@/auth/siop/WalletLoginOption'
 
 export function AdminLogin() {
   const { admin, setAdminSession } = useAdminAuth()
@@ -87,14 +86,6 @@ export function AdminLogin() {
               <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
             )}
 
-            <WalletLoginOption
-              role="admin"
-              disabled={loading}
-              onSuccess={walletAdmin => {
-                setAdminSession(walletAdmin)
-                navigate('/admin')
-              }}
-            />
           </div>
         </div>
       </div>

@@ -4,7 +4,6 @@ import { startAuthentication } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
 import { useUserAuth } from '@/contexts/userAuth'
-import { WalletLoginOption } from '@/auth/siop/WalletLoginOption'
 
 export function UserLogin() {
   const { user, setUserSession } = useUserAuth()
@@ -69,18 +68,6 @@ export function UserLogin() {
               <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
             )}
 
-            <WalletLoginOption
-              role="user"
-              disabled={loading}
-              onSuccess={walletUser => {
-                setUserSession(walletUser)
-                navigate('/portal')
-              }}
-            />
-
-            <p className="p-muted text-xs mt-24" style={{ textAlign: 'center' }}>
-              Protected by passkey or a linked identity in the browser plugin.
-            </p>
           </div>
         </div>
 
