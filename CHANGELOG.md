@@ -1,5 +1,23 @@
 # Changelog
 
+## [v0.13.0] - 2026-10-13
+
+### Added
+
+- Keyring connections use VTI trigger links that can be opened directly on the
+  same device or scanned as a QR code.
+- Claiming a VTA now requires comparing a short code and explicitly confirming
+  or rejecting the Keyring before initial provisioning or adding another
+  administrator.
+
+### Changed
+
+- Removed VTA Browser Plugin account sign-in and linked-identity management;
+  account authentication continues to use passkeys.
+- Updated React, SimpleWebAuthn, Tailwind CSS, shadcn, and TypeScript tooling.
+
+Requires vtafarm-api 0.13.0.
+
 ## [v0.12.3] - 2026-10-09
 
 ### Added
