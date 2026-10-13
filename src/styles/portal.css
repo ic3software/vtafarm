@@ -322,8 +322,12 @@
 .portal-root .pnm-install-commands { margin: 0; padding: 14px 16px; overflow-x: auto; font: inherit; }
 .portal-root .pnm-copy-button { margin-left: auto; height: 24px; padding: 0 8px; font-family: inherit; color: hsl(0 0% 88%); }
 .portal-root .pnm-copy-button:hover { background: hsl(0 0% 100% / .08); color: hsl(0 0% 100%); }
+.portal-root .connection-same-device-link { display: none; }
 .portal-root .connection-qr-code { position: relative; display: grid; place-items: center; max-width: 100%; }
-.portal-root .connection-qr-code > svg { display: block; max-width: 100%; height: auto; background: #fff; transition: opacity .2s, filter .2s; }
+.portal-root .connection-qr-link { display: block; max-width: 100%; line-height: 0; }
+.portal-root .connection-qr-link:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 4px; border-radius: 2px; }
+.portal-root .connection-qr-code > svg,
+.portal-root .connection-qr-link > svg { display: block; max-width: 100%; height: auto; background: #fff; transition: opacity .2s, filter .2s; }
 .portal-root .connection-qr-code.is-expired > svg { opacity: .18; filter: grayscale(1); }
 .portal-root .qr-expired-placeholder { width: 280px; max-width: 100%; aspect-ratio: 1; border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted)); opacity: .55; }
 .portal-root .qr-expired-mark { position: absolute; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 999px; background: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); box-shadow: 0 0 0 8px hsl(var(--background) / .78); }
@@ -331,9 +335,17 @@
 .portal-root .qr-expiry { display: inline-flex; align-items: center; gap: 7px; margin: 0; padding: 8px 12px; border-radius: var(--radius); background: hsl(var(--warning) / .1); color: hsl(var(--warning)); font-size: 13px; font-weight: 500; }
 .portal-root .qr-expiry svg { width: 16px; height: 16px; flex: none; }
 .portal-root .qr-expiry strong { font-family: var(--mono); font-size: 14px; }
+.portal-root .qr-development-payload { width: min(640px, 100%); padding: 10px 12px; border: 1px dashed hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / .35); }
+.portal-root .qr-development-payload span { display: block; margin-bottom: 6px; color: hsl(var(--muted-foreground)); font-size: 12px; font-weight: 600; }
+.portal-root .qr-development-payload code { display: block; color: hsl(var(--foreground)); font-family: var(--mono); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; user-select: all; }
 .portal-root .qr-expired-message { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 0; padding: 10px 14px; border-radius: var(--radius); background: hsl(var(--destructive) / .08); color: hsl(var(--destructive)); font-size: 13px; text-align: center; }
 .portal-root .qr-expired-message strong { font-size: 14px; }
 .portal-root .qr-expired-message span { color: hsl(var(--foreground)); }
+
+@media (hover: none), (pointer: coarse) {
+  .portal-root .connection-same-device-link { display: inline-flex; }
+  .portal-root .connection-desktop-device-link { display: none; }
+}
 
 /* --- Stepper --- */
 .portal-root .stepper { display: flex; align-items: flex-start; width: 100%; }

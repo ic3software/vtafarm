@@ -4,7 +4,6 @@ import { startRegistration } from '@simplewebauthn/browser'
 import { api, type PasskeyRecord } from '@/lib/api'
 import { initials } from '../portal/portalUtils'
 import type { AdminContext } from './AdminPanel'
-import { VTAWalletIdentities } from '@/auth/siop/VTAWalletIdentities'
 
 const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'
 function fmt(iso: string) {
@@ -134,8 +133,6 @@ export function SecurityView() {
           ))}
         </div>
       </div>
-
-      <VTAWalletIdentities role="admin" hasPasskey={passkeys.length > 0} />
 
       {showAdd && (
         <div className="p-overlay">

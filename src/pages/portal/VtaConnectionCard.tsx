@@ -4,9 +4,9 @@ import { isValidAdminDid } from './portalUtils'
 import { ConnectionMethodPicker, KeyringConnectionPanel, PnmAdminDidForm, PnmSetupInstructions, VtaDidCopyField, type ConnectionMethod } from './ConnectionMethodUi'
 
 const accepted = (state: MobileConnectionState | null) =>
-  !!state?.connection && ['provisioning', 'awaiting_mobile', 'connected', 'failed'].includes(state.connection.status)
+  !!state?.connection && ['claimed', 'confirmed', 'provisioning', 'released'].includes(state.connection.status)
 const restorable = (state: MobileConnectionState) =>
-  !!state.connection && ['pending', 'provisioning', 'awaiting_mobile'].includes(state.connection.status)
+  !!state.connection && ['open', 'claimed', 'confirmed', 'provisioning'].includes(state.connection.status)
 
 export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSessionChange }: {
   session: SetupSession
@@ -45,17 +45,17 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
     const receivedAt = performance.now()
     setQrPayload(current => {
       const connection = data.connection
-      const expiredAtReceipt = !!connection && (connection.status === 'expired' ||
-        (connection.status === 'pending' && Date.parse(connection.expires_at) <= Date.parse(data.server_time)))
-      if (connection?.status === 'pending' && connection.callback_url && !expiredAtReceipt) {
+      const expiredAtReceipt = !!connection && (connection.status === 'lapsed' ||
+        (connection.status === 'open' && Date.parse(connection.expires_at) <= Date.parse(data.server_time)))
+      if (connection?.status === 'open' && connection.trigger_link && !expiredAtReceipt) {
         return {
           requestId: connection.request_id,
-          value: JSON.stringify({ vta_did: connection.vta_did, callback_url: connection.callback_url }),
+          value: connection.trigger_link,
         }
       }
       return connection && current?.requestId === connection.request_id ? current : null
     })
-    shouldPoll.current = !!data.connection && ['pending', 'provisioning', 'awaiting_mobile'].includes(data.connection.status)
+    shouldPoll.current = !!data.connection && ['open', 'claimed', 'confirmed', 'provisioning'].includes(data.connection.status)
     setSnapshot({ data, receivedAt })
     setNow(receivedAt)
     setSynchronized(true)
@@ -116,7 +116,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
       if (!active.current || version !== sequence.current) return null
       apply(data)
       setError('')
-      if (message && data.connection?.status === 'pending') setNotice(message)
+      if (message && data.connection?.status === 'open') setNotice(message)
       return data
     } catch (err) {
       if (!active.current || version !== sequence.current) return null
@@ -141,6 +141,16 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
     } else {
       await mutate(() => api.createMobileConnection(sessionId))
     }
+  }
+
+  async function confirmClaim() {
+    if (request?.status !== 'claimed') return
+    await mutate(() => api.confirmMobileConnection(sessionId, request.request_id))
+  }
+
+  async function rejectClaim() {
+    if (request?.status !== 'claimed') return
+    await mutate(() => api.rejectMobileConnection(sessionId, request.request_id), 'That claim was rejected. Generate a new QR code when you are ready.')
   }
 
   function choose(next: ConnectionMethod) {
@@ -182,7 +192,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
     catch { setError('Unable to copy. Select and copy the VTA DID below.') }
   }
 
-  if ((manualAccepted && session.status === 'running') || request?.status === 'connected') {
+  if ((manualAccepted && session.status === 'running') || request?.status === 'released') {
     return (
       <div className="p-alert alert-success" role="status" style={{ marginBottom: 20 }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -191,8 +201,8 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
         <div className="grow">
           <p className="alert-title">Connection ready</p>
           <p className="alert-desc">
-            {request?.status === 'connected'
-              ? 'Your device is connected to this VTA through Keyring.'
+            {request?.status === 'released'
+              ? 'The administrator key is installed. Keyring can now redeem the VTA hand-over.'
               : 'VTA Farm has finished connecting this administrator. Return to the app and tap “I\'ve been added”.'}
           </p>
         </div>
@@ -204,19 +214,19 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
     if (session.status === 'running' || session.status === 'failed') return null
     return null
   }
-  const requestExpired = !!request && (request.status === 'expired' || (request.status === 'pending' && remaining === 0))
+  const requestExpired = !!request && (request.status === 'lapsed' || (request.status === 'open' && remaining === 0))
   const hasCurrentQr = !!request && qrPayload?.requestId === request.request_id
   const expired = requestExpired && hasCurrentQr
   const hiddenExpired = requestExpired && !hasCurrentQr
-  const qr = method === 'automatic' && request && ['pending', 'expired'].includes(request.status) &&
+  const qr = method === 'automatic' && request && ['open', 'lapsed'].includes(request.status) &&
     request.vta_did === vtaDid && hasCurrentQr && synchronized && online ? qrPayload.value : null
-  const automaticMessage = request?.status === 'cancelled' ? null
+  const automaticMessage = request?.status === 'rejected' ? 'That claim was rejected. The candidate key was not installed.'
     : !request || hiddenExpired ? 'Generate a QR code when you are ready.'
-    : request.status === 'awaiting_mobile' ? 'Your VTA is ready. Waiting for Keyring to finish connecting.'
-    : request?.status === 'provisioning' ? 'Keyring confirmation received. Setting up your VTA…'
-    : request?.status === 'failed' ? request.error ?? 'Connection failed. View the setup details for the next step.'
+    : request.status === 'claimed' ? 'A Keyring claimed this link. Compare the code on both screens before continuing.'
+    : request.status === 'confirmed' ? 'Code confirmed. Preparing to install the administrator key…'
+    : request?.status === 'provisioning' ? request.error ?? 'Installing the confirmed administrator key and setting up your VTA…'
     : expired ? 'This QR code has expired. Generating a replacement requires a new scan.'
-    : request.status === 'pending' ? 'Waiting for confirmation in Keyring…'
+    : request.status === 'open' ? 'Scan this VTI trigger link with Keyring.'
     : 'Generate a QR code when you are ready.'
   const showKeyringQr = !inProgress && !manualAccepted && ready
   const keyringActionLabel = method === 'automatic' && !inProgress && state?.enabled
@@ -226,7 +236,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
         ? 'Generate Keyring QR code'
         : expired
           ? 'Generate replacement QR code'
-          : request.status === 'cancelled'
+          : ['rejected', 'lapsed'].includes(request.status)
             ? 'Generate new QR code'
             : error
               ? 'Retry QR generation'
@@ -262,6 +272,10 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
           actionLabel={keyringActionLabel}
           actionDisabled={busy || !online || !ready}
           onAction={() => void generate()}
+          claimCheck={request?.status === 'claimed' ? request.claim_check : undefined}
+          candidateDid={request?.status === 'claimed' ? request.candidate_did : undefined}
+          onConfirm={request?.status === 'claimed' ? () => void confirmClaim() : undefined}
+          onReject={request?.status === 'claimed' ? () => void rejectClaim() : undefined}
         />
       ) : manualAccepted ? <p role="status">{session.status === 'failed'
           ? 'VTA setup failed. View the setup details for the next step.'

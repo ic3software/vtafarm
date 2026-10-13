@@ -16,10 +16,14 @@ export const API_BASE: string = _apiUrl
 
 export interface MobileConnection {
   request_id: string
-  status: 'pending' | 'expired' | 'cancelled' | 'provisioning' | 'awaiting_mobile' | 'connected' | 'failed'
+  status: 'open' | 'claimed' | 'confirmed' | 'provisioning' | 'released' | 'rejected' | 'lapsed'
   vta_did: string
+  operation: 'provision_vta' | 'grant_acl'
   expires_at: string
-  callback_url?: string
+  confirm_by?: string
+  trigger_link?: string
+  claim_check?: string
+  candidate_did?: string
   error?: string
 }
 
@@ -297,28 +301,6 @@ export interface PasskeyRecord {
   name: string
   created_at: string
   last_used_at: string | null
-}
-
-export type SIOPRole = 'user' | 'admin'
-
-export interface SIOPMetadata {
-  enabled: boolean
-  rp_did: string
-}
-
-export interface SIOPIdentity {
-  id: number
-  did: string
-  label: string
-  created_at: string
-  last_authenticated_at: string | null
-  last_kid: string
-}
-
-export interface SIOPChallenge {
-  challenge: string
-  session_id: string
-  expires_at: string
 }
 
 export interface Invitation {
@@ -736,28 +718,6 @@ function filenameFromDisposition(header: string | null): string | undefined {
 }
 
 export const api = {
-  // ── VTA Wallet SIOP ─────────────────────────────────────────────────────────
-  siopMetadata: () => req<SIOPMetadata>('GET', '/api/v1/auth/siop/metadata'),
-  siopLoginChallenge: (role: SIOPRole, did: string) =>
-    req<SIOPChallenge>('POST', `/api/v1/auth/${role}/siop/challenge`, { did }, false),
-  siopLoginAuthenticate: (role: SIOPRole, sessionId: string, idToken: string) =>
-    req<{ user: UserInfo }>('POST', `/api/v1/auth/${role}/siop/authenticate`, {
-      session_id: sessionId,
-      id_token: idToken,
-    }, false),
-  siopLinkChallenge: (role: SIOPRole, did: string) =>
-    req<SIOPChallenge>('POST', `/api/v1/${role}/siop/link/challenge`, { did }, false),
-  siopLinkAuthenticate: (role: SIOPRole, sessionId: string, idToken: string, label: string) =>
-    req<SIOPIdentity>('POST', `/api/v1/${role}/siop/link/authenticate`, {
-      session_id: sessionId,
-      id_token: idToken,
-      label,
-    }, false),
-  listSIOPIdentities: (role: SIOPRole) =>
-    req<SIOPIdentity[]>('GET', `/api/v1/${role}/siop/identities`),
-  deleteSIOPIdentity: (role: SIOPRole, id: number) =>
-    req<null>('DELETE', `/api/v1/${role}/siop/identities/${id}`),
-
   // ── Auth — User ──────────────────────────────────────────────────────────────
   userPasskeyLoginBegin: () =>
     req<{ session_id: string; publicKey: unknown }>('POST', '/api/v1/auth/user/passkey/begin'),
@@ -1037,6 +997,10 @@ export const api = {
     req<MobileConnectionState>('POST', `/api/v1/setup/${id}/mobile-connections/${requestId}/refresh`),
   cancelMobileConnection: (id: string, requestId: string) =>
     req<MobileConnectionState>('DELETE', `/api/v1/setup/${id}/mobile-connections/${requestId}`),
+  confirmMobileConnection: (id: string, requestId: string) =>
+    req<MobileConnectionState>('POST', `/api/v1/setup/${id}/mobile-connections/${requestId}/confirm`),
+  rejectMobileConnection: (id: string, requestId: string) =>
+    req<MobileConnectionState>('POST', `/api/v1/setup/${id}/mobile-connections/${requestId}/reject`),
   provisionAdmin: (id: string, admin_did: string) =>
     req<{ status: string }>('POST', `/api/v1/setup/${id}/admin`, { admin_did }),
   // Link another PNM to an already-running VTA. Unlike provisionAdmin, this

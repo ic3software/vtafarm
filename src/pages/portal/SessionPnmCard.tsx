@@ -45,7 +45,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
   const mobileRestored = useRef(false)
   const mobileState = mobileSnapshot?.data ?? null
   const mobileRequest = mobileState?.connection
-  const mobileProvisioning = mobileRequest?.status === 'provisioning'
+  const mobileProvisioning = !!mobileRequest && ['claimed', 'confirmed', 'provisioning'].includes(mobileRequest.status)
   const mobileRemaining = mobileSnapshot && mobileRequest
     ? Math.max(0, Math.ceil((Date.parse(mobileRequest.expires_at) - Date.parse(mobileSnapshot.data.server_time) - (mobileNow - mobileSnapshot.receivedAt)) / 1000))
     : 0
@@ -54,22 +54,22 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
     const receivedAt = performance.now()
     setMobileQrPayload(current => {
       const connection = data.connection
-      const expiredAtReceipt = !!connection && (connection.status === 'expired' ||
-        (connection.status === 'pending' && Date.parse(connection.expires_at) <= Date.parse(data.server_time)))
-      if (connection?.status === 'pending' && connection.callback_url && !expiredAtReceipt) {
+      const expiredAtReceipt = !!connection && (connection.status === 'lapsed' ||
+        (connection.status === 'open' && Date.parse(connection.expires_at) <= Date.parse(data.server_time)))
+      if (connection?.status === 'open' && connection.trigger_link && !expiredAtReceipt) {
         return {
           requestId: connection.request_id,
-          value: JSON.stringify({ vta_did: connection.vta_did, callback_url: connection.callback_url }),
+          value: connection.trigger_link,
         }
       }
       return connection && current?.requestId === connection.request_id ? current : null
     })
-    mobileShouldPoll.current = !!data.connection && ['pending', 'provisioning', 'awaiting_mobile'].includes(data.connection.status)
+    mobileShouldPoll.current = !!data.connection && ['open', 'claimed', 'confirmed', 'provisioning'].includes(data.connection.status)
     setMobileSnapshot({ data, receivedAt })
     setMobileNow(receivedAt)
     setMobileSynchronized(true)
     if (!mobileRestored.current) {
-      const activeRequest = data.connection && ['pending', 'provisioning', 'awaiting_mobile'].includes(data.connection.status)
+      const activeRequest = data.connection && ['open', 'claimed', 'confirmed', 'provisioning'].includes(data.connection.status)
       setMethod(activeRequest || data.enabled ? 'automatic' : 'local')
     }
     mobileRestored.current = true
@@ -157,6 +157,16 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
     }
   }
 
+  async function confirmMobileClaim() {
+    if (mobileRequest?.status !== 'claimed') return
+    await mutateMobile(() => api.confirmMobileConnection(sessionId, mobileRequest.request_id))
+  }
+
+  async function rejectMobileClaim() {
+    if (mobileRequest?.status !== 'claimed') return
+    await mutateMobile(() => api.rejectMobileConnection(sessionId, mobileRequest.request_id))
+  }
+
   async function handleLink() {
     const trimmed = adminDid.trim()
 
@@ -225,7 +235,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
 
   async function chooseMethod(next: ConnectionMethod) {
     if (linking || refreshingAcl || mobileBusy || mobileProvisioning) return
-    if (next !== 'automatic' && mobileRequest?.status === 'awaiting_mobile') {
+    if (next !== 'automatic' && mobileRequest?.status === 'open') {
       const data = await mutateMobile(() => api.cancelMobileConnection(sessionId, mobileRequest.request_id))
       if (!data) return
     }
@@ -235,30 +245,31 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
     setWarning('')
   }
 
-  const mobileRequestExpired = !!mobileRequest && (mobileRequest.status === 'expired' || (mobileRequest.status === 'pending' && mobileRemaining === 0))
+  const mobileRequestExpired = !!mobileRequest && (mobileRequest.status === 'lapsed' || (mobileRequest.status === 'open' && mobileRemaining === 0))
   const hasCurrentMobileQr = !!mobileRequest && mobileQrPayload?.requestId === mobileRequest.request_id
   const mobileExpired = mobileRequestExpired && hasCurrentMobileQr
   const hiddenMobileExpired = mobileRequestExpired && !hasCurrentMobileQr
-  const automaticQr = method === 'automatic' && mobileRequest && ['pending', 'expired'].includes(mobileRequest.status) &&
+  const automaticQr = method === 'automatic' && mobileRequest && ['open', 'lapsed'].includes(mobileRequest.status) &&
     mobileRequest.vta_did === vtaDid && hasCurrentMobileQr && mobileSynchronized && online ? mobileQrPayload.value : null
-  const automaticMessage = mobileRequest?.status === 'cancelled' ? null
+  const automaticMessage = mobileRequest?.status === 'rejected' ? 'That claim was rejected. The candidate key was not added.'
     : !mobileRequest || hiddenMobileExpired ? 'Generate a QR code when you are ready.'
-    : mobileRequest.status === 'connected' ? 'Keyring is connected. You can generate another QR code for a different device.'
-    : mobileRequest?.status === 'awaiting_mobile' ? 'The administrator was added. Waiting for Keyring to finish connecting.'
-    : mobileRequest?.status === 'provisioning' ? 'Keyring confirmation received. Adding the administrator and restarting your VTA…'
-    : mobileRequest?.status === 'failed' ? mobileRequest.error ?? 'Connection failed. Generate a new QR code and try again.'
+    : mobileRequest.status === 'released' ? 'The administrator key is installed. Keyring can redeem the VTA hand-over.'
+    : mobileRequest.status === 'claimed' ? 'A Keyring claimed this link. Compare the code on both screens before continuing.'
+    : mobileRequest.status === 'confirmed' ? 'Code confirmed. Preparing to add the administrator…'
+    : mobileRequest?.status === 'provisioning' ? mobileRequest.error ?? 'Adding the confirmed administrator and restarting your VTA…'
     : mobileExpired ? 'This QR code has expired. Generate a replacement and scan it again.'
-    : mobileRequest.status === 'pending' ? 'Waiting for confirmation in Keyring…'
+    : mobileRequest.status === 'open' ? 'Scan this VTI trigger link with Keyring.'
     : 'Generate a QR code when you are ready.'
   const keyringActionLabel = method === 'automatic' && mobileState?.enabled && !mobileProvisioning &&
-    (mobileRequest?.status !== 'pending' || mobileRequestExpired)
+    !['claimed', 'confirmed', 'provisioning'].includes(mobileRequest?.status ?? '') &&
+    (mobileRequest?.status !== 'open' || mobileRequestExpired)
     ? mobileBusy
       ? 'Generating QR code…'
       : !mobileRequest || hiddenMobileExpired
         ? 'Generate Keyring QR code'
         : mobileExpired
           ? 'Generate replacement QR code'
-          : mobileRequest.status === 'awaiting_mobile'
+          : mobileRequest.status === 'released'
             ? 'Regenerate QR code'
             : 'Generate new QR code'
     : null
@@ -303,6 +314,10 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
             actionLabel={keyringActionLabel}
             actionDisabled={mobileBusy || !online}
             onAction={() => void generateMobileQr()}
+            claimCheck={mobileRequest?.status === 'claimed' ? mobileRequest.claim_check : undefined}
+            candidateDid={mobileRequest?.status === 'claimed' ? mobileRequest.candidate_did : undefined}
+            onConfirm={mobileRequest?.status === 'claimed' ? () => void confirmMobileClaim() : undefined}
+            onReject={mobileRequest?.status === 'claimed' ? () => void rejectMobileClaim() : undefined}
           />
         ) : <PnmSetupInstructions />}
 

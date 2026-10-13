@@ -161,7 +161,7 @@ export function ConnectionMethodPicker({ name, value, onChange, disabled, automa
   )
 }
 
-export function KeyringConnectionPanel({ message, qr, expired, remaining, actionLabel, actionDisabled, onAction }: {
+export function KeyringConnectionPanel({ message, qr, expired, remaining, actionLabel, actionDisabled, onAction, claimCheck, candidateDid, onConfirm, onReject }: {
   message?: string | null
   qr?: string | null
   expired?: boolean
@@ -169,16 +169,45 @@ export function KeyringConnectionPanel({ message, qr, expired, remaining, action
   actionLabel?: string | null
   actionDisabled?: boolean
   onAction?: () => void
+  claimCheck?: string
+  candidateDid?: string
+  onConfirm?: () => void
+  onReject?: () => void
 }) {
   return (
     <>
       {!expired && message && <p role="status" aria-live="polite" style={{ margin: 0 }}>{message}</p>}
 
+      {claimCheck && (
+        <div className="p-alert alert-warning" role="status">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          <div className="grow p-col gap-8">
+            <p className="alert-title">Compare the code in Keyring</p>
+            <p className="alert-desc">Only continue if Keyring shows exactly this code.</p>
+            <strong style={{ fontFamily: 'monospace', fontSize: 28, letterSpacing: '.18em' }}>{claimCheck}</strong>
+            {candidateDid && <p className="p-muted text-sm" style={{ margin: 0, overflowWrap: 'anywhere' }}>{candidateDid}</p>}
+            <div className="p-row gap-8 wrap-flex">
+              {onConfirm && <button className="btn btn-default" type="button" disabled={actionDisabled} onClick={onConfirm}>Codes match</button>}
+              {onReject && <button className="btn btn-outline" type="button" disabled={actionDisabled} onClick={onReject}>Not mine</button>}
+            </div>
+          </div>
+        </div>
+      )}
+
       {(qr || expired) && (
         <div className="connection-qr">
+          {!expired && qr && (
+            <a className="btn btn-default btn-sm connection-same-device-link" href={qr}>
+              Open in Keyring
+            </a>
+          )}
           <div className={`connection-qr-code${expired ? ' is-expired' : ''}`}>
             {qr
-              ? <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title="Keyring connection QR code" />
+              ? expired
+                ? <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title="Expired Keyring connection QR code" />
+                : <a className="connection-qr-link" href={qr} aria-label="Open this connection in Keyring">
+                    <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title="Keyring connection QR code" />
+                  </a>
               : <div className="qr-expired-placeholder" aria-hidden="true" />}
             {expired && <span className="qr-expired-mark" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="m6 6 12 12M18 6 6 18"/></svg>
@@ -190,10 +219,19 @@ export function KeyringConnectionPanel({ message, qr, expired, remaining, action
               <span>Click “Generate replacement QR code” below to create a new one.</span>
             </p>
           ) : (
-            <p className="qr-expiry" aria-live="off">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-              QR code expires in <strong>{Math.floor((remaining ?? 0) / 60).toString().padStart(2, '0')}:{((remaining ?? 0) % 60).toString().padStart(2, '0')}</strong>
-            </p>
+            <>
+              <p className="qr-expiry" aria-live="off">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                QR code expires in <strong>{Math.floor((remaining ?? 0) / 60).toString().padStart(2, '0')}:{((remaining ?? 0) % 60).toString().padStart(2, '0')}</strong>
+              </p>
+              {qr && <a className="btn btn-outline btn-sm connection-desktop-device-link" href={qr}>Open in Keyring</a>}
+              {import.meta.env.DEV && qr && (
+                <div className="qr-development-payload">
+                  <span>QR payload (development only)</span>
+                  <code>{qr}</code>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
