@@ -448,6 +448,50 @@
 .portal-root .load-test-table thead th:last-child,
 .portal-root .load-test-table tbody td:last-child { padding-right: 24px; }
 
+/* --- Pooled VTA inventory and claim station --- */
+.portal-root .pool-create-card { margin-bottom: 24px; }
+.portal-root .pool-create-form { display: grid; gap: 16px; padding: 20px 24px 24px; }
+.portal-root .pool-create-grid { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(140px, .35fr) minmax(260px, 1fr); gap: 16px; }
+.portal-root .pool-capacity { display: flex; align-items: baseline; gap: 8px; color: hsl(var(--muted-foreground)); font-size: 12px; }
+.portal-root .pool-capacity-value { color: hsl(var(--foreground)); font-family: var(--serif); font-size: 28px; font-weight: 600; }
+.portal-root .pool-form-error { margin: 0; color: hsl(var(--destructive)); font-size: 13px; }
+.portal-root .pool-list-head { justify-content: space-between; margin-bottom: 10px; }
+.portal-root .pool-row { cursor: pointer; }
+.portal-root .pool-row:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
+.portal-root .pool-image-tag { font-size: 12px; }
+.portal-root .pool-empty-row { padding: 24px; text-align: center; }
+.portal-root .pool-page-error { margin-bottom: 18px; }
+.portal-root .pool-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+.portal-root .pool-station { margin-bottom: 20px; overflow: hidden; }
+.portal-root .pool-station > .card-header { padding-bottom: 20px; }
+.portal-root .pool-station-body { min-height: 390px; border-top: 1px solid hsl(var(--border)); display: grid; place-items: center; padding: 28px; position: relative; }
+.portal-root .pool-station-empty, .portal-root .pool-progress-panel, .portal-root .pool-success-panel, .portal-root .pool-confirm-panel { max-width: 620px; text-align: center; }
+.portal-root .pool-station-empty h3, .portal-root .pool-progress-panel h2, .portal-root .pool-success-panel h2, .portal-root .pool-confirm-panel h2 { margin: 0 0 8px; }
+.portal-root .pool-station-empty p, .portal-root .pool-progress-panel p, .portal-root .pool-success-panel p, .portal-root .pool-confirm-panel p { color: hsl(var(--muted-foreground)); margin: 0 auto 20px; max-width: 58ch; }
+.portal-root .pool-station-icon { width: 52px; height: 52px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 16px; background: hsl(var(--accent)); color: hsl(var(--primary)); font-size: 30px; }
+.portal-root .pool-claim-grid { width: min(100%, 760px); display: grid; grid-template-columns: 332px 1fr; align-items: center; gap: 44px; }
+.portal-root .pool-qr-wrap { display: grid; place-items: center; background: #fff; border: 1px solid hsl(var(--border)); border-radius: 18px; padding: 18px; box-shadow: var(--shadow-md); }
+.portal-root .pool-qr-missing { width: 292px; height: 292px; display: grid; place-items: center; color: hsl(var(--muted-foreground)); }
+.portal-root .pool-claim-copy h2 { font-size: 26px; margin: 10px 0 10px; }
+.portal-root .pool-claim-copy p { color: hsl(var(--muted-foreground)); line-height: 1.55; }
+.portal-root .pool-claim-copy .pool-claim-countdown { width: fit-content; margin: 14px 0 20px; padding: 8px 12px; border: 1px solid hsl(var(--border)); border-radius: 8px; background: hsl(var(--muted)); color: hsl(var(--foreground)); font-family: var(--mono); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.portal-root .pool-claim-development-url { margin: 0 0 20px; }
+.portal-root .pool-claim-development-value { display: flex; align-items: center; gap: 10px; }
+.portal-root .pool-claim-development-value code { flex: 1; min-width: 0; }
+.portal-root .pool-claim-development-value .btn { flex: none; }
+.portal-root .pool-step { display: inline-flex; border: 1px solid hsl(var(--primary)/.3); background: hsl(var(--accent)); color: hsl(var(--primary)); border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.portal-root .pool-confirm-panel h2 { margin-top: 10px; font-size: 26px; }
+.portal-root .pool-claim-check { margin: 22px auto 18px; font-family: var(--mono); font-size: clamp(40px, 8vw, 76px); line-height: 1; letter-spacing: .18em; font-weight: 700; color: hsl(var(--foreground)); }
+.portal-root .pool-confirm-actions { justify-content: center; }
+.portal-root .pool-success-icon { width: 58px; height: 58px; margin: 0 auto 18px; display: grid; place-items: center; border-radius: 50%; background: hsl(142 68% 40% / .13); color: hsl(142 62% 36%); font-size: 30px; font-weight: 700; }
+.portal-root .pool-station-error { position: absolute; left: 28px; right: 28px; bottom: 14px; text-align: center; }
+.portal-root .pool-members-card { overflow: hidden; }
+.portal-root .pool-members-card > .card-header { padding-bottom: 20px; }
+.portal-root .pool-members-table-wrap { border: 0; border-top: 1px solid hsl(var(--border)); border-radius: 0; }
+.portal-root .pool-members-table th:first-child, .portal-root .pool-members-table td:first-child { width: 48px; padding-left: 24px; }
+.portal-root .pool-members-table th:last-child, .portal-root .pool-members-table td:last-child { padding-right: 24px; }
+.portal-root .pool-session-error { min-width: 220px; max-width: 420px; white-space: normal; overflow-wrap: anywhere; color: hsl(var(--destructive)); font-size: 12px; }
+
 /* --- Auth layout --- */
 .portal-root .p-auth { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
 @media (max-width: 900px) { .portal-root .p-auth { grid-template-columns: 1fr; } }
@@ -498,6 +542,14 @@
   .portal-root .load-test-form-grid { grid-template-columns: 1fr; }
   .portal-root .load-test-run-header { flex-direction: column; gap: 14px; }
   .portal-root .load-test-run-actions { justify-content: flex-start; }
+  .portal-root .pool-create-grid { grid-template-columns: 1fr; }
+  .portal-root .pool-capacity { align-items: center; }
+  .portal-root .pool-stats { grid-template-columns: repeat(2, 1fr); }
+  .portal-root .pool-claim-grid { grid-template-columns: 1fr; gap: 24px; }
+  .portal-root .pool-qr-wrap { width: min(100%, 330px); margin: 0 auto; }
+  .portal-root .pool-station-body { padding: 22px 16px 36px; }
+  .portal-root .pool-members-card .card-header { align-items: stretch; }
+  .portal-root .pool-members-card .card-header.with-action { flex-direction: column; gap: 14px; }
   .portal-root .p-table { min-width: 560px; }
   .portal-root .stepper .step .s-sub { display: none; }
   .portal-root .stepper .step .s-label { font-size: 10px; max-width: 8ch; }

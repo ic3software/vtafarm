@@ -23,6 +23,8 @@ import { ResourceDefaultsView } from '@/pages/admin/ResourceDefaultsView'
 import { SessionsView } from '@/pages/admin/SessionsView'
 import { LoadTestingView } from '@/pages/admin/LoadTestingView'
 import { LoadTestingDetailView } from '@/pages/admin/LoadTestingDetailView'
+import { PoolBatchesView } from '@/pages/admin/PoolBatchesView'
+import { PoolBatchDetailView } from '@/pages/admin/PoolBatchDetailView'
 import { PlatformStackView } from '@/pages/admin/PlatformStackView'
 import { InvitationsView } from '@/pages/admin/InvitationsView'
 import { SecurityView } from '@/pages/admin/SecurityView'
@@ -200,6 +202,8 @@ export default function App() {
               <Route path="resource-defaults" element={<ResourceDefaultsView />} />
               <Route path="load-testing" element={<LoadTestingView />} />
               <Route path="load-testing/:id" element={<LoadTestingDetailView />} />
+              <Route path="pools" element={<PoolBatchesView />} />
+              <Route path="pools/:id" element={<PoolBatchDetailView />} />
               <Route path="platform-stack" element={<PlatformStackView />} />
               <Route path="invitations" element={<InvitationsView />} />
               <Route path="settings" element={<SecurityView />} />

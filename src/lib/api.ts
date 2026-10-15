@@ -36,6 +36,8 @@ export interface MobileConnectionState {
 export type SetupStatus =
   // vta_only
   | 'dns_provisioned' | 'vta_setup_running' | 'awaiting_did_publication' | 'vta_setup_complete' | 'provisioning' | 'running'
+  // pooled vta_only inventory
+  | 'pool_creating' | 'pool_publishing' | 'pool_prepared' | 'pool_waiting' | 'deleting'
   // full_stack
   | 'dns_provision' | 'dns_wait' | 'env_provision' | 'k8s_provision' | 'tls_provision'
   | 'step_vta_setup'
@@ -581,6 +583,48 @@ export interface AdminDashboard {
   estimates: { vta_only: DashboardEstimate; full_stack: DashboardEstimate }
 }
 
+export interface PoolCounts {
+  total: number
+  creating: number
+  waiting: number
+  claiming: number
+  activating: number
+  running: number
+  failed: number
+  deleting: number
+}
+
+export interface PoolSession {
+  session_id: number
+  user_id: number
+  vta_name: string
+  status: SetupStatus
+  error_msg?: string
+  url: string
+  claimed: boolean
+  cleanable: boolean
+  claim_state?: MobileConnection['status']
+}
+
+export interface PoolBatch {
+  id: number
+  label: string
+  requested_count: number
+  vta_image?: string
+  created_at: string
+  counts: PoolCounts
+  sessions?: PoolSession[]
+}
+
+export interface PoolClaim {
+  batch_id: number
+  session_id: number
+  vta_name: string
+  enabled: boolean
+  server_time: string
+  connection: MobileConnection
+}
+
 export type UpgradeComponent = 'vta' | 'mediator' | 'dids' | 'vtc'
 export const ALL_COMPONENTS: UpgradeComponent[] = ['vta', 'mediator', 'dids', 'vtc']
 export type UpgradeBatchStatus = 'running' | 'paused' | 'completed' | 'cancelled'
@@ -662,17 +706,26 @@ export interface ApiError extends Error {
   reason?: string
   validationErrors?: Record<string, string>
   rolledBack?: boolean
+  available?: number
 }
 
 function apiError(msg: string, status: number, reason?: string, extra?: Partial<ApiError>): ApiError {
   return Object.assign(new Error(msg), { status, reason }, extra) as ApiError
 }
 
-async function req<T>(method: string, path: string, body?: unknown, dispatchUnauthorized = true): Promise<T> {
+async function req<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  dispatchUnauthorized = true,
+  extraHeaders?: Record<string, string>,
+): Promise<T> {
+  const headers: Record<string, string> = { ...extraHeaders }
+  if (body) headers['Content-Type'] = 'application/json'
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     credentials: 'include',
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
     body: body ? JSON.stringify(body) : undefined,
   })
   if (res.status === 204) return null as T
@@ -682,6 +735,7 @@ async function req<T>(method: string, path: string, body?: unknown, dispatchUnau
     throw apiError(data.error ?? 'Request failed', res.status, data.reason, {
       validationErrors: data.validation_errors,
       rolledBack: data.rolled_back,
+      available: data.available,
     })
   }
   return data as T
@@ -758,6 +812,28 @@ export const api = {
 
   // ── Admin — dashboard ────────────────────────────────────────────────────────
   adminDashboard: () => req<AdminDashboard>('GET', '/api/v1/admin/dashboard'),
+
+  // ── Admin — pooled VTA inventory ────────────────────────────────────────────
+  listPoolBatches: () => req<PoolBatch[]>('GET', '/api/v1/admin/pool-batches'),
+  getPoolBatch: (id: number) => req<PoolBatch>('GET', `/api/v1/admin/pool-batches/${id}`),
+  createPoolBatch: (label: string, count: number, vta_image: string, idempotencyKey: string) =>
+    req<PoolBatch>('POST', '/api/v1/admin/pool-batches', { label, count, vta_image }, true, {
+      'Idempotency-Key': idempotencyKey,
+    }),
+  cleanupPoolBatch: (batchID: number) =>
+    req<{ batch_id: number; session_ids: number[]; status: 'deleting' } | null>('DELETE', `/api/v1/admin/pool-batches/${batchID}`),
+  reservePoolClaim: (batchID: number) =>
+    req<PoolClaim>('POST', `/api/v1/admin/pool-batches/${batchID}/claims`),
+  getPoolClaim: (requestID: string) =>
+    req<PoolClaim>('GET', `/api/v1/admin/pool-claims/${encodeURIComponent(requestID)}`),
+  confirmPoolClaim: (requestID: string) =>
+    req<PoolClaim>('POST', `/api/v1/admin/pool-claims/${encodeURIComponent(requestID)}/confirm`),
+  rejectPoolClaim: (requestID: string) =>
+    req<PoolClaim>('POST', `/api/v1/admin/pool-claims/${encodeURIComponent(requestID)}/reject`),
+  cleanupPoolSessions: (sessionIDs: number[]) =>
+    req<{ session_ids: number[]; status: 'deleting' }>('POST', '/api/v1/admin/pool-sessions/cleanup', { session_ids: sessionIDs }),
+  retryPoolSession: (sessionID: number) =>
+    req<{ session_id: number; status: 'pool_creating' }>('POST', `/api/v1/admin/pool-sessions/${sessionID}/retry`),
 
   // ── Admin — setup sessions ───────────────────────────────────────────────────
   adminListSessions: (page = 1, mode?: string) =>

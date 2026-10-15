@@ -9,6 +9,12 @@ const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   vta_setup_complete: { cls: 'badge-warning',     label: 'setup complete' },
   provisioning:       { cls: 'badge-warning',     label: 'provisioning' },
   running:            { cls: 'badge-success',     label: 'running' },
+  // pooled vta_only inventory
+  pool_creating:      { cls: 'badge-secondary',   label: 'queued' },
+  pool_publishing:    { cls: 'badge-warning',     label: 'publishing DID' },
+  pool_prepared:      { cls: 'badge-warning',     label: 'finalizing prebuild' },
+  pool_waiting:       { cls: 'badge-success',     label: 'prebuilt and waiting' },
+  deleting:           { cls: 'badge-warning',     label: 'deleting' },
   // full_stack
   dns_provision:         { cls: 'badge-secondary', label: 'DNS provisioning' },
   // Every session confirms its hostnames resolve before any cluster resources

@@ -51,6 +51,7 @@ export function AdminPanel() {
     : path.includes('/resource-defaults') ? 'Resource defaults'
     : path.includes('/users') ? 'Users'
     : path.includes('/platform-stack') ? 'Platform stack'
+    : path.includes('/pools') ? 'VTA pools'
     : path.includes('/load-testing') ? 'Load testing'
     : path.includes('/sessions') ? 'Sessions'
     : path.includes('/invitations') ? 'Invitations'
@@ -109,6 +110,13 @@ export function AdminPanel() {
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg>
               Resource defaults
+            </div>
+            <div
+              className={`nav-item ${path.includes('/pools') ? 'active' : ''}`}
+              onClick={() => goTo('/admin/pools')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01M11 7h6M11 17h6"/></svg>
+              VTA pools
             </div>
             <div
               className={`nav-item ${path.includes('/load-testing') ? 'active' : ''}`}
