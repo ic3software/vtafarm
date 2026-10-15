@@ -11,6 +11,8 @@ import { SessionPnmCard } from './SessionPnmCard'
 import { VtaConnectionCard } from './VtaConnectionCard'
 import { StackConfigEditor } from '../StackConfigEditor'
 import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
+import { SessionRecoveryModal } from '../SessionRecoveryModal'
+import { recoveryComponentForStage } from '../sessionRecovery'
 import type { PortalContext } from './Portal'
 
 type SessionTab = 'overview' | 'connections' | 'settings' | 'credentials'
@@ -49,6 +51,7 @@ function SessionDetailContent() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
   const [deleteError, setDeleteError] = useState('')
+  const [showRecovery, setShowRecovery] = useState(false)
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const didsEnroll = useDidsEnroll(session)
   const vtcInstall = useVtcInstall(session?.mode === 'full_stack' ? session : null)
@@ -131,6 +134,7 @@ function SessionDetailContent() {
     ? FULL_STACK_PHASES
     : vtaOnlyPhases(session.connection_source === 'external')
   const setupFailed = session.status === 'failed'
+  const canRecover = isFullStack && !!recoveryComponentForStage(session.failed_stage)
   const setupProgressStatus = setupFailed ? session.failed_stage ?? 'running' : session.status
   const setupPhaseIndex = Math.max(0, phaseIndex(setupPhases, setupProgressStatus))
   const isFullStackCompleted = isFullStack && session.status === 'running'
@@ -271,11 +275,15 @@ function SessionDetailContent() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6 6 18M6 6l12 12"/></svg>
           <div className="grow">
             <p className="alert-title">Setup failed</p>
-            <p className="alert-desc">{session.error_msg ?? 'An error occurred during setup.'} Delete this agent and create a new one to try again.</p>
+            <p className="alert-desc">
+              {session.error_msg ?? 'An error occurred during setup.'}{' '}
+              {canRecover ? 'Choose an image and retry this deployment, or delete the agent.' : 'Delete this agent and create a new one to try again.'}
+            </p>
           </div>
-          <button className="btn btn-destructive btn-sm" style={{ flexShrink: 0 }} onClick={() => setShowDeleteConfirm(true)}>
-            Delete agent
-          </button>
+          <div className="p-row gap-8" style={{ flexShrink: 0 }}>
+            {canRecover && <button className="btn btn-default btn-sm" onClick={() => setShowRecovery(true)}>Recover</button>}
+            <button className="btn btn-destructive btn-sm" onClick={() => setShowDeleteConfirm(true)}>Delete agent</button>
+          </div>
         </div>
       )}
 
@@ -436,6 +444,16 @@ function SessionDetailContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {showRecovery && (
+        <SessionRecoveryModal
+          session={session}
+          onClose={started => {
+            setShowRecovery(false)
+            if (started) api.getSession(sessionId).then(setSession).catch(() => {})
+          }}
+        />
       )}
     </section>
   )
