@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, type KeyboardEvent, type RefObject } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { api, API_BASE, ALL_COMPONENTS, type PlatformStack, type SetupSession, type UpgradeComponent } from '@/lib/api'
+import { api, API_BASE, ALL_COMPONENTS, type ImageOption, type PlatformStack, type SetupSession, type UpgradeComponent } from '@/lib/api'
+import { imageLabel } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PhaseStepper } from '../portal/PhaseStepper'
 import { FULL_STACK_PHASES, phaseIndex, statusBadge, useCopyState, isValidAdminDid, componentHost, useDomainInfo } from '../portal/portalUtils'
@@ -23,8 +24,6 @@ import { SessionVersionsCard } from '../portal/SessionVersionsCard'
 // It needs neither domain verification nor certificates — the zone is ours and
 // the wildcard already covers the names — which is why it ships well before the
 // custom-domain UI exists.
-
-type ImageOption = { tag: string; image: string; latest?: boolean }
 
 type PlatformStackTab = 'overview' | 'administrators' | 'credentials' | 'settings'
 
@@ -638,7 +637,7 @@ export function PlatformStackView() {
                     <SelectContent>
                       {images[component].map(img => (
                         <SelectItem key={img.image} value={img.image} className="p-mono">
-                          {img.tag}{img.latest ? ' [latest]' : ''}
+                          {imageLabel(img)}
                         </SelectItem>
                       ))}
                     </SelectContent>
