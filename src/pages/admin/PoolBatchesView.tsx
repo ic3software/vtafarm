@@ -61,8 +61,17 @@ export function PoolBatchesView() {
 
   useEffect(() => {
     if (!needsPolling) return
-    const timer = window.setInterval(() => { void load() }, 3000)
-    return () => window.clearInterval(timer)
+    let stopped = false
+    let timer: number | undefined
+    const poll = async () => {
+      await load()
+      if (!stopped) timer = window.setTimeout(() => { void poll() }, 3000)
+    }
+    timer = window.setTimeout(() => { void poll() }, 3000)
+    return () => {
+      stopped = true
+      if (timer !== undefined) window.clearTimeout(timer)
+    }
   }, [load, needsPolling])
 
   const available = dashboard?.estimates.vta_only.count ?? 0
@@ -118,7 +127,6 @@ export function PoolBatchesView() {
       <div className="page-head">
         <div>
           <h1>VTA pools</h1>
-          <p className="sub">Prepare inactive VTAs, then hand them out one at a time with Keyring.</p>
         </div>
       </div>
 
@@ -126,7 +134,6 @@ export function PoolBatchesView() {
         <div className="card-header">
           <div>
             <h3 className="card-title">Create inventory</h3>
-            <p className="card-desc">Each VTA receives its own user ID, namespace, Vault path, storage, and DNS name before the event.</p>
           </div>
           <div className="pool-capacity">
             <span className="pool-capacity-value">{dashboard ? available : '—'}</span>
@@ -137,7 +144,7 @@ export function PoolBatchesView() {
           <div className="pool-create-grid">
             <div>
               <label className="p-label" htmlFor="pool-label">Batch name</label>
-              <input id="pool-label" className="p-input" maxLength={120} placeholder="Community Day — morning"
+              <input id="pool-label" className="p-input" maxLength={120} placeholder="Linux Plumbers Conference"
                 value={label} onChange={event => setLabel(event.target.value)} disabled={creating} />
             </div>
             <div>
@@ -169,7 +176,6 @@ export function PoolBatchesView() {
 
       <div className="p-row pool-list-head">
         <h2 className="card-title">Batches</h2>
-        <span className="p-muted">Open a batch to run its claim station</span>
       </div>
       {loading ? (
         <div className="p-card"><div className="p-muted pool-empty-row">Loading…</div></div>
@@ -177,12 +183,11 @@ export function PoolBatchesView() {
         <div className="p-empty">
           <div className="ic">◎</div>
           <h3>No pooled VTAs yet</h3>
-          <p>Create a batch above. Preparation continues in the background and survives API restarts.</p>
         </div>
       ) : (
         <div className="table-wrap">
           <table className="p-table pool-batches-table">
-            <thead><tr><th>Batch</th><th>Status</th><th>Prepared</th><th>Claimed</th><th>Failed</th><th>Image</th><th>Created</th><th /></tr></thead>
+            <thead><tr><th>Batch</th><th>Status</th><th>Claimed / Total</th><th>Image</th><th>Created</th><th /></tr></thead>
             <tbody>
               {batches.map(batch => {
                 const phase = batchPhase(batch)
@@ -191,9 +196,7 @@ export function PoolBatchesView() {
                     onClick={() => openBatch(batch)} onKeyDown={event => openWithKeyboard(event, batch)}>
                     <td><strong>{batch.label}</strong><div className="p-muted p-mono">Batch #{batch.id}</div></td>
                     <td><span className={`p-badge ${phase.cls}`}>{phase.label}</span></td>
-                    <td>{batch.counts.waiting}/{batch.counts.total}</td>
-                    <td>{batch.counts.running + batch.counts.activating}</td>
-                    <td>{batch.counts.failed}</td>
+                    <td>{batch.counts.running + batch.counts.activating} / {batch.counts.total}</td>
                     <td><span className="p-mono pool-image-tag">{imageTag(batch.vta_image ?? '')}</span></td>
                     <td>{formatCreatedAt(batch.created_at)}</td>
                     <td><button type="button" className="btn btn-outline btn-sm">Open</button></td>

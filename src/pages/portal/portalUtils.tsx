@@ -12,8 +12,8 @@ const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   // pooled vta_only inventory
   pool_creating:      { cls: 'badge-secondary',   label: 'queued' },
   pool_publishing:    { cls: 'badge-warning',     label: 'publishing DID' },
-  pool_prepared:      { cls: 'badge-warning',     label: 'parking VTA' },
-  pool_waiting:       { cls: 'badge-success',     label: 'waiting' },
+  pool_prepared:      { cls: 'badge-warning',     label: 'finalizing prebuild' },
+  pool_waiting:       { cls: 'badge-success',     label: 'prebuilt and waiting' },
   deleting:           { cls: 'badge-warning',     label: 'deleting' },
   // full_stack
   dns_provision:         { cls: 'badge-secondary', label: 'DNS provisioning' },

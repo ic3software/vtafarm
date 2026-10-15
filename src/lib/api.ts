@@ -820,6 +820,8 @@ export const api = {
     req<PoolBatch>('POST', '/api/v1/admin/pool-batches', { label, count, vta_image }, true, {
       'Idempotency-Key': idempotencyKey,
     }),
+  cleanupPoolBatch: (batchID: number) =>
+    req<{ batch_id: number; session_ids: number[]; status: 'deleting' } | null>('DELETE', `/api/v1/admin/pool-batches/${batchID}`),
   reservePoolClaim: (batchID: number) =>
     req<PoolClaim>('POST', `/api/v1/admin/pool-batches/${batchID}/claims`),
   getPoolClaim: (requestID: string) =>

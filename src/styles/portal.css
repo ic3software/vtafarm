@@ -463,6 +463,7 @@
 .portal-root .pool-page-error { margin-bottom: 18px; }
 .portal-root .pool-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
 .portal-root .pool-station { margin-bottom: 20px; overflow: hidden; }
+.portal-root .pool-station > .card-header { padding-bottom: 20px; }
 .portal-root .pool-station-body { min-height: 390px; border-top: 1px solid hsl(var(--border)); display: grid; place-items: center; padding: 28px; position: relative; }
 .portal-root .pool-station-empty, .portal-root .pool-progress-panel, .portal-root .pool-success-panel, .portal-root .pool-confirm-panel { max-width: 620px; text-align: center; }
 .portal-root .pool-station-empty h3, .portal-root .pool-progress-panel h2, .portal-root .pool-success-panel h2, .portal-root .pool-confirm-panel h2 { margin: 0 0 8px; }
@@ -473,14 +474,19 @@
 .portal-root .pool-qr-missing { width: 292px; height: 292px; display: grid; place-items: center; color: hsl(var(--muted-foreground)); }
 .portal-root .pool-claim-copy h2 { font-size: 26px; margin: 10px 0 10px; }
 .portal-root .pool-claim-copy p { color: hsl(var(--muted-foreground)); line-height: 1.55; }
+.portal-root .pool-claim-copy .pool-claim-countdown { width: fit-content; margin: 14px 0 20px; padding: 8px 12px; border: 1px solid hsl(var(--border)); border-radius: 8px; background: hsl(var(--muted)); color: hsl(var(--foreground)); font-family: var(--mono); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.portal-root .pool-claim-development-url { margin: 0 0 20px; }
+.portal-root .pool-claim-development-value { display: flex; align-items: center; gap: 10px; }
+.portal-root .pool-claim-development-value code { flex: 1; min-width: 0; }
+.portal-root .pool-claim-development-value .btn { flex: none; }
 .portal-root .pool-step { display: inline-flex; border: 1px solid hsl(var(--primary)/.3); background: hsl(var(--accent)); color: hsl(var(--primary)); border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.portal-root .pool-confirm-panel h2 { margin-top: 10px; font-size: 26px; }
 .portal-root .pool-claim-check { margin: 22px auto 18px; font-family: var(--mono); font-size: clamp(40px, 8vw, 76px); line-height: 1; letter-spacing: .18em; font-weight: 700; color: hsl(var(--foreground)); }
 .portal-root .pool-confirm-actions { justify-content: center; }
-.portal-root .pool-spinner { display: block; width: 46px; height: 46px; margin: 0 auto 20px; border: 4px solid hsl(var(--muted)); border-top-color: hsl(var(--primary)); border-radius: 50%; animation: pool-spin .85s linear infinite; }
-@keyframes pool-spin { to { transform: rotate(360deg); } }
 .portal-root .pool-success-icon { width: 58px; height: 58px; margin: 0 auto 18px; display: grid; place-items: center; border-radius: 50%; background: hsl(142 68% 40% / .13); color: hsl(142 62% 36%); font-size: 30px; font-weight: 700; }
 .portal-root .pool-station-error { position: absolute; left: 28px; right: 28px; bottom: 14px; text-align: center; }
 .portal-root .pool-members-card { overflow: hidden; }
+.portal-root .pool-members-card > .card-header { padding-bottom: 20px; }
 .portal-root .pool-members-table-wrap { border: 0; border-top: 1px solid hsl(var(--border)); border-radius: 0; }
 .portal-root .pool-members-table th:first-child, .portal-root .pool-members-table td:first-child { width: 48px; padding-left: 24px; }
 .portal-root .pool-members-table th:last-child, .portal-root .pool-members-table td:last-child { padding-right: 24px; }
