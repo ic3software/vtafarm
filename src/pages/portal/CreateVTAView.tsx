@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
-import { api, API_BASE, type ApiError, type SetupSession, type SetupAvailability, type ConnectionInspection, type Domain } from '@/lib/api'
+import { api, API_BASE, type ApiError, type SetupSession, type SetupAvailability, type ConnectionInspection, type Domain, type ImageOption } from '@/lib/api'
+import { imageLabel } from '@/lib/utils'
 import type { PortalContext } from './Portal'
 import {
   statusBadge, FULL_STACK_PHASES, componentHost, phaseIndex, useDomainInfo, vtaOnlyPhases,
@@ -39,14 +40,14 @@ export function CreateVTAView() {
   const domainInfo = useDomainInfo()
   const [availability, setAvailability] = useState<SetupAvailability | null>(null)
   const [vtaName, setVtaName] = useState('')
-  const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
+  const [images, setImages] = useState<ImageOption[]>([])
   const [selectedImage, setSelectedImage] = useState('')
-  const [mediatorImages, setMediatorImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
+  const [mediatorImages, setMediatorImages] = useState<ImageOption[]>([])
   const [selectedMediatorImage, setSelectedMediatorImage] = useState('')
-  const [didsImages, setDidsImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
+  const [didsImages, setDidsImages] = useState<ImageOption[]>([])
   const [selectedDidsImage, setSelectedDidsImage] = useState('')
   const [vtcName, setVtcName] = useState('')
-  const [vtcImages, setVtcImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
+  const [vtcImages, setVtcImages] = useState<ImageOption[]>([])
   const [selectedVtcImage, setSelectedVtcImage] = useState('')
   // Custom domains the caller has attached. Empty when they have none — and
   // also when the API has the feature switched off, which 404s the list.
@@ -619,7 +620,7 @@ export function CreateVTAView() {
                   <SelectContent>
                     {images.map(img => (
                       <SelectItem key={img.image} value={img.image} className="p-mono">
-                        {img.tag}{img.latest ? ' [latest]' : ''}
+                        {imageLabel(img)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -641,7 +642,7 @@ export function CreateVTAView() {
                       <SelectContent>
                         {mediatorImages.map(img => (
                           <SelectItem key={img.image} value={img.image} className="p-mono">
-                            {img.tag}{img.latest ? ' [latest]' : ''}
+                            {imageLabel(img)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -660,7 +661,7 @@ export function CreateVTAView() {
                       <SelectContent>
                         {didsImages.map(img => (
                           <SelectItem key={img.image} value={img.image} className="p-mono">
-                            {img.tag}{img.latest ? ' [latest]' : ''}
+                            {imageLabel(img)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -706,7 +707,7 @@ export function CreateVTAView() {
                       <SelectContent>
                         {vtcImages.map(img => (
                           <SelectItem key={img.image} value={img.image} className="p-mono">
-                            {img.tag}{img.latest ? ' [latest]' : ''}
+                            {imageLabel(img)}
                           </SelectItem>
                         ))}
                       </SelectContent>

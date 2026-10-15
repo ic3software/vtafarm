@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, type LoadTestRun } from '@/lib/api'
-import { imageTag } from '@/lib/utils'
+import { api, type ImageOption, type LoadTestRun } from '@/lib/api'
+import { imageLabel, imageTag } from '@/lib/utils'
 import { LoadTestRunBadge } from './LoadTestRunBadge'
 
 const activeRunStatuses = new Set(['creating', 'active', 'partial', 'deleting', 'delete_failed'])
@@ -14,7 +14,7 @@ function formatCreatedAt(value: string) {
 export function LoadTestingView() {
   const navigate = useNavigate()
   const [runs, setRuns] = useState<LoadTestRun[]>([])
-  const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
+  const [images, setImages] = useState<ImageOption[]>([])
   const [count, setCount] = useState('5')
   const [selectedImage, setSelectedImage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -112,7 +112,7 @@ export function LoadTestingView() {
                 onChange={e => setSelectedImage(e.target.value)} disabled={creating || hasActiveRun || images.length === 0}>
                 {images.length === 0 && <option value="">Loading images…</option>}
                 {images.map(option => (
-                  <option key={option.image} value={option.image}>{option.tag}{option.latest ? ' (latest)' : ''}</option>
+                  <option key={option.image} value={option.image}>{imageLabel(option)}</option>
                 ))}
               </select>
             </div>

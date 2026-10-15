@@ -627,6 +627,24 @@ export interface PoolClaim {
 
 export type UpgradeComponent = 'vta' | 'mediator' | 'dids' | 'vtc'
 export const ALL_COMPONENTS: UpgradeComponent[] = ['vta', 'mediator', 'dids', 'vtc']
+
+/**
+ * One selectable image from the registry. Only immutable `<version>-<sha>`
+ * tags are listed; the moving tags are reported as flags on the row they
+ * currently point to.
+ */
+export interface ImageOption {
+  tag: string
+  image: string
+  /** The last tagged release — the default choice. */
+  latest?: boolean
+  /** The last green nightly build. */
+  nightly?: boolean
+  /** The last main-branch build. */
+  main?: boolean
+  /** Image creation time, RFC 3339 UTC; absent when the registry didn't say. */
+  created?: string
+}
 export type UpgradeBatchStatus = 'running' | 'paused' | 'completed' | 'cancelled'
 export type UpgradeTaskStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped' | 'rolling_back' | 'rolled_back' | 'rollback_failed'
 
@@ -851,7 +869,7 @@ export const api = {
     resources,
   }),
   adminListImages: (component: UpgradeComponent = 'vta') =>
-    req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/admin/setup/images?component=${component}`),
+    req<ImageOption[]>('GET', `/api/v1/admin/setup/images?component=${component}`),
   /** Admin-cookie twin of `domainInfo` — the admin panel holds a different cookie. */
   adminDomainInfo: () => req<DomainInfo>('GET', '/api/v1/admin/setup/domain-info'),
   /**
@@ -1003,7 +1021,7 @@ export const api = {
 
   // ── Setup sessions ───────────────────────────────────────────────────────────
   listImages: (component: 'vta' | 'mediator' | 'dids' | 'vtc' = 'vta') =>
-    req<Array<{ tag: string; image: string; latest?: boolean }>>('GET', `/api/v1/setup/images?component=${component}`),
+    req<ImageOption[]>('GET', `/api/v1/setup/images?component=${component}`),
   // Remaining per-mode cluster capacity — the create screen uses this to show
   // "Unavailable" and disable the button before submitting.
   setupAvailability: () => req<SetupAvailability>('GET', '/api/v1/setup/availability'),

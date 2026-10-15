@@ -7,8 +7,9 @@ import {
   type UpgradeBatchDetail,
   type UpgradeComponent,
   type UpgradeTaskStatus,
+  type ImageOption,
 } from '@/lib/api'
-import { imageTag } from '@/lib/utils'
+import { imageLabel, imageTag } from '@/lib/utils'
 
 const componentLabels: Record<UpgradeComponent, string> = {
   vta: 'VTA',
@@ -36,12 +37,6 @@ function taskBadge(status: UpgradeTaskStatus) {
   if (status === 'running' || status === 'rolling_back') return 'badge-default'
   if (status === 'skipped' || status === 'rolled_back') return 'badge-warning'
   return 'badge-secondary'
-}
-
-interface ImageOption {
-  tag: string
-  image: string
-  latest?: boolean
 }
 
 interface ComponentRow {
@@ -291,7 +286,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
                     >
                       {options.map(i => (
                         <option key={i.image} value={i.image}>
-                          {i.tag}{i.latest ? ' (latest)' : ''}{i.image === current ? ' (current)' : ''}
+                          {imageLabel(i)}{i.image === current ? ' (current)' : ''}
                         </option>
                       ))}
                     </select>

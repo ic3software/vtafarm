@@ -7,8 +7,9 @@ import {
   type UpgradeTarget,
   type UpgradeSkipped,
   type UpgradeTaskStatus,
+  type ImageOption,
 } from '@/lib/api'
-import { imageTag } from '@/lib/utils'
+import { imageLabel, imageTag } from '@/lib/utils'
 
 const componentLabels: Record<UpgradeComponent, string> = {
   vta: 'VTA',
@@ -33,7 +34,7 @@ function batchBadge(status: string) {
 }
 
 interface ComponentRow {
-  images: Array<{ tag: string; image: string; latest?: boolean }>
+  images: ImageOption[]
   image: string // selected target
   include: boolean
   unavailable?: string // registry not configured / fetch failed
@@ -180,7 +181,7 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
                         onChange={e => updateRow(component, { image: e.target.value })}>
                         {row.images.map(i => (
                           <option key={i.image} value={i.image}>
-                            {i.tag}{i.latest ? ' (latest)' : ''}
+                            {imageLabel(i)}
                           </option>
                         ))}
                       </select>
