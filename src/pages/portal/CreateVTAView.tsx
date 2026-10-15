@@ -16,6 +16,37 @@ import { VTA_LIMIT_MESSAGE } from './vtaAccess'
 
 type Stage = 0 | 1 | 2 | 3
 type Mode = 'vta_only' | 'full_stack'
+type ImageComponent = 'vta' | 'mediator' | 'dids' | 'vtc'
+const imageSelectContentStyle = { maxHeight: 'min(18rem, var(--radix-select-content-available-height))' }
+const IMAGE_SELECT_MAX_HEIGHT_PX = 18 * 16
+// SelectItem is about 28px tall; this estimate only decides whether the page needs extra room.
+const IMAGE_SELECT_ITEM_HEIGHT_PX = 28
+
+function devImageFixtures(component: ImageComponent): ImageOption[] | null {
+  if (!import.meta.env.DEV) return null
+
+  const count = Number(new URLSearchParams(window.location.search).get('imageFixtureCount'))
+  if (!Number.isInteger(count) || count < 1 || count > 500) return null
+
+  const prefix: Record<ImageComponent, string> = {
+    vta: 'VTI-Eucalyptus',
+    mediator: 'Mediator-Aspen',
+    dids: 'DID-Dogwood',
+    vtc: 'VTC-Cypress',
+  }
+  return Array.from({ length: count }, (_, index) => {
+    const build = count - index
+    const tag = `${prefix[component]}-${String(build).padStart(3, '0')}-${build.toString(16).padStart(8, '0')}`
+    return {
+      tag,
+      image: `ghcr.io/firstperson-project/${component}:${tag}`,
+      latest: index === 0,
+      nightly: index === 1,
+      main: index === 2,
+      created: new Date(Date.UTC(2026, 9, 15 - index)).toISOString(),
+    }
+  })
+}
 
 export function CreateVTAView() {
   const { loadSessions, sessionsLoading, sessionsError, fullstackAccess, vtaCount, vtaLimit } = useOutletContext<PortalContext>()
@@ -49,6 +80,7 @@ export function CreateVTAView() {
   const [vtcName, setVtcName] = useState('')
   const [vtcImages, setVtcImages] = useState<ImageOption[]>([])
   const [selectedVtcImage, setSelectedVtcImage] = useState('')
+  const [bottomImagePadding, setBottomImagePadding] = useState(0)
   // Custom domains the caller has attached. Empty when they have none — and
   // also when the API has the feature switched off, which 404s the list.
   const [domains, setDomains] = useState<Domain[]>([])
@@ -68,6 +100,18 @@ export function CreateVTAView() {
   const connectionInspection = validatedConnection?.didHostingDid === didHostingDid.trim() &&
     validatedConnection.mediatorDid === mediatorDid.trim() ? validatedConnection.inspection : null
 
+  const handleBottomImageOpenChange = (open: boolean, triggerId: string, optionCount: number) => {
+    const trigger = document.getElementById(triggerId)
+    const desiredHeight = Math.min(IMAGE_SELECT_MAX_HEIGHT_PX, optionCount * IMAGE_SELECT_ITEM_HEIGHT_PX)
+    const availableHeight = trigger ? window.innerHeight - trigger.getBoundingClientRect().bottom - 12 : 0
+    const needsSpace = open && desiredHeight > availableHeight
+
+    setBottomImagePadding(needsSpace ? desiredHeight : 0)
+    if (needsSpace) requestAnimationFrame(() => {
+      document.getElementById(triggerId)?.scrollIntoView({ block: 'center' })
+    })
+  }
+
   // Stage 1 setup-log streaming state
   const [setupStreamStarted, setSetupStreamStarted] = useState(false)
   const [setupLogsDone, setSetupLogsDone] = useState(false)
@@ -81,8 +125,9 @@ export function CreateVTAView() {
   useEffect(() => {
     api.listImages('vta')
       .then(imgs => {
-        setImages(imgs)
-        const latestImg = imgs.find(i => i.latest) ?? imgs[0]
+        const fixtureImages = devImageFixtures('vta') ?? imgs
+        setImages(fixtureImages)
+        const latestImg = fixtureImages.find(i => i.latest) ?? fixtureImages[0]
         setSelectedImage(latestImg?.image ?? '')
       })
       .catch(() => {})
@@ -101,15 +146,17 @@ export function CreateVTAView() {
     if (mode === 'vta_only' || mediatorImages.length > 0) return
     api.listImages('mediator')
       .then(imgs => {
-        setMediatorImages(imgs)
-        const latestImg = imgs.find(i => i.latest) ?? imgs[0]
+        const fixtureImages = devImageFixtures('mediator') ?? imgs
+        setMediatorImages(fixtureImages)
+        const latestImg = fixtureImages.find(i => i.latest) ?? fixtureImages[0]
         setSelectedMediatorImage(latestImg?.image ?? '')
       })
       .catch(() => {})
     api.listImages('dids')
       .then(imgs => {
-        setDidsImages(imgs)
-        const latestImg = imgs.find(i => i.latest) ?? imgs[0]
+        const fixtureImages = devImageFixtures('dids') ?? imgs
+        setDidsImages(fixtureImages)
+        const latestImg = fixtureImages.find(i => i.latest) ?? fixtureImages[0]
         setSelectedDidsImage(latestImg?.image ?? '')
       })
       .catch(() => {})
@@ -130,8 +177,9 @@ export function CreateVTAView() {
     if (mode !== 'full_stack' || vtcImages.length > 0) return
     api.listImages('vtc')
       .then(imgs => {
-        setVtcImages(imgs)
-        const latestImg = imgs.find(i => i.latest) ?? imgs[0]
+        const fixtureImages = devImageFixtures('vtc') ?? imgs
+        setVtcImages(fixtureImages)
+        const latestImg = fixtureImages.find(i => i.latest) ?? fixtureImages[0]
         setSelectedVtcImage(latestImg?.image ?? '')
       })
       .catch(() => {})
@@ -451,7 +499,8 @@ export function CreateVTAView() {
             <h3 className="card-title">Create your own Trust Agent or VTC</h3>
             <p className="card-desc">{fullstackAccess ? 'Choose an option, name your agent and select the image to use.' : 'Name your agent and select the images to provision.'}</p>
           </div>
-          <div className="card-content p-col gap-16">
+          <div className="card-content p-col gap-16"
+            style={{ paddingBottom: bottomImagePadding ? `${bottomImagePadding}px` : undefined }}>
             {modeUnavailable && (
               <div className="p-alert alert-warning">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
@@ -613,11 +662,15 @@ export function CreateVTAView() {
             <div>
               <label className="p-label" htmlFor="cv-image">VTA Image <span className="req">*</span></label>
               {images.length > 0 ? (
-                <Select value={selectedImage} onValueChange={setSelectedImage}>
-                  <SelectTrigger className="w-full">
+                <Select value={selectedImage} onValueChange={setSelectedImage}
+                  onOpenChange={open => {
+                    if (mode === 'vta_only') handleBottomImageOpenChange(open, 'cv-image', images.length)
+                  }}>
+                  <SelectTrigger className="w-full" id="cv-image">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" align="start" side="bottom" avoidCollisions={false}
+                    className="w-(--radix-select-trigger-width)" style={imageSelectContentStyle}>
                     {images.map(img => (
                       <SelectItem key={img.image} value={img.image} className="p-mono">
                         {imageLabel(img)}
@@ -639,7 +692,8 @@ export function CreateVTAView() {
                       <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" align="start"
+                        className="w-(--radix-select-trigger-width)" style={imageSelectContentStyle}>
                         {mediatorImages.map(img => (
                           <SelectItem key={img.image} value={img.image} className="p-mono">
                             {imageLabel(img)}
@@ -658,7 +712,8 @@ export function CreateVTAView() {
                       <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" align="start"
+                        className="w-(--radix-select-trigger-width)" style={imageSelectContentStyle}>
                         {didsImages.map(img => (
                           <SelectItem key={img.image} value={img.image} className="p-mono">
                             {imageLabel(img)}
@@ -700,11 +755,13 @@ export function CreateVTAView() {
                 <div>
                   <label className="p-label" htmlFor="cv-vtc-image">VTC Image <span className="req">*</span></label>
                   {vtcImages.length > 0 ? (
-                    <Select value={selectedVtcImage} onValueChange={setSelectedVtcImage}>
-                      <SelectTrigger className="w-full">
+                    <Select value={selectedVtcImage} onValueChange={setSelectedVtcImage}
+                      onOpenChange={open => handleBottomImageOpenChange(open, 'cv-vtc-image', vtcImages.length)}>
+                      <SelectTrigger className="w-full" id="cv-vtc-image">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" align="start" side="bottom" avoidCollisions={false}
+                        className="w-(--radix-select-trigger-width)" style={imageSelectContentStyle}>
                         {vtcImages.map(img => (
                           <SelectItem key={img.image} value={img.image} className="p-mono">
                             {imageLabel(img)}
