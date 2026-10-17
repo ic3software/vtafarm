@@ -10,6 +10,9 @@ import {
   type ImageOption,
 } from '@/lib/api'
 import { imageLabel, imageTag } from '@/lib/utils'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+const imageSelectContentStyle = { maxHeight: 'min(18rem, var(--radix-select-content-available-height))' }
 
 const componentLabels: Record<UpgradeComponent, string> = {
   vta: 'VTA',
@@ -176,15 +179,22 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
                     {row.unavailable ? (
                       <span style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{row.unavailable}</span>
                     ) : (
-                      <select className="p-select p-mono" style={{ fontSize: 12, flex: 1 }} value={row.image}
-                        disabled={!row.include}
-                        onChange={e => updateRow(component, { image: e.target.value })}>
-                        {row.images.map(i => (
-                          <option key={i.image} value={i.image}>
-                            {imageLabel(i)}
-                          </option>
-                        ))}
-                      </select>
+                      <Select value={row.image} disabled={!row.include}
+                        onValueChange={image => updateRow(component, { image })}>
+                        <SelectTrigger className="w-full p-mono" id={`upgrade-image-${component}`}
+                          aria-label={`${componentLabels[component]} image`}
+                          style={{ fontSize: 12, flex: 1, minWidth: 0 }}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent position="popper" align="start"
+                          className="z-[110] w-(--radix-select-trigger-width)" style={imageSelectContentStyle}>
+                          {row.images.map(i => (
+                            <SelectItem key={i.image} value={i.image} className="p-mono">
+                              {imageLabel(i)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )}
                   </div>
                 )
