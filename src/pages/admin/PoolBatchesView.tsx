@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, type AdminDashboard, type ApiError, type PoolBatch } from '@/lib/api'
-import { imageTag } from '@/lib/utils'
+import { api, type AdminDashboard, type ApiError, type ImageOption, type PoolBatch } from '@/lib/api'
+import { imageLabel, imageTag } from '@/lib/utils'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+const imageSelectContentStyle = { maxHeight: 'min(18rem, var(--radix-select-content-available-height))' }
 
 function formatCreatedAt(value: string) {
   return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
@@ -22,7 +25,7 @@ export function PoolBatchesView() {
   const navigate = useNavigate()
   const [batches, setBatches] = useState<PoolBatch[]>([])
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null)
-  const [images, setImages] = useState<Array<{ tag: string; image: string; latest?: boolean }>>([])
+  const [images, setImages] = useState<ImageOption[]>([])
   const [label, setLabel] = useState('')
   const [count, setCount] = useState('')
   const [selectedImage, setSelectedImage] = useState('')
@@ -155,13 +158,23 @@ export function PoolBatchesView() {
             </div>
             <div>
               <label className="p-label" htmlFor="pool-image">VTA image</label>
-              <select id="pool-image" className="p-select p-mono" value={selectedImage}
-                onChange={event => setSelectedImage(event.target.value)} disabled={creating || images.length === 0}>
-                {images.length === 0 && <option value="">Loading images…</option>}
-                {images.map(option => (
-                  <option key={option.image} value={option.image}>{option.tag}{option.latest ? ' (latest)' : ''}</option>
-                ))}
-              </select>
+              {images.length > 0 ? (
+                <Select value={selectedImage} onValueChange={setSelectedImage} disabled={creating}>
+                  <SelectTrigger className="w-full" id="pool-image">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper" align="start"
+                    className="w-(--radix-select-trigger-width)" style={imageSelectContentStyle}>
+                    {images.map(option => (
+                      <SelectItem key={option.image} value={option.image} className="p-mono">
+                        {imageLabel(option)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <input id="pool-image" className="p-input p-mono" placeholder="Loading images…" disabled />
+              )}
             </div>
           </div>
           {error && <p className="pool-form-error">{error}</p>}

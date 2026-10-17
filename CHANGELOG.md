@@ -1,5 +1,22 @@
 # Changelog
 
+## [v0.14.0] - 2026-10-15
+
+### Added
+
+- Administrators can create and monitor batches of pre-provisioned VTAs, hand
+  them out through QR-based claim stations, retry failed preparation, and clean
+  up unused inventory.
+- Container image selectors identify `latest`, `nightly`, and `main` builds and
+  show each image's build date.
+
+### Fixed
+
+- Image selector dropdowns remain usable with long image tags and limited
+  viewport space.
+
+Requires vtafarm-api 0.14.0.
+
 ## [v0.13.0] - 2026-10-13
 
 ### Added
