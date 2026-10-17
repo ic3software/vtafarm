@@ -7,6 +7,7 @@ import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { VtaConnectionCard } from './VtaConnectionCard'
+import { recoveryComponentsForSession } from '../sessionRecovery'
 
 export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: string; vtaName: string }) {
   const { loadSessions } = useOutletContext<PortalContext>()
@@ -61,6 +62,7 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
   const status = session?.status
   const failed = status === 'failed'
   const completed = status === 'running'
+  const canRecover = !!session && recoveryComponentsForSession(session.mode, session.failed_stage).length > 0
   const progressStatus = failed ? session?.failed_stage ?? 'running' : status
   const currentIndex = Math.max(0, phaseIndex(phases, progressStatus))
   const currentPhaseLabel = phases[currentIndex]?.label ?? 'Setup'
@@ -110,16 +112,22 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6 6 18M6 6l12 12"/></svg>
             <div className="grow">
               <p className="alert-title">Setup failed</p>
-              <p className="alert-desc">{session?.error_msg || 'An error occurred. Please delete this agent and try again.'}</p>
+              <p className="alert-desc">{session?.error_msg || (canRecover
+                ? 'An error occurred. Recover this agent with different images, or delete it.'
+                : 'An error occurred. Please delete this agent and try again.')}</p>
             </div>
           </div>
           <div className="p-card">
             <div className="card-footer between">
-              <span className="field-hint" style={{ marginTop: 0 }}>Delete this agent to release resources, then create a new one.</span>
+              <span className="field-hint" style={{ marginTop: 0 }}>
+                {canRecover
+                  ? 'Recover with different image versions, or delete this agent to release its resources.'
+                  : 'Delete this agent to release resources, then create a new one.'}
+              </span>
               <div className="p-row gap-12">
                 <button className="btn btn-ghost" onClick={handleDone}>Back to Agents</button>
-                <button className="btn btn-destructive" onClick={() => navigate(`/portal/session/${sessionId}`)}>
-                  Delete agent <span className="arrow">→</span>
+                <button className={`btn ${canRecover ? 'btn-default' : 'btn-destructive'}`} onClick={() => navigate(`/portal/session/${sessionId}`)}>
+                  {canRecover ? 'Recover or Delete Agent' : 'Delete Agent'} <span className="arrow">→</span>
                 </button>
               </div>
             </div>

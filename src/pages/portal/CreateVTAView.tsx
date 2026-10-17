@@ -13,6 +13,7 @@ import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 import { VtaConnectionCard } from './VtaConnectionCard'
 import { VtaLimitDialog } from './VtaLimitDialog'
 import { VTA_LIMIT_MESSAGE } from './vtaAccess'
+import { recoveryComponentsForSession } from '../sessionRecovery'
 
 type Stage = 0 | 1 | 2 | 3
 type Mode = 'vta_only' | 'full_stack'
@@ -415,6 +416,7 @@ export function CreateVTAView() {
     : stageProgressStatus
   const progressIndex = phaseIndex(vtaPhases, progressStatus)
   const currentStep = stage === 0 ? 0 : progressIndex >= 0 ? progressIndex : 1
+  const canRecover = !!liveSession && recoveryComponentsForSession(liveSession.mode, liveSession.failed_stage).length > 0
 
   // Live hostname previews. Managed domains carry the user-chosen name in the
   // label, so these track what's typed; an empty field keeps the <name>
@@ -807,17 +809,23 @@ export function CreateVTAView() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6 6 18M6 6l12 12"/></svg>
             <div className="grow">
               <p className="alert-title">Setup failed</p>
-              <p className="alert-desc">{failedMsg || 'An error occurred. Please delete this agent and try again.'}</p>
+              <p className="alert-desc">{failedMsg || (canRecover
+                ? 'An error occurred. Recover this agent with different images, or delete it.'
+                : 'An error occurred. Please delete this agent and try again.')}</p>
             </div>
           </div>
           <div className="p-card">
             <div className="card-footer between">
-              <span className="field-hint" style={{ marginTop: 0 }}>Delete this agent to release resources, then create a new one.</span>
+              <span className="field-hint" style={{ marginTop: 0 }}>
+                {canRecover
+                  ? 'Recover with different image versions, or delete this agent to release its resources.'
+                  : 'Delete this agent to release resources, then create a new one.'}
+              </span>
               <div className="p-row gap-12">
                 <button className="btn btn-ghost" onClick={handleDone}>Back to Agents</button>
                 {sessionId && (
-                  <button className="btn btn-destructive" onClick={() => navigate(`/portal/session/${sessionId}`)}>
-                    Delete agent <span className="arrow">→</span>
+                  <button className={`btn ${canRecover ? 'btn-default' : 'btn-destructive'}`} onClick={() => navigate(`/portal/session/${sessionId}`)}>
+                    {canRecover ? 'Recover or Delete Agent' : 'Delete Agent'} <span className="arrow">→</span>
                   </button>
                 )}
               </div>
