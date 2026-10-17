@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type Keyboar
 import { useNavigate } from 'react-router-dom'
 import { api, type ImageOption, type LoadTestRun } from '@/lib/api'
 import { imageLabel, imageTag } from '@/lib/utils'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { LoadTestRunBadge } from './LoadTestRunBadge'
 
+const imageSelectContentStyle = { maxHeight: 'min(18rem, var(--radix-select-content-available-height))' }
 const activeRunStatuses = new Set(['creating', 'active', 'partial', 'deleting', 'delete_failed'])
 const terminalSessionStatuses = new Set(['running', 'failed'])
 
@@ -108,13 +110,24 @@ export function LoadTestingView() {
             </div>
             <div>
               <label className="p-label" htmlFor="lt-image">VTA image</label>
-              <select id="lt-image" className="p-select p-mono" value={selectedImage}
-                onChange={e => setSelectedImage(e.target.value)} disabled={creating || hasActiveRun || images.length === 0}>
-                {images.length === 0 && <option value="">Loading images…</option>}
-                {images.map(option => (
-                  <option key={option.image} value={option.image}>{imageLabel(option)}</option>
-                ))}
-              </select>
+              {images.length > 0 ? (
+                <Select value={selectedImage} onValueChange={setSelectedImage}
+                  disabled={creating || hasActiveRun}>
+                  <SelectTrigger className="w-full" id="lt-image">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper" align="start"
+                    className="w-(--radix-select-trigger-width)" style={imageSelectContentStyle}>
+                    {images.map(option => (
+                      <SelectItem key={option.image} value={option.image} className="p-mono">
+                        {imageLabel(option)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <input id="lt-image" className="p-input p-mono" placeholder="Loading images…" disabled />
+              )}
             </div>
           </div>
           {hasActiveRun && (
