@@ -12,7 +12,7 @@ import { VtaConnectionCard } from './VtaConnectionCard'
 import { StackConfigEditor } from '../StackConfigEditor'
 import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 import { SessionRecoveryModal } from '../SessionRecoveryModal'
-import { recoveryComponentForStage } from '../sessionRecovery'
+import { recoveryComponentsForSession } from '../sessionRecovery'
 import type { PortalContext } from './Portal'
 
 type SessionTab = 'overview' | 'connections' | 'settings' | 'credentials'
@@ -134,7 +134,7 @@ function SessionDetailContent() {
     ? FULL_STACK_PHASES
     : vtaOnlyPhases(session.connection_source === 'external')
   const setupFailed = session.status === 'failed'
-  const canRecover = isFullStack && !!recoveryComponentForStage(session.failed_stage)
+  const canRecover = recoveryComponentsForSession(session.mode, session.failed_stage).length > 0
   const setupProgressStatus = setupFailed ? session.failed_stage ?? 'running' : session.status
   const setupPhaseIndex = Math.max(0, phaseIndex(setupPhases, setupProgressStatus))
   const isFullStackCompleted = isFullStack && session.status === 'running'

@@ -1,4 +1,4 @@
-import type { SetupStatus, UpgradeComponent } from '@/lib/api'
+import { ALL_COMPONENTS, type SetupMode, type SetupStatus, type UpgradeComponent } from '@/lib/api'
 
 const recoveryComponents: Partial<Record<SetupStatus, UpgradeComponent>> = {
   deploy_dids: 'dids',
@@ -9,4 +9,10 @@ const recoveryComponents: Partial<Record<SetupStatus, UpgradeComponent>> = {
 
 export function recoveryComponentForStage(stage?: SetupStatus): UpgradeComponent | null {
   return stage ? recoveryComponents[stage] ?? null : null
+}
+
+export function recoveryComponentsForSession(mode: SetupMode, stage?: SetupStatus): UpgradeComponent[] {
+  if (!recoveryComponentForStage(stage)) return []
+  if (mode === 'vta_only') return stage === 'deploy_vta' ? ['vta'] : []
+  return [...ALL_COMPONENTS]
 }

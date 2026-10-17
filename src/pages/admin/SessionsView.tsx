@@ -4,7 +4,7 @@ import { UpgradeModal } from './UpgradeModal'
 import { ResourceModal } from './ResourceModal'
 import { imageTag, pageNumbers } from '@/lib/utils'
 import { SessionRecoveryModal } from '../SessionRecoveryModal'
-import { recoveryComponentForStage } from '../sessionRecovery'
+import { recoveryComponentsForSession } from '../sessionRecovery'
 
 const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'
 
@@ -498,7 +498,7 @@ export function SessionsView() {
                 <td title={s.error_msg || undefined}>
                   <div className="p-col" style={{ alignItems: 'flex-start', gap: 6 }}>
                     <span className={`p-badge ${statusBadge(s.status)}`}>{s.status}</span>
-                    {s.status === 'failed' && recoveryComponentForStage(s.failed_stage) && (
+                    {s.status === 'failed' && recoveryComponentsForSession(s.mode, s.failed_stage).length > 0 && (
                       <button className="btn btn-outline btn-sm" onClick={() => setModal({ kind: 'recover', session: s })}>
                         Recover
                       </button>

@@ -872,9 +872,9 @@ export const api = {
   }),
   adminListImages: (component: UpgradeComponent = 'vta') =>
     req<ImageOption[]>('GET', `/api/v1/admin/setup/images?component=${component}`),
-  adminRecoverSession: (id: string, component: UpgradeComponent, image: string) =>
-    req<{ status: SetupStatus; component: UpgradeComponent; image: string }>(
-      'POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/recover`, { component, image }),
+  adminRecoverSession: (id: string, components: Array<{ component: UpgradeComponent; image: string }>) =>
+    req<{ status: SetupStatus; components: Array<{ component: UpgradeComponent; image: string }> }>(
+      'POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/recover`, { components }),
   /** Admin-cookie twin of `domainInfo` — the admin panel holds a different cookie. */
   adminDomainInfo: () => req<DomainInfo>('GET', '/api/v1/admin/setup/domain-info'),
   /**
@@ -1075,9 +1075,9 @@ export const api = {
   verifyDomain: (id: number) => req<Domain>('POST', `/api/v1/domains/${id}/verify`),
   deleteDomain: (id: number) => req<null>('DELETE', `/api/v1/domains/${id}`),
   getSession: (id: string) => req<SetupSession>('GET', `/api/v1/setup/${id}`),
-  recoverSession: (id: string, component: UpgradeComponent, image: string) =>
-    req<{ status: SetupStatus; component: UpgradeComponent; image: string }>(
-      'POST', `/api/v1/setup/${encodeURIComponent(id)}/recover`, { component, image }),
+  recoverSession: (id: string, components: Array<{ component: UpgradeComponent; image: string }>) =>
+    req<{ status: SetupStatus; components: Array<{ component: UpgradeComponent; image: string }> }>(
+      'POST', `/api/v1/setup/${encodeURIComponent(id)}/recover`, { components }),
   getStackConfig: (id: string, component: UpgradeComponent) =>
     req<{ content: string }>('GET', `/api/v1/setup/${encodeURIComponent(id)}/config?component=${component}`),
   validateStackConfig: (id: string, component: UpgradeComponent, content: string) =>
