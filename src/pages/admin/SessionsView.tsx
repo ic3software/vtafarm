@@ -3,6 +3,8 @@ import { api, ALL_COMPONENTS, type AdminSessionResourceSummary, type AdminSessio
 import { UpgradeModal } from './UpgradeModal'
 import { ResourceModal } from './ResourceModal'
 import { imageTag, pageNumbers } from '@/lib/utils'
+import { SessionRecoveryModal } from '../SessionRecoveryModal'
+import { recoveryComponentsForSession } from '../sessionRecovery'
 
 const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'
 
@@ -199,6 +201,7 @@ type ModalState =
   | { kind: 'create'; selection: string[] | 'all'; defaultComponents: UpgradeComponent[] }
   | { kind: 'progress'; batchId: number }
   | { kind: 'resources'; sessions: Array<{ id: string; mode: string }> }
+  | { kind: 'recover'; session: AdminSetupSession }
   | null
 
 export function SessionsView() {
@@ -246,6 +249,16 @@ export function SessionsView() {
   // here. Re-runs on filter change (fetchPage's identity tracks modeFilter);
   // toggleModeFilter sets loading before that happens.
   useEffect(() => { void fetchPage(1); void refreshActiveBatch() }, [fetchPage, refreshActiveBatch])
+
+  const hasActiveSetup = sessions.some(session => ![
+    'running', 'failed', 'awaiting_admin_did', 'awaiting_did_publication',
+    'vta_setup_complete', 'pool_prepared', 'pool_waiting',
+  ].includes(session.status))
+  useEffect(() => {
+    if (!hasActiveSetup) return
+    const timer = setInterval(() => { void fetchPage(page) }, 3000)
+    return () => clearInterval(timer)
+  }, [fetchPage, hasActiveSetup, page])
 
   function loadPage(p: number) {
     setLoading(true)
@@ -483,7 +496,14 @@ export function SessionsView() {
                   )}
                 </td>
                 <td title={s.error_msg || undefined}>
-                  <span className={`p-badge ${statusBadge(s.status)}`}>{s.status}</span>
+                  <div className="p-col" style={{ alignItems: 'flex-start', gap: 6 }}>
+                    <span className={`p-badge ${statusBadge(s.status)}`}>{s.status}</span>
+                    {s.status === 'failed' && recoveryComponentsForSession(s.mode, s.failed_stage).length > 0 && (
+                      <button className="btn btn-outline btn-sm" onClick={() => setModal({ kind: 'recover', session: s })}>
+                        Recover
+                      </button>
+                    )}
+                  </div>
                 </td>
                 <td><ImagesCell session={s} /></td>
                 <td title={fmt(s.created_at)} style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap' }}>
@@ -567,6 +587,19 @@ export function SessionsView() {
             setModal(null)
             if (didApply) {
               setSelected(new Map())
+              setLoading(true)
+              void fetchPage(page)
+            }
+          }}
+        />
+      )}
+      {modal?.kind === 'recover' && (
+        <SessionRecoveryModal
+          admin
+          session={{ ...modal.session, id: modal.session.vta_name }}
+          onClose={started => {
+            setModal(null)
+            if (started) {
               setLoading(true)
               void fetchPage(page)
             }

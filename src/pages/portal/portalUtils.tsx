@@ -117,7 +117,7 @@ export const VTA_ONLY_PHASES: Phase[] = [
   { key: 'dns_env', label: 'DNS & environment', statuses: ['dns_provisioned'] },
   { key: 'vta_setup', label: 'Agent setup', statuses: ['vta_setup_running'] },
   { key: 'admin_did', label: 'Admin DID', statuses: ['vta_setup_complete'] },
-  { key: 'deploy_vta', label: 'Deploy agent', statuses: ['provisioning'] },
+  { key: 'deploy_vta', label: 'Deploy agent', statuses: ['provisioning', 'deploy_vta'] },
   { key: 'running', label: 'Running', statuses: ['running'] },
 ]
 
