@@ -1,5 +1,27 @@
 # Changelog
 
+## [v0.14.1] - 2026-10-17
+
+### Added
+
+- Users and administrators can recover sessions that fail during component
+  deployment by selecting image versions and continuing setup without deleting
+  persistent data or repeating completed setup jobs.
+
+### Changed
+
+- Version-change previews show current and target images and distinguish
+  upgrades, downgrades, and other image changes.
+
+### Fixed
+
+- VTA pool, load-testing, and session-upgrade image pickers consistently show
+  labeled image metadata in viewport-aware dropdowns.
+- Failed creation screens direct users to the agent detail page to recover the
+  agent when possible or delete it when necessary.
+
+Requires vtafarm-api 0.14.1.
+
 ## [v0.14.0] - 2026-10-15
 
 ### Added
