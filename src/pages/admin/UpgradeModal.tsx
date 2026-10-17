@@ -9,8 +9,9 @@ import {
   type UpgradeTaskStatus,
   type ImageOption,
 } from '@/lib/api'
-import { imageLabel, imageTag } from '@/lib/utils'
+import { imageChangeDirection, imageLabel, imageTag } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { VersionChangeList } from '@/components/VersionChangeList'
 
 const imageSelectContentStyle = { maxHeight: 'min(18rem, var(--radix-select-content-available-height))' }
 
@@ -201,7 +202,7 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
               })}
 
               {preview && (
-                <div style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div className="upgrade-preview" style={{ fontSize: 13 }}>
                   <p style={{ margin: '0 0 6px' }}>
                     <strong>{preview.targets.length}</strong> upgrade task{preview.targets.length === 1 ? '' : 's'} will run
                     {preview.skipped.length > 0 && <> · {preview.skipped.length} skipped</>}
@@ -211,57 +212,52 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
                       <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
                         Will run
                       </p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
-                        {preview.targets.map((t, i) => {
-                          const toImage = t.to_image || chosenImageByComponent[t.component] || ''
-                          return (
-                            <div key={`${t.session_id}-${t.component}-${i}`} style={{
-                              display: 'grid',
-                              gridTemplateColumns: 'minmax(120px, 1fr) 96px minmax(180px, 1.6fr)',
-                              columnGap: 16,
-                              rowGap: 6,
-                              alignItems: 'center',
-                              color: 'hsl(var(--muted-foreground))',
-                            }}>
-                              <span title={t.vta_name} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                <span className="p-mono" style={{ fontSize: 12 }}>{t.vta_name}</span>
+                      <VersionChangeList labelWidth={160} items={preview.targets.map((t, i) => {
+                        const toImage = t.to_image || chosenImageByComponent[t.component] || ''
+                        const dir = imageChangeDirection(rows?.[t.component]?.images ?? [], t.from_image, toImage)
+                        return {
+                          key: `${t.session_id}-${t.component}-${i}`,
+                          title: (
+                            <>
+                              <span className="p-mono" style={{ fontSize: 12 }}>{t.vta_name}</span>
+                              <span className="p-muted" style={{ marginLeft: 8, fontSize: 11.5, fontWeight: 400 }}>
+                                {componentLabels[t.component]}
                               </span>
-                              <span className="p-badge badge-secondary" style={{ justifySelf: 'start' }}>{componentLabels[t.component]}</span>
-                              <span className="p-mono" title={`${t.from_image} -> ${toImage || '(unknown target)'}`} style={{
-                                fontSize: 11.5,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}>
-                                {imageTag(t.from_image)} → {toImage ? imageTag(toImage) : '(unknown target)'}
-                              </span>
-                            </div>
-                          )
-                        })}
-                      </div>
+                            </>
+                          ),
+                          badge: (
+                            <span className={`p-badge ${dir === 'upgrade' ? 'badge-success' : dir === 'downgrade' ? 'badge-warning' : 'badge-secondary'}`}>
+                              {dir}
+                            </span>
+                          ),
+                          current: imageTag(t.from_image),
+                          next: toImage ? imageTag(toImage) : '(unknown target)',
+                        }
+                      })} />
                     </div>
                   )}
                   {preview.skipped.length > 0 && (
-                    <details>
-                      <summary style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))', cursor: 'pointer' }}>
+                    <details className="upgrade-skipped">
+                      <summary className="upgrade-skipped-summary">
                         Skipped ({preview.skipped.length})
                       </summary>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6, color: 'hsl(var(--muted-foreground))' }}>
+                      <div className="upgrade-skipped-list">
                         {preview.skipped.map((s, i) => (
                           <div key={i} style={{
                             display: 'grid',
-                            gridTemplateColumns: 'minmax(120px, 1fr) 96px minmax(180px, 1.6fr)',
-                            columnGap: 16,
-                            rowGap: 6,
-                            alignItems: 'center',
+                            gridTemplateColumns: 'minmax(120px, 1fr) 90px minmax(180px, 1.7fr)',
+                            columnGap: 12,
+                            alignItems: 'start',
+                            padding: '5px 0',
+                            borderTop: i === 0 ? 'none' : '1px solid hsl(var(--border) / 0.65)',
                           }}>
-                            <span className="p-mono" title={s.session_id} style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span className="p-mono" style={{ fontSize: 12, overflowWrap: 'anywhere' }}>
                               {s.session_id}
                             </span>
-                            <span className="p-badge badge-secondary" style={{ justifySelf: 'start' }}>
+                            <span className="p-muted" style={{ fontSize: 12 }}>
                               {s.component ? componentLabels[s.component] : 'Session'}
                             </span>
-                            <span title={s.reason} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: 12, overflowWrap: 'anywhere' }}>
                               {s.reason}
                             </span>
                           </div>

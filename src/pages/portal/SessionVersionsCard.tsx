@@ -9,7 +9,11 @@ import {
   type UpgradeTaskStatus,
   type ImageOption,
 } from '@/lib/api'
-import { imageLabel, imageTag } from '@/lib/utils'
+import { imageChangeDirection, imageLabel, imageTag } from '@/lib/utils'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { VersionChangeList } from '@/components/VersionChangeList'
+
+const imageSelectContentStyle = { maxHeight: 'min(18rem, var(--radix-select-content-available-height))' }
 
 const componentLabels: Record<UpgradeComponent, string> = {
   vta: 'VTA',
@@ -42,17 +46,6 @@ function taskBadge(status: UpgradeTaskStatus) {
 interface ComponentRow {
   images: ImageOption[]
   unavailable?: string
-}
-
-/**
- * Change direction relative to the registry list (index 0 = newest).
- * Unknown when either image is no longer in the list.
- */
-function direction(images: ImageOption[], from: string, to: string): 'upgrade' | 'downgrade' | 'change' {
-  const fromIdx = images.findIndex(i => i.image === from)
-  const toIdx = images.findIndex(i => i.image === to)
-  if (fromIdx === -1 || toIdx === -1) return 'change'
-  return toIdx < fromIdx ? 'upgrade' : 'downgrade'
 }
 
 const inFlight = (u: SessionUpgrade | null): boolean => !!u && (
@@ -246,14 +239,13 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
             {components.map(component => (
               <div key={component} className="p-row between center" style={{ gap: 10 }}>
                 <span className="p-muted text-sm" style={{ minWidth: 80 }}>{componentLabels[component]}</span>
-                <select
+                <input
                   aria-label={`Loading ${componentLabels[component]} versions`}
-                  className="p-select p-mono"
+                  className="p-input p-mono"
                   style={{ fontSize: 12, flex: 1, minWidth: 0 }}
+                  placeholder="Loading versions…"
                   disabled
-                >
-                  <option>Loading versions…</option>
-                </select>
+                />
               </div>
             ))}
             <div className="p-row center" style={{ justifyContent: 'flex-end' }}>
@@ -278,18 +270,22 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
                   {!row || row.unavailable ? (
                     <span className="p-muted text-xs">{row?.unavailable ?? 'unavailable'}</span>
                   ) : (
-                    <select
-                      className="p-select p-mono"
-                      style={{ fontSize: 12, flex: 1, minWidth: 0 }}
-                      value={selected[component] ?? current}
-                      onChange={e => { setSelected(prev => ({ ...prev, [component]: e.target.value })); setError('') }}
-                    >
-                      {options.map(i => (
-                        <option key={i.image} value={i.image}>
-                          {imageLabel(i)}{i.image === current ? ' (current)' : ''}
-                        </option>
-                      ))}
-                    </select>
+                    <Select value={selected[component] ?? current}
+                      onValueChange={image => { setSelected(prev => ({ ...prev, [component]: image })); setError('') }}>
+                      <SelectTrigger className="w-full p-mono"
+                        aria-label={`${componentLabels[component]} version`}
+                        style={{ fontSize: 12, flex: 1, minWidth: 0 }}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent position="popper" align="start"
+                        className="w-(--radix-select-trigger-width)" style={imageSelectContentStyle}>
+                        {options.map(i => (
+                          <SelectItem key={i.image} value={i.image} className="p-mono">
+                            {imageLabel(i)}{i.image === current ? ' (current)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
                 </div>
               )
@@ -315,20 +311,20 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
               </p>
             </div>
             <div className="dialog-body">
-              {changes.map(({ component, from, to }) => {
-                const dir = direction(rows?.[component]?.images ?? [], from, to)
-                return (
-                  <div key={component} className="p-row center" style={{ gap: 10, fontSize: 13 }}>
-                    <span style={{ minWidth: 90 }}>{componentLabels[component]}</span>
+              <VersionChangeList items={changes.map(({ component, from, to }) => {
+                const dir = imageChangeDirection(rows?.[component]?.images ?? [], from, to)
+                return {
+                  key: component,
+                  title: componentLabels[component],
+                  badge: (
                     <span className={`p-badge ${dir === 'upgrade' ? 'badge-success' : dir === 'downgrade' ? 'badge-warning' : 'badge-secondary'}`}>
                       {dir}
                     </span>
-                    <span className="p-mono" style={{ fontSize: 12, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${from} → ${to}`}>
-                      {imageTag(from)} → {imageTag(to)}
-                    </span>
-                  </div>
-                )
-              })}
+                  ),
+                  current: imageTag(from),
+                  next: imageTag(to),
+                }
+              })} />
               {error && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
             </div>
             <div className="dialog-footer">

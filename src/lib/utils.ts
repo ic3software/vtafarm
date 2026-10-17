@@ -25,6 +25,44 @@ export function imageLabel(img: ImageOption): string {
   return s
 }
 
+export type ImageChangeDirection = 'upgrade' | 'downgrade' | 'change'
+
+function numericVersion(tag: string): [number, number, number] | null {
+  const match = tag.match(/^v?(\d+)\.(\d+)\.(\d+)(?:[-+]|$)/)
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null
+}
+
+function compareNumericVersions(a: [number, number, number], b: [number, number, number]): number {
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return a[i] - b[i]
+  }
+  return 0
+}
+
+/** Compare immutable images without relying on the dropdown's channel-first order. */
+export function imageChangeDirection(images: ImageOption[], from: string, to: string): ImageChangeDirection {
+  const fromOption = images.find(image => image.image === from)
+  const toOption = images.find(image => image.image === to)
+  const fromTime = fromOption?.created ? Date.parse(fromOption.created) : Number.NaN
+  const toTime = toOption?.created ? Date.parse(toOption.created) : Number.NaN
+
+  if (Number.isFinite(fromTime) && Number.isFinite(toTime) && fromTime !== toTime) {
+    return toTime > fromTime ? 'upgrade' : 'downgrade'
+  }
+
+  const fromVersion = numericVersion(fromOption?.tag ?? imageTag(from))
+  const toVersion = numericVersion(toOption?.tag ?? imageTag(to))
+  if (fromVersion && toVersion) {
+    const comparison = compareNumericVersions(toVersion, fromVersion)
+    if (comparison !== 0) return comparison > 0 ? 'upgrade' : 'downgrade'
+  }
+
+  // A retired current tag may no longer have metadata, but moving to the
+  // registry's current stable release is still a meaningful upgrade.
+  if (toOption?.latest && !fromOption?.latest) return 'upgrade'
+  return 'change'
+}
+
 /** Page numbers with ellipsis gaps, e.g. 1 … 4 5 6 … 12. */
 export function pageNumbers(current: number, total: number): Array<number | '…'> {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)

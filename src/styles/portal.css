@@ -273,6 +273,10 @@
 .portal-root .dialog-desc { font-size: 13px; color: hsl(var(--muted-foreground)); margin: 0; line-height: 1.5; }
 .portal-root .dialog-body { padding: 0 24px 20px; display: flex; flex-direction: column; gap: 16px; }
 .portal-root .dialog-footer { padding: 16px 24px; background: hsl(var(--muted) / 0.4); border-top: 1px solid hsl(var(--border)); display: flex; justify-content: flex-end; gap: 10px; }
+.portal-root .upgrade-preview { max-height: 330px; padding-right: 4px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.portal-root .upgrade-skipped-summary { padding: 4px 6px; margin: -4px -6px 0; border-radius: calc(var(--radius) - 3px); color: hsl(var(--foreground)); font-size: 12px; font-weight: 600; cursor: pointer; }
+.portal-root .upgrade-skipped-summary:focus-visible { outline: none; box-shadow: 0 0 0 3px hsl(var(--ring) / 0.18); }
+.portal-root .upgrade-skipped-list { margin-top: 8px; color: hsl(var(--muted-foreground)); }
 .portal-root .vta-limit-dialog { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: calc(100% - 48px); z-index: 101; }
 .portal-root .vta-limit-dialog .dialog-header { padding: 18px 24px; border-bottom: 1px solid hsl(var(--border)); }
 .portal-root .vta-limit-dialog .dialog-title { margin: 0; }
