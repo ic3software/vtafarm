@@ -9,6 +9,7 @@ import { SessionVersionsCard } from './SessionVersionsCard'
 import { SessionExportCard } from './SessionExportCard'
 import { SessionPnmCard } from './SessionPnmCard'
 import { VtaConnectionCard } from './VtaConnectionCard'
+import { TrustRegistryCard } from '../TrustRegistryCard'
 import { StackConfigEditor } from '../StackConfigEditor'
 import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 import { SessionRecoveryModal } from '../SessionRecoveryModal'
@@ -378,6 +379,7 @@ function SessionDetailContent() {
                 session={session}
                 onUpgraded={() => api.getSession(sessionId).then(setSession).catch(() => {})}
               />
+              {isFullStack && <TrustRegistryCard sessionId={sessionId} />}
               <StackConfigEditor sessionId={sessionId} vtaOnly={!isFullStack} />
             </>
           )}

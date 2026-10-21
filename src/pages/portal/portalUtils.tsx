@@ -43,6 +43,7 @@ const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   step_vtc_acl_grant:     { cls: 'badge-warning',   label: 'VTC setup (2/2)' },
   step_vtc_setup:         { cls: 'badge-warning',   label: 'VTC community setup' },
   deploy_vtc:             { cls: 'badge-warning',   label: 'deploying VTC' },
+  step_trust_registry: { cls: 'badge-warning', label: 'setting up Trust Registry' },
   // shared
   failed: { cls: 'badge-destructive', label: 'failed' },
 }
@@ -147,7 +148,7 @@ export const FULL_STACK_PHASES: Phase[] = [
   { key: 'going_live', label: 'Deploy D+M',       statuses: ['deploy_dids', 'deploy_mediator', 'step_vta_register_dids'] },
   { key: 'admin_did', label: 'Admin DID',         statuses: ['awaiting_admin_did', 'step_import_admin_did', 'step_vtc_setup_key', 'step_vtc_acl_grant'] },
   { key: 'deploy_vta', label: 'Deploy agent',       statuses: ['deploy_vta'] },
-  { key: 'vtc',       label: 'VTC setup',         statuses: ['step_vtc_setup', 'deploy_vtc'] },
+  { key: 'vtc',       label: 'VTC setup',         statuses: ['step_vtc_setup', 'deploy_vtc', 'step_trust_registry'] },
   { key: 'running',   label: 'Running',           statuses: ['running'] },
 ]
 

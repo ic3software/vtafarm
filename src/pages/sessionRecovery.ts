@@ -14,5 +14,5 @@ export function recoveryComponentForStage(stage?: SetupStatus): UpgradeComponent
 export function recoveryComponentsForSession(mode: SetupMode, stage?: SetupStatus): UpgradeComponent[] {
   if (!recoveryComponentForStage(stage)) return []
   if (mode === 'vta_only') return stage === 'deploy_vta' ? ['vta'] : []
-  return [...ALL_COMPONENTS]
+  return ALL_COMPONENTS.filter(component => component !== 'trust-registry')
 }

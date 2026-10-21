@@ -34,6 +34,7 @@ const labels: Record<UpgradeComponent, string> = {
   mediator: 'Mediator',
   dids: 'DID Hosting',
   vtc: 'VTC',
+  'trust-registry': 'Trust Registry',
 }
 
 const modeComponents: Record<string, UpgradeComponent[]> = {
@@ -80,7 +81,10 @@ export function ResourceModal({ sessions, onClose }: Props) {
     Promise.all(sessions.map(session => api.adminSessionResources(session.id)))
       .then(responses => {
         if (!active) return
-        setRows(buildRows(responses, components, sessions.length > 1))
+        const inventory = responses.some(response => response.resources.some(item => item.component === 'trust-registry'))
+          ? [...components, 'trust-registry' as const]
+          : components
+        setRows(buildRows(responses, inventory, sessions.length > 1))
       })
       .catch(err => {
         if (active) setError(err instanceof Error ? err.message : 'Failed to load resources')

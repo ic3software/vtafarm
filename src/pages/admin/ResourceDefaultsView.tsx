@@ -8,6 +8,7 @@ const components: Array<{ key: UpgradeComponent; label: string }> = [
   { key: 'vtc', label: 'VTC' },
   { key: 'vta', label: 'VTA' },
   { key: 'dids', label: 'DID Hosting' },
+  { key: 'trust-registry', label: 'Trust Registry' },
 ]
 const memoryFields = ['memory_request', 'memory_limit'] as const
 

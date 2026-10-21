@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FullStackCreateProgress } from './FullStackCreateProgress'
 import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 import { VtaConnectionCard } from './VtaConnectionCard'
+import { TrustRegistryImagePicker } from '../TrustRegistryCard'
 import { VtaLimitDialog } from './VtaLimitDialog'
 import { VTA_LIMIT_MESSAGE } from './vtaAccess'
 import { recoveryComponentsForSession } from '../sessionRecovery'
@@ -81,6 +82,8 @@ export function CreateVTAView() {
   const [vtcName, setVtcName] = useState('')
   const [vtcImages, setVtcImages] = useState<ImageOption[]>([])
   const [selectedVtcImage, setSelectedVtcImage] = useState('')
+  const [registryEnabled, setRegistryEnabled] = useState(false)
+  const [registryImage, setRegistryImage] = useState('')
   const [bottomImagePadding, setBottomImagePadding] = useState(0)
   // Custom domains the caller has attached. Empty when they have none — and
   // also when the API has the feature switched off, which 404s the list.
@@ -343,6 +346,7 @@ export function CreateVTAView() {
     if (mode !== 'vta_only' && (!selectedMediatorImage || !selectedDidsImage)) {
       setCreateError('Select a mediator and DID hosting image'); return
     }
+    if (mode === 'full_stack' && registryEnabled && !registryImage) { setCreateError('Select a Trust Registry image'); return }
     if (mode === 'full_stack' && !selectedVtcImage) {
       setCreateError('Select a VTC image'); return
     }
@@ -360,7 +364,7 @@ export function CreateVTAView() {
           ? { domain_id: selectedDomain.id, label }
           : { vta_name: vtaName }),
         ...(mode !== 'vta_only' ? { mediator_image: selectedMediatorImage, dids_image: selectedDidsImage } : {}),
-        ...(mode === 'full_stack' ? { vtc_image: selectedVtcImage } : {}),
+        ...(mode === 'full_stack' ? { vtc_image: selectedVtcImage, trust_registry_enabled: registryEnabled, ...(registryEnabled ? { trust_registry_image: registryImage } : {}) } : {}),
         ...(mode === 'full_stack' && !selectedDomain ? { vtc_name: vtcName } : {}),
         ...(mode === 'vta_only' && connectionChoice === 'custom'
           ? { did_hosting_did: didHostingDid.trim(), mediator_did: mediatorDid.trim() }
@@ -777,6 +781,11 @@ export function CreateVTAView() {
                 </div>
               </>
             )}
+            {mode === 'full_stack' && <div className="p-col gap-16">
+              <label className="p-row gap-8"><input type="checkbox" checked={registryEnabled} onChange={e => setRegistryEnabled(e.target.checked)} /> Enable Trust Registry (optional)</label>
+              <p className="field-hint">Publish consented membership records for other systems to verify. You can also enable this later in Settings.</p>
+              {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} />}
+            </div>}
             {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
             {limitReached && <p className="field-hint">{VTA_LIMIT_MESSAGE}</p>}
             {!fullstackAccess && <p className="field-hint">All undeleted agents count toward your limit, including those being set up or in a failed state. Delete a failed agent to free up a slot.</p>}

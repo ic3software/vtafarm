@@ -11,6 +11,7 @@ import {
 import { useDidsEnroll, useVtcInstall, type DidsEnrollState, type VtcInstallState } from '../portal/fullStackHooks'
 import { adminSessionActions } from '../portal/sessionActions'
 import { PlatformStackAdmins } from './PlatformStackAdmins'
+import { TrustRegistryCard, TrustRegistryImagePicker } from '../TrustRegistryCard'
 import { StackConfigEditor } from '../StackConfigEditor'
 import { SessionExportCard } from '../portal/SessionExportCard'
 import { SessionVersionsCard } from '../portal/SessionVersionsCard'
@@ -24,6 +25,8 @@ import { SessionVersionsCard } from '../portal/SessionVersionsCard'
 // It needs neither domain verification nor certificates — the zone is ours and
 // the wildcard already covers the names — which is why it ships well before the
 // custom-domain UI exists.
+
+const BASE_COMPONENTS = ALL_COMPONENTS.filter(component => component !== 'trust-registry')
 
 type PlatformStackTab = 'overview' | 'administrators' | 'credentials' | 'settings'
 
@@ -39,6 +42,7 @@ const COMPONENT_LABELS: Record<UpgradeComponent, string> = {
   mediator: 'Mediator',
   dids: 'DID Hosting',
   vtc: 'VTC',
+  'trust-registry': 'Trust Registry',
 }
 
 function CopyIcon({ copied }: { copied: boolean }) {
@@ -278,6 +282,7 @@ function PlatformStackTabs({
       >
         <div className="session-settings-column">
           <SessionVersionsCard admin session={session} onUpgraded={() => { void onStackUpdated() }} />
+          <TrustRegistryCard sessionId={session.id} admin />
           <StackConfigEditor admin />
           <SessionExportCard admin session={session} sessionId={session.id} />
         </div>
@@ -372,8 +377,10 @@ export function PlatformStackView() {
   const [adminDid, setAdminDid] = useState('')
   const [provisioning, setProvisioning] = useState(false)
   const [provisionError, setProvisionError] = useState('')
-  const [images, setImages] = useState<Record<UpgradeComponent, ImageOption[]>>({ vta: [], mediator: [], dids: [], vtc: [] })
-  const [selected, setSelected] = useState<Record<UpgradeComponent, string>>({ vta: '', mediator: '', dids: '', vtc: '' })
+  const [images, setImages] = useState<Record<UpgradeComponent, ImageOption[]>>({ vta: [], mediator: [], dids: [], vtc: [], 'trust-registry': [] })
+  const [selected, setSelected] = useState<Record<UpgradeComponent, string>>({ vta: '', mediator: '', dids: '', vtc: '', 'trust-registry': '' })
+  const [registryEnabled, setRegistryEnabled] = useState(false)
+  const [registryImage, setRegistryImage] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
@@ -469,7 +476,7 @@ export function PlatformStackView() {
   useEffect(() => {
     if (!needsForm || imagesLoaded.current) return
     imagesLoaded.current = true
-    for (const component of ALL_COMPONENTS) {
+    for (const component of BASE_COMPONENTS) {
       api.adminListImages(component)
         .then(imgs => {
           setImages(prev => ({ ...prev, [component]: imgs }))
@@ -486,7 +493,8 @@ export function PlatformStackView() {
   async function handleCreate() {
     const trimmedLabel = label.trim()
     if (!trimmedLabel) { setCreateError('Enter a label'); return }
-    if (ALL_COMPONENTS.some(c => !selected[c])) { setCreateError('Select an image for every component'); return }
+    if (registryEnabled && !registryImage) { setCreateError('Select a Trust Registry image'); return }
+    if (BASE_COMPONENTS.some(c => !selected[c])) { setCreateError('Select an image for every component'); return }
 
     setCreateError(''); setCreating(true)
     try {
@@ -496,6 +504,8 @@ export function PlatformStackView() {
         mediator_image: selected.mediator,
         dids_image: selected.dids,
         vtc_image: selected.vtc,
+        trust_registry_enabled: registryEnabled,
+        ...(registryEnabled ? { trust_registry_image: registryImage } : {}),
       })
       await load()
     } catch (err) {
@@ -595,7 +605,7 @@ export function PlatformStackView() {
                 <div className="alert-desc">
                   {domainInfo ? (
                     <div className="p-col" style={{ gap: 2, marginTop: 4 }}>
-                      {ALL_COMPONENTS.map(component => (
+                      {BASE_COMPONENTS.map(component => (
                         <span key={component} className="p-mono" style={{ fontSize: 12 }}>
                           {componentHost(domainInfo, component, { fixedLabels: true })}
                         </span>
@@ -623,7 +633,7 @@ export function PlatformStackView() {
               </div>
             </div>
 
-            {ALL_COMPONENTS.map(component => (
+            {BASE_COMPONENTS.map(component => (
               <div key={component}>
                 <label className="p-label" htmlFor={`ps-image-${component}`}>
                   {COMPONENT_LABELS[component]} image <span className="req">*</span>
@@ -648,6 +658,8 @@ export function PlatformStackView() {
               </div>
             ))}
 
+            <label className="p-row gap-8"><input type="checkbox" checked={registryEnabled} onChange={e => setRegistryEnabled(e.target.checked)} /> Enable Trust Registry (optional)</label>
+            {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} admin />}
             {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
           </div>
           <div className="card-footer between">
