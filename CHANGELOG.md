@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.14.2] - 2026-10-21
+
+### Changed
+
+- Updated Radix UI, Lucide, Vite, ESLint, and TypeScript ESLint tooling.
+- Vite configuration uses native module paths when resolving source aliases.
+
+### Fixed
+
+- Failed Keyring administrator requests show why the key could not be added and
+  prompt users to generate a new QR code before trying again.
+
+Requires vtafarm-api 0.14.2.
+
 ## [v0.14.1] - 2026-10-17
 
 ### Added
