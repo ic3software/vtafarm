@@ -31,6 +31,7 @@ export function TrustRegistryImagePicker({ image, onChange, admin = false }: { i
 
 const PHASES: Record<string, string> = {
   queued: 'Waiting to begin', preflight: 'Checking compatibility', provision_identity: 'Creating Registry identity',
+  setup_key: 'Preparing Registry setup', grant_access: 'Granting Registry setup access',
   deploy_registry: 'Starting Registry', publish_referral: 'Updating community discovery', configure_vtc: 'Connecting VTC', verify: 'Verifying connection', complete: 'Enabled',
 }
 
@@ -76,7 +77,7 @@ export function TrustRegistryCard({ sessionId, admin = false }: { sessionId: str
       {registry?.phase && registry.phase !== 'complete' && registry.state !== 'disabled' && <p className="text-sm">{PHASES[registry.phase] ?? registry.phase}</p>}
       {registry?.did && <div><span className="p-label">Registry DID</span><p className="p-mono text-sm" style={{ overflowWrap: 'anywhere' }}>{registry.did}</p></div>}
       {registry?.image && <p className="p-mono text-sm" style={{ overflowWrap: 'anywhere' }}>{registry.image}</p>}
-      {registry?.error && <p role="alert" style={{ color: 'hsl(var(--destructive))' }}>{registry.error}</p>}
+      {registry?.error && <p role="alert" style={{ color: 'hsl(var(--destructive))', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{registry.error}</p>}
       {active && <p className="field-hint">Registry is enabled. Check membership synchronization in the VTC admin dashboard. Members are published only when they have consented.</p>}
       {registry && !active && !enabling && <>
         <TrustRegistryImagePicker image={image} onChange={setImage} admin={admin} />
