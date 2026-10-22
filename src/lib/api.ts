@@ -16,7 +16,7 @@ export const API_BASE: string = _apiUrl
 
 export interface MobileConnection {
   request_id: string
-  status: 'open' | 'claimed' | 'confirmed' | 'provisioning' | 'released' | 'rejected' | 'lapsed'
+  status: 'open' | 'claimed' | 'confirmed' | 'provisioning' | 'released' | 'rejected' | 'lapsed' | 'failed'
   vta_did: string
   operation: 'provision_vta' | 'grant_acl'
   expires_at: string

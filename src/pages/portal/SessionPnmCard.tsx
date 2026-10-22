@@ -252,6 +252,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
   const automaticQr = method === 'automatic' && mobileRequest && ['open', 'lapsed'].includes(mobileRequest.status) &&
     mobileRequest.vta_did === vtaDid && hasCurrentMobileQr && mobileSynchronized && online ? mobileQrPayload.value : null
   const automaticMessage = mobileRequest?.status === 'rejected' ? 'That claim was rejected. The candidate key was not added.'
+    : mobileRequest?.status === 'failed' ? mobileRequest.error ?? 'The administrator key could not be added. Generate a new QR code and try again.'
     : !mobileRequest || hiddenMobileExpired ? 'Generate a QR code when you are ready.'
     : mobileRequest.status === 'released' ? 'The administrator key is installed. Keyring can redeem the VTA hand-over.'
     : mobileRequest.status === 'claimed' ? 'A Keyring claimed this link. Compare the code on both screens before continuing.'
