@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { VersionChangeList } from '@/components/VersionChangeList'
 
 const imageSelectContentStyle = { maxHeight: 'min(18rem, var(--radix-select-content-available-height))' }
+const componentLabelStyle = { flex: '0 0 90px' }
 
 const componentLabels: Record<UpgradeComponent, string> = {
   vta: 'VTA',
@@ -217,7 +218,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
           <>
             {upgrade.tasks.map(t => (
               <div key={t.component} className="p-row between center" style={{ gap: 10 }}>
-                <span className="p-muted text-sm" style={{ minWidth: 80 }}>{componentLabels[t.component]}</span>
+                <span className="p-muted text-sm" style={componentLabelStyle}>{componentLabels[t.component]}</span>
                 <span className="p-mono text-xs" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }} title={`${t.from_image} → ${t.to_image}`}>
                   {imageTag(t.from_image)} → {imageTag(t.to_image)}
                 </span>
@@ -251,7 +252,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
           <>
             {components.map(component => (
               <div key={component} className="p-row between center" style={{ gap: 10 }}>
-                <span className="p-muted text-sm" style={{ minWidth: 80 }}>{componentLabels[component]}</span>
+                <span className="p-muted text-sm" style={componentLabelStyle}>{componentLabels[component]}</span>
                 <input
                   aria-label={`Loading ${componentLabels[component]} versions`}
                   className="p-input p-mono"
@@ -279,7 +280,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
                 : []
               return (
                 <div key={component} className="p-row between center" style={{ gap: 10 }}>
-                  <span className="p-muted text-sm" style={{ minWidth: 80 }}>{componentLabels[component]}</span>
+                  <span className="p-muted text-sm" style={componentLabelStyle}>{componentLabels[component]}</span>
                   {!row || row.unavailable ? (
                     <span className="p-muted text-xs">{row?.unavailable ?? 'unavailable'}</span>
                   ) : (
