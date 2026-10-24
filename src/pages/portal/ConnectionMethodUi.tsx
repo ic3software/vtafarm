@@ -6,6 +6,7 @@ import { type IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { faApple, faGooglePlay, faLinux } from '@fortawesome/free-brands-svg-icons'
 import androidPlayStoreQr from '@/assets/android-play-store.svg'
 import iosTestflightQr from '@/assets/ios-testflight.svg'
+import { keyringSameDeviceLink } from '@/lib/utils'
 
 export type ConnectionMethod = 'local' | 'automatic'
 
@@ -174,6 +175,9 @@ export function KeyringConnectionPanel({ message, qr, expired, remaining, action
   onConfirm?: () => void
   onReject?: () => void
 }) {
+  // The buttons and the QR image open Keyring on this device; the QR itself
+  // keeps the https:// link for the app's scanner and the phone camera.
+  const sameDeviceHref = qr ? keyringSameDeviceLink(qr) : null
   return (
     <>
       {!expired && message && <p role="status" aria-live="polite" style={{ margin: 0 }}>{message}</p>}
@@ -196,8 +200,8 @@ export function KeyringConnectionPanel({ message, qr, expired, remaining, action
 
       {(qr || expired) && (
         <div className="connection-qr">
-          {!expired && qr && (
-            <a className="btn btn-default btn-sm connection-same-device-link" href={qr}>
+          {!expired && sameDeviceHref && (
+            <a className="btn btn-default btn-sm connection-same-device-link" href={sameDeviceHref}>
               Open in Keyring
             </a>
           )}
@@ -205,7 +209,7 @@ export function KeyringConnectionPanel({ message, qr, expired, remaining, action
             {qr
               ? expired
                 ? <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title="Expired Keyring connection QR code" />
-                : <a className="connection-qr-link" href={qr} aria-label="Open this connection in Keyring">
+                : <a className="connection-qr-link" href={sameDeviceHref ?? undefined} aria-label="Open this connection in Keyring">
                     <QRCodeSVG value={qr} size={280} level="M" marginSize={4} title="Keyring connection QR code" />
                   </a>
               : <div className="qr-expired-placeholder" aria-hidden="true" />}
@@ -224,7 +228,7 @@ export function KeyringConnectionPanel({ message, qr, expired, remaining, action
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                 QR code expires in <strong>{Math.floor((remaining ?? 0) / 60).toString().padStart(2, '0')}:{((remaining ?? 0) % 60).toString().padStart(2, '0')}</strong>
               </p>
-              {qr && <a className="btn btn-outline btn-sm connection-desktop-device-link" href={qr}>Open in Keyring</a>}
+              {sameDeviceHref && <a className="btn btn-outline btn-sm connection-desktop-device-link" href={sameDeviceHref}>Open in Keyring</a>}
               {import.meta.env.DEV && qr && (
                 <div className="qr-development-payload">
                   <span>QR payload (development only)</span>
