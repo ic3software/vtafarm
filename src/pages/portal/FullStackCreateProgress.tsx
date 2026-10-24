@@ -4,7 +4,7 @@ import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import { statusBadge, fullStackPhases, phaseIndex } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, TrustRegistryConfigRows, TrustRegistryStatusCard } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, TrustRegistryStatusCard } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { VtaConnectionCard } from './VtaConnectionCard'
 import { recoveryComponentsForSession } from '../sessionRecovery'
@@ -161,7 +161,6 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
             <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
               <div className="p-row between"><span className="p-muted text-sm">Mode</span><span className="p-badge badge-secondary">{session?.mode ?? 'full_stack'}</span></div>
               <EndpointConfigRows urls={session?.urls} />
-              <TrustRegistryConfigRows registry={session?.trust_registry} />
               <DidsEnrollConfigRow {...didsEnroll} />
               <VtcInstallConfigRow {...vtcInstall} />
             </div>

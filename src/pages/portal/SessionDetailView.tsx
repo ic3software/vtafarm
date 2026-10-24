@@ -3,7 +3,7 @@ import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react
 import { api, type SetupSession, API_BASE } from '@/lib/api'
 import { statusBadge, fullStackPhases, phaseIndex, domainTypeBadge, vtaOnlyPhases, modeLabel } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ConnectedToCard, TrustRegistryConfigRows, TrustRegistryStatusCard } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ConnectedToCard, TrustRegistryStatusCard } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { SessionVersionsCard } from './SessionVersionsCard'
 import { SessionExportCard } from './SessionExportCard'
@@ -222,7 +222,6 @@ function SessionDetailContent() {
           <><hr className="p-sep"/><ConfigLinkRow label="VTA" href={`${session.url}/health`} value={`${session.url}/health`} /></>
         )}
         {isFullStackCompleted && <EndpointConfigRows urls={session.urls} />}
-        {isFullStackCompleted && <TrustRegistryConfigRows registry={session.trust_registry} />}
         {isFullStackCompleted && <DidsEnrollConfigRow {...didsEnroll} />}
         {isFullStackCompleted && <VtcInstallConfigRow {...vtcInstall} />}
       </div>

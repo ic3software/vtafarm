@@ -7,7 +7,7 @@ import { PhaseStepper } from '../portal/PhaseStepper'
 import { FULL_STACK_PHASES, phaseIndex, statusBadge, useCopyState, isValidAdminDid, componentHost, useDomainInfo } from '../portal/portalUtils'
 import {
   DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard,
-  TrustRegistryConfigRows, TrustRegistryStatusCard,
+  TrustRegistryStatusCard,
 } from '../portal/FullStackOutputs'
 import { useDidsEnroll, useVtcInstall, type DidsEnrollState, type VtcInstallState } from '../portal/fullStackHooks'
 import { adminSessionActions } from '../portal/sessionActions'
@@ -212,7 +212,6 @@ function PlatformStackTabs({
           </>
         )}
         <EndpointConfigRows urls={stack.urls} />
-        <TrustRegistryConfigRows registry={stack.trust_registry} />
         <DidsEnrollConfigRow {...didsEnroll} />
         <VtcInstallConfigRow {...vtcInstall} />
       </div>

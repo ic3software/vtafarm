@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Dialog } from 'radix-ui'
 import { api, type ImageOption, type TrustRegistryState } from '@/lib/api'
 import { imageLabel } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -46,6 +47,8 @@ export function TrustRegistryCard({
   const [submitting, setSubmitting] = useState(false)
   const [refresh, setRefresh] = useState(0)
   const enabledReported = useRef(false)
+  const enableRequested = useRef(false)
+  const [successRegistry, setSuccessRegistry] = useState<TrustRegistryState | null>(null)
   useEffect(() => {
     let active = true
     const load = async () => {
@@ -55,31 +58,69 @@ export function TrustRegistryCard({
           setRegistry(state)
           setImage(current => current || state.image)
           setLoadError('')
+          if (state.state === 'active' && !enabledReported.current) {
+            enabledReported.current = true
+            if (enableRequested.current) setSuccessRegistry(state)
+            else onEnabled?.(state)
+          }
         }
       } catch (err) { if (active) setLoadError(err instanceof Error ? err.message : 'Could not load Trust Registry status.') }
     }
     void load()
     const interval = setInterval(() => { void load() }, 3000)
     return () => { active = false; clearInterval(interval) }
-  }, [sessionId, admin, refresh])
+  }, [sessionId, admin, refresh, onEnabled])
 
   async function enable() {
     setSubmitting(true); setError('')
+    enableRequested.current = true
     try {
       const state = await (admin ? api.adminEnableTrustRegistry(image) : api.enableTrustRegistry(sessionId, image))
       setRegistry(state)
-    } catch (err) { setError(err instanceof Error ? err.message : 'Could not enable Trust Registry.') }
+      if (state.state === 'active' && !enabledReported.current) {
+        enabledReported.current = true
+        setSuccessRegistry(state)
+      }
+    } catch (err) {
+      enableRequested.current = false
+      setError(err instanceof Error ? err.message : 'Could not enable Trust Registry.')
+    }
     finally { setSubmitting(false) }
   }
   const enabling = registry?.state === 'enabling'
   const active = registry?.state === 'active'
-  useEffect(() => {
-    if (!active || !registry || enabledReported.current) return
-    enabledReported.current = true
-    onEnabled?.(registry)
-  }, [active, registry, onEnabled])
 
-  if (active) return null
+  function closeSuccess() {
+    setSuccessRegistry(null)
+    if (successRegistry) onEnabled?.(successRegistry)
+  }
+
+  if (active) return successRegistry ? (
+    <Dialog.Root open onOpenChange={open => { if (!open) closeSuccess() }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="p-overlay" />
+        <Dialog.Content className="p-dialog" style={{ maxWidth: 460 }} aria-describedby="trust-registry-success-description">
+          <div className="dialog-header">
+            <Dialog.Title asChild><h3 className="dialog-title">Trust Registry enabled</h3></Dialog.Title>
+          </div>
+          <div className="dialog-body">
+            <div className="p-alert alert-success" role="status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M20 6 9 17l-5-5"/></svg>
+              <div className="grow">
+                <p className="alert-title">Enablement complete</p>
+                <Dialog.Description asChild>
+                  <p className="alert-desc" id="trust-registry-success-description">Trust Registry is active and ready to use.</p>
+                </Dialog.Description>
+              </div>
+            </div>
+          </div>
+          <div className="dialog-footer">
+            <Dialog.Close asChild><button type="button" className="btn btn-default">Done</button></Dialog.Close>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  ) : null
 
   return <div className="p-card">
     <div className="card-header"><div className="p-row between center"><h3 className="card-title">Trust Registry</h3>

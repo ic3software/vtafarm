@@ -8,7 +8,6 @@ import {
 } from '@/lib/api'
 import { useCopyState } from './portalUtils'
 import { type DidsEnrollState, type VtcInstallState } from './fullStackHooks'
-import { imageTag } from '@/lib/utils'
 import { TrustRegistryDetails } from '../TrustRegistryDetails'
 
 function CopyIcon({ copied }: { copied: boolean }) {
@@ -347,28 +346,6 @@ function registryStatus(registry: TrustRegistryState) {
     case 'failed': return { label: 'Enablement failed', badge: 'badge-destructive' }
     default: return { label: 'Not enabled', badge: 'badge-secondary' }
   }
-}
-
-// Registry traffic is DIDComm-only; there is deliberately no public HTTP URL
-// to put beside the other endpoints. Report the deployed add-on and its image
-// here so an opted-in Registry never silently disappears from Configuration.
-export function TrustRegistryConfigRows({ registry }: { registry?: TrustRegistryState }) {
-  if (!registry?.enabled) return null
-  const status = registryStatus(registry)
-  return (
-    <>
-      <hr className="p-sep"/>
-      <div className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
-        <span className="p-muted text-sm" style={{ flexShrink: 0 }}>Trust Registry</span>
-        <div className="p-col" style={{ alignItems: 'flex-end', minWidth: 0, gap: 5 }}>
-          <span className={`p-badge ${status.badge}`}>{status.label}</span>
-          {registry.image && (
-            <span className="p-mono text-xs" style={{ textAlign: 'right', overflowWrap: 'anywhere' }}>{imageTag(registry.image)}</span>
-          )}
-        </div>
-      </div>
-    </>
-  )
 }
 
 export function TrustRegistryStatusCard({
