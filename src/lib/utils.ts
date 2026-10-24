@@ -78,3 +78,15 @@ export function pageNumbers(current: number, total: number): Array<number | '…
   }
   return out
 }
+
+/**
+ * The same-device form of a VTI trigger link: the `https://` prefix replaced
+ * by Keyring's own `keyring://` scheme, which the app registers on iOS and
+ * Android and its trigger-link reader accepts as an alias for `https`. The
+ * host and fragment are kept verbatim; the reader needs both. The `https://`
+ * form stays in the QR code, since a phone camera cannot open a custom scheme.
+ * Anything that is not an `https://` link is returned unchanged.
+ */
+export function keyringSameDeviceLink(triggerLink: string): string {
+  return triggerLink.replace(/^https:\/\//i, 'keyring://')
+}
