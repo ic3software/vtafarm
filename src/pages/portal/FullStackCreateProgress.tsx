@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
-import { statusBadge, FULL_STACK_PHASES, phaseIndex } from './portalUtils'
+import { statusBadge, fullStackPhases, phaseIndex } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
@@ -17,7 +17,7 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
   const [logs, setLogs] = useState<string[]>([])
   const consoleBodyRef = useRef<HTMLDivElement>(null)
 
-  const phases = FULL_STACK_PHASES
+  const phases = fullStackPhases(session?.trust_registry?.enabled === true)
   const didsEnroll = useDidsEnroll(session)
   const vtcInstall = useVtcInstall(session)
 

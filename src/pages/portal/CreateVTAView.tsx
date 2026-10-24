@@ -4,7 +4,7 @@ import { api, API_BASE, type ApiError, type SetupSession, type SetupAvailability
 import { imageLabel } from '@/lib/utils'
 import type { PortalContext } from './Portal'
 import {
-  statusBadge, FULL_STACK_PHASES, componentHost, phaseIndex, useDomainInfo, vtaOnlyPhases,
+  statusBadge, componentHost, fullStackPhases, phaseIndex, useDomainInfo, vtaOnlyPhases,
 } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -495,7 +495,7 @@ export function CreateVTAView() {
           spinning={stage !== 0}
         />
       ) : stage === 0 && (
-        <PhaseStepper phases={FULL_STACK_PHASES} currentIndex={0} spinning={false} />
+        <PhaseStepper phases={fullStackPhases(registryEnabled)} currentIndex={0} spinning={false} />
       )}
 
       {/* Stage 0 */}
@@ -782,8 +782,27 @@ export function CreateVTAView() {
               </>
             )}
             {mode === 'full_stack' && <div className="p-col gap-16">
-              <label className="p-row gap-8"><input type="checkbox" checked={registryEnabled} onChange={e => setRegistryEnabled(e.target.checked)} /> Enable Trust Registry (optional)</label>
-              <p className="field-hint">Publish consented membership records for other systems to verify. You can also enable this later in Settings.</p>
+              <label
+                className="p-row gap-12 center"
+                style={{
+                  padding: '12px 14px',
+                  border: `1px solid hsl(var(${registryEnabled ? '--primary' : '--border'}))`,
+                  borderRadius: 8,
+                  background: registryEnabled ? 'hsl(var(--primary) / .08)' : 'hsl(var(--muted) / .35)',
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={registryEnabled}
+                  onChange={e => setRegistryEnabled(e.target.checked)}
+                  style={{ width: 18, height: 18, accentColor: 'hsl(var(--primary))' }}
+                />
+                <span className="grow fw-600">Enable Trust Registry</span>
+                <span className={`p-badge ${registryEnabled ? 'badge-success' : 'badge-secondary'}`}>
+                  {registryEnabled ? 'Enabled' : 'Optional'}
+                </span>
+              </label>
               {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} />}
             </div>}
             {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}

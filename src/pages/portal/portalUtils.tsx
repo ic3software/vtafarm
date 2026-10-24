@@ -148,9 +148,18 @@ export const FULL_STACK_PHASES: Phase[] = [
   { key: 'going_live', label: 'Deploy D+M',       statuses: ['deploy_dids', 'deploy_mediator', 'step_vta_register_dids'] },
   { key: 'admin_did', label: 'Admin DID',         statuses: ['awaiting_admin_did', 'step_import_admin_did', 'step_vtc_setup_key', 'step_vtc_acl_grant'] },
   { key: 'deploy_vta', label: 'Deploy agent',       statuses: ['deploy_vta'] },
-  { key: 'vtc',       label: 'VTC setup',         statuses: ['step_vtc_setup', 'deploy_vtc', 'step_trust_registry'] },
+  { key: 'vtc',       label: 'VTC setup',         statuses: ['step_vtc_setup', 'deploy_vtc'] },
   { key: 'running',   label: 'Running',           statuses: ['running'] },
 ]
+
+const TRUST_REGISTRY_PHASE: Phase = {
+  key: 'trust_registry', label: 'Trust Registry', statuses: ['step_trust_registry'],
+}
+
+export function fullStackPhases(registryEnabled: boolean): Phase[] {
+  if (!registryEnabled) return FULL_STACK_PHASES
+  return [...FULL_STACK_PHASES.slice(0, -1), TRUST_REGISTRY_PHASE, FULL_STACK_PHASES.at(-1)!]
+}
 
 
 export function phaseIndex(phases: Phase[], status: SetupStatus | undefined): number {
