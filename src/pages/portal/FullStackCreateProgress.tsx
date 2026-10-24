@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type SetupSession } from '@/lib/api'
 import type { PortalContext } from './Portal'
-import { statusBadge, FULL_STACK_PHASES, phaseIndex } from './portalUtils'
+import { statusBadge, fullStackPhases, phaseIndex } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, TrustRegistryStatusCard } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { VtaConnectionCard } from './VtaConnectionCard'
 import { recoveryComponentsForSession } from '../sessionRecovery'
@@ -17,7 +17,7 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
   const [logs, setLogs] = useState<string[]>([])
   const consoleBodyRef = useRef<HTMLDivElement>(null)
 
-  const phases = FULL_STACK_PHASES
+  const phases = fullStackPhases(session?.trust_registry?.enabled === true)
   const didsEnroll = useDidsEnroll(session)
   const vtcInstall = useVtcInstall(session)
 
@@ -145,9 +145,16 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
         ) : null
       ) : completed ? (
         <>
+          <TrustRegistryStatusCard
+            registry={session?.trust_registry}
+            onOpenSettings={() => navigate(`/portal/session/${sessionId}?tab=settings`)}
+          />
           <DidsEnrollAlert {...didsEnroll} />
           <VtcInstallAlert {...vtcInstall} />
-          <CollectedDidsCard collected={session?.collected} />
+          <CollectedDidsCard
+            collected={session?.collected}
+            registryDid={session?.trust_registry?.did || undefined}
+          />
 
           <div className="p-card" style={{ marginBottom: 16 }}>
             <div className="card-header"><h3 className="card-title">Configuration</h3></div>

@@ -14,12 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { VersionChangeList } from '@/components/VersionChangeList'
 
 const imageSelectContentStyle = { maxHeight: 'min(18rem, var(--radix-select-content-available-height))' }
+const componentLabelStyle = { flex: '0 0 90px' }
 
 const componentLabels: Record<UpgradeComponent, string> = {
   vta: 'VTA',
   mediator: 'Mediator',
   dids: 'DID Hosting',
   vtc: 'VTC',
+  'trust-registry': 'Trust Registry',
 }
 
 /** Components a session of this mode runs — mirrors the backend's UpgradeComponentModes. */
@@ -31,6 +33,7 @@ function modeComponents(mode: SetupMode): UpgradeComponent[] {
 function currentImage(session: SetupSession, component: UpgradeComponent): string {
   if (component === 'vta') return session.vta_image ?? ''
   if (component === 'mediator') return session.mediator_image ?? ''
+  if (component === 'trust-registry') return session.trust_registry_image ?? session.trust_registry?.image ?? ''
   if (component === 'dids') return session.dids_image ?? ''
   return session.vtc_image ?? ''
 }
@@ -80,7 +83,18 @@ function sessionUpgradeFromBatch(batch: UpgradeBatchDetail, sessionId: string): 
 }
 
 export function SessionVersionsCard({ session, onUpgraded, admin = false }: SessionVersionsCardProps) {
+  const [registryState, setRegistryState] = useState<{ active: boolean; image: string }>({ active: false, image: '' })
+  useEffect(() => {
+    if (session.mode !== 'full_stack') return
+    const load = admin ? () => api.adminGetTrustRegistry() : () => api.getTrustRegistry(session.id)
+    const poll = () => { void load().then(state => setRegistryState({ active: state.state === 'active', image: state.image })).catch(() => {}) }
+    poll()
+    const interval = setInterval(poll, 5000)
+    return () => clearInterval(interval)
+  }, [admin, session.id, session.mode])
+  const sessionImages = { ...session, trust_registry_image: registryState.image }
   const components = modeComponents(session.mode)
+  if (registryState.active) components.push('trust-registry')
   const [rows, setRows] = useState<Partial<Record<UpgradeComponent, ComponentRow>> | null>(null)
   const [selected, setSelected] = useState<Partial<Record<UpgradeComponent, string>>>({})
   const [upgrade, setUpgrade] = useState<SessionUpgrade | null>(null)
@@ -128,9 +142,9 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
       })
       .catch(() => {}) // 404 — never upgraded
     return () => { stopped = true }
-    // components is derived from the session's mode, which never changes.
+    // Reload the inventory when optional Registry enablement completes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.id, admin])
+  }, [session.id, admin, registryState.active])
 
   // Progress phase: poll until the upgrade reaches a terminal state.
   useEffect(() => {
@@ -153,7 +167,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
   }, [session.id, running, admin, upgrade?.id])
 
   const changes = components.flatMap(component => {
-    const from = currentImage(session, component)
+    const from = currentImage(sessionImages, component)
     const to = selected[component]
     return to && to !== from ? [{ component, from, to }] : []
   })
@@ -204,7 +218,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
           <>
             {upgrade.tasks.map(t => (
               <div key={t.component} className="p-row between center" style={{ gap: 10 }}>
-                <span className="p-muted text-sm" style={{ minWidth: 80 }}>{componentLabels[t.component]}</span>
+                <span className="p-muted text-sm" style={componentLabelStyle}>{componentLabels[t.component]}</span>
                 <span className="p-mono text-xs" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }} title={`${t.from_image} → ${t.to_image}`}>
                   {imageTag(t.from_image)} → {imageTag(t.to_image)}
                 </span>
@@ -238,7 +252,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
           <>
             {components.map(component => (
               <div key={component} className="p-row between center" style={{ gap: 10 }}>
-                <span className="p-muted text-sm" style={{ minWidth: 80 }}>{componentLabels[component]}</span>
+                <span className="p-muted text-sm" style={componentLabelStyle}>{componentLabels[component]}</span>
                 <input
                   aria-label={`Loading ${componentLabels[component]} versions`}
                   className="p-input p-mono"
@@ -256,7 +270,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
           <>
             {components.map(component => {
               const row = rows[component]
-              const current = currentImage(session, component)
+              const current = currentImage(sessionImages, component)
               // Keep the running image selectable even if the registry no
               // longer lists it — choosing it back just means "no change".
               const options = row && !row.unavailable
@@ -266,7 +280,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
                 : []
               return (
                 <div key={component} className="p-row between center" style={{ gap: 10 }}>
-                  <span className="p-muted text-sm" style={{ minWidth: 80 }}>{componentLabels[component]}</span>
+                  <span className="p-muted text-sm" style={componentLabelStyle}>{componentLabels[component]}</span>
                   {!row || row.unavailable ? (
                     <span className="p-muted text-xs">{row?.unavailable ?? 'unavailable'}</span>
                   ) : (

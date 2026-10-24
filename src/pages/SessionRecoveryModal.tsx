@@ -11,6 +11,7 @@ const componentLabels: Record<UpgradeComponent, string> = {
   mediator: 'Mediator',
   dids: 'DID Hosting',
   vtc: 'VTC',
+  'trust-registry': 'Trust Registry',
 }
 
 interface RecoverySession {

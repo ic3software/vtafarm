@@ -43,6 +43,7 @@ const STATUS_META: Record<SetupStatus, { cls: string; label: string }> = {
   step_vtc_acl_grant:     { cls: 'badge-warning',   label: 'VTC setup (2/2)' },
   step_vtc_setup:         { cls: 'badge-warning',   label: 'VTC community setup' },
   deploy_vtc:             { cls: 'badge-warning',   label: 'deploying VTC' },
+  step_trust_registry: { cls: 'badge-warning', label: 'setting up Trust Registry' },
   // shared
   failed: { cls: 'badge-destructive', label: 'failed' },
 }
@@ -150,6 +151,15 @@ export const FULL_STACK_PHASES: Phase[] = [
   { key: 'vtc',       label: 'VTC setup',         statuses: ['step_vtc_setup', 'deploy_vtc'] },
   { key: 'running',   label: 'Running',           statuses: ['running'] },
 ]
+
+const TRUST_REGISTRY_PHASE: Phase = {
+  key: 'trust_registry', label: 'Trust Registry', statuses: ['step_trust_registry'],
+}
+
+export function fullStackPhases(registryEnabled: boolean): Phase[] {
+  if (!registryEnabled) return FULL_STACK_PHASES
+  return [...FULL_STACK_PHASES.slice(0, -1), TRUST_REGISTRY_PHASE, FULL_STACK_PHASES.at(-1)!]
+}
 
 
 export function phaseIndex(phases: Phase[], status: SetupStatus | undefined): number {

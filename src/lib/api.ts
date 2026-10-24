@@ -46,7 +46,7 @@ export type SetupStatus =
   | 'step_dids_load_did' | 'step_dids_grant_farm' | 'deploy_dids' | 'deploy_mediator'
   | 'step_vta_register_dids' | 'awaiting_admin_did' | 'step_import_admin_did'
   | 'step_vtc_setup_key' | 'step_vtc_acl_grant' | 'deploy_vta'
-  | 'step_vtc_setup' | 'deploy_vtc'
+  | 'step_vtc_setup' | 'deploy_vtc' | 'step_trust_registry'
   // shared
   | 'failed'
 
@@ -104,6 +104,15 @@ export interface ConnectionInspection {
   manual_publication: boolean
 }
 
+export interface TrustRegistryState {
+  enabled: boolean
+  state: 'disabled' | 'enabling' | 'active' | 'failed'
+  phase: string
+  image: string
+  did: string
+  error: string
+}
+
 export interface SetupSession {
   id: string
   status: SetupStatus
@@ -131,6 +140,8 @@ export interface SetupSession {
   mediator_image?: string
   dids_image?: string
   vtc_image?: string
+  trust_registry_image?: string
+  trust_registry?: TrustRegistryState
   vta_did?: string
   mediator_did?: string
   did_hosting_did?: string
@@ -446,7 +457,8 @@ export interface PlatformStack {
   label?: string
   domain?: string
   urls?: SetupSessionUrls
-  images?: { vta: string; mediator: string; dids: string; vtc: string }
+  images?: { vta: string; mediator: string; dids: string; vtc: string; 'trust-registry'?: string }
+  trust_registry?: TrustRegistryState
   /**
    * `vta_did` is what an admin feeds to `pnm setup` locally to mint the admin
    * DID the stack parks waiting for — so it has to be on screen before that
@@ -627,8 +639,8 @@ export interface PoolClaim {
   connection: MobileConnection
 }
 
-export type UpgradeComponent = 'vta' | 'mediator' | 'dids' | 'vtc'
-export const ALL_COMPONENTS: UpgradeComponent[] = ['vta', 'mediator', 'dids', 'vtc']
+export type UpgradeComponent = 'vta' | 'mediator' | 'dids' | 'vtc' | 'trust-registry'
+export const ALL_COMPONENTS: UpgradeComponent[] = ['vta', 'mediator', 'dids', 'vtc', 'trust-registry']
 
 /**
  * One selectable image from the registry. Only immutable `<version>-<sha>`
@@ -965,6 +977,8 @@ export const api = {
     mediator_image: string
     dids_image: string
     vtc_image: string
+    trust_registry_enabled?: boolean
+    trust_registry_image?: string
     portable?: boolean
     pre_rotation_count?: number
   }) =>
@@ -1025,7 +1039,7 @@ export const api = {
   getMe: () => req<{ id: string; email: string | null; fullstack_access: boolean; vta_count: number; vta_limit: number | null; created_at: string }>('GET', '/api/v1/user/me'),
 
   // ── Setup sessions ───────────────────────────────────────────────────────────
-  listImages: (component: 'vta' | 'mediator' | 'dids' | 'vtc' = 'vta') =>
+  listImages: (component: UpgradeComponent = 'vta') =>
     req<ImageOption[]>('GET', `/api/v1/setup/images?component=${component}`),
   // Remaining per-mode cluster capacity — the create screen uses this to show
   // "Unavailable" and disable the button before submitting.
@@ -1051,7 +1065,9 @@ export const api = {
     mediator_image?: string
     dids_image?: string
     vtc_image?: string
+    trust_registry_image?: string
     vtc_name?: string
+    trust_registry_enabled?: boolean
     /** A verified custom domain. Omitted → managed. full_stack only. */
     domain_id?: number
     /**
@@ -1074,6 +1090,10 @@ export const api = {
   // normal path and must not be rendered as one.
   verifyDomain: (id: number) => req<Domain>('POST', `/api/v1/domains/${id}/verify`),
   deleteDomain: (id: number) => req<null>('DELETE', `/api/v1/domains/${id}`),
+  getTrustRegistry: (id: string) => req<TrustRegistryState>('GET', `/api/v1/setup/${encodeURIComponent(id)}/trust-registry`),
+  enableTrustRegistry: (id: string, image: string) => req<TrustRegistryState>('POST', `/api/v1/setup/${encodeURIComponent(id)}/trust-registry`, { image }),
+  adminGetTrustRegistry: () => req<TrustRegistryState>('GET', '/api/v1/admin/platform-stack/trust-registry'),
+  adminEnableTrustRegistry: (image: string) => req<TrustRegistryState>('POST', '/api/v1/admin/platform-stack/trust-registry', { image }),
   getSession: (id: string) => req<SetupSession>('GET', `/api/v1/setup/${id}`),
   recoverSession: (id: string, components: Array<{ component: UpgradeComponent; image: string }>) =>
     req<{ status: SetupStatus; components: Array<{ component: UpgradeComponent; image: string }> }>(

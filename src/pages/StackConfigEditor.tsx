@@ -10,6 +10,7 @@ const LABELS: Record<UpgradeComponent, string> = {
   mediator: 'Mediator',
   dids: 'DID Hosting',
   vtc: 'VTC',
+  'trust-registry': 'Trust Registry',
 }
 
 const EDIT_COMPONENTS: UpgradeComponent[] = ['vta', 'vtc', 'mediator', 'dids']

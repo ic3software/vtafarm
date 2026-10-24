@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, type KeyboardEvent } from 'react'
 import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
-import { statusBadge, FULL_STACK_PHASES, phaseIndex, domainTypeBadge, vtaOnlyPhases, modeLabel } from './portalUtils'
+import { statusBadge, fullStackPhases, phaseIndex, domainTypeBadge, vtaOnlyPhases, modeLabel } from './portalUtils'
 import { PhaseStepper } from './PhaseStepper'
-import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ConnectedToCard } from './FullStackOutputs'
+import { DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard, ConfigLinkRow, ConnectedToCard, TrustRegistryStatusCard } from './FullStackOutputs'
 import { useDidsEnroll, useVtcInstall } from './fullStackHooks'
 import { SessionVersionsCard } from './SessionVersionsCard'
 import { SessionExportCard } from './SessionExportCard'
 import { SessionPnmCard } from './SessionPnmCard'
 import { VtaConnectionCard } from './VtaConnectionCard'
+import { TrustRegistryCard } from '../TrustRegistryCard'
 import { StackConfigEditor } from '../StackConfigEditor'
 import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 import { SessionRecoveryModal } from '../SessionRecoveryModal'
@@ -131,7 +132,7 @@ function SessionDetailContent() {
   const vtaDid = isFullStack ? session.collected?.vta_did : session.vta_did
   const isAwaitingAdmin = isFullStack ? session.status === 'awaiting_admin_did' : session.status === 'vta_setup_complete'
   const setupPhases = isFullStack
-    ? FULL_STACK_PHASES
+    ? fullStackPhases(session.trust_registry?.enabled === true)
     : vtaOnlyPhases(session.connection_source === 'external')
   const setupFailed = session.status === 'failed'
   const canRecover = recoveryComponentsForSession(session.mode, session.failed_stage).length > 0
@@ -319,6 +320,7 @@ function SessionDetailContent() {
       >
         {isFullStackCompleted && (
           <>
+            <TrustRegistryStatusCard registry={session.trust_registry} onOpenSettings={() => selectTab('settings')} />
             <DidsEnrollAlert {...didsEnroll} />
             <VtcInstallAlert {...vtcInstall} />
           </>
@@ -326,7 +328,12 @@ function SessionDetailContent() {
         <div className="p-grid-2 session-overview-grid" style={{ alignItems: 'start' }}>
           {logConsole}
           <div>
-            {isFullStackCompleted && <CollectedDidsCard collected={session.collected} />}
+            {isFullStackCompleted && (
+              <CollectedDidsCard
+                collected={session.collected}
+                registryDid={session.trust_registry?.did || undefined}
+              />
+            )}
             {!isFullStack && session.vta_did && <CollectedDidsCard collected={{ vta_did: session.vta_did }} />}
             {!isFullStack && <ConnectedToCard session={session} />}
             {configurationCard}
@@ -378,6 +385,12 @@ function SessionDetailContent() {
                 session={session}
                 onUpgraded={() => api.getSession(sessionId).then(setSession).catch(() => {})}
               />
+              {isFullStack && session.trust_registry?.state !== 'active' && (
+                <TrustRegistryCard
+                  sessionId={sessionId}
+                  onEnabled={registry => setSession(current => current ? { ...current, trust_registry: registry } : current)}
+                />
+              )}
               <StackConfigEditor sessionId={sessionId} vtaOnly={!isFullStack} />
             </>
           )}
