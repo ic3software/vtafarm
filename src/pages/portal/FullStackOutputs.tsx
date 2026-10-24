@@ -308,26 +308,29 @@ export function VtcInstallConfigRow({ used, reissuing, reissueError, justReissue
 
 // Collected DIDs — shown at the top of the completed/running page, below DidsEnrollAlert.
 // Admin DIDs (mediator/did-hosting) live in AdminKeysCard instead, alongside their keys.
-export function CollectedDidsCard({ collected }: { collected?: SetupSessionCollected }) {
+export function CollectedDidsCard({ collected, registryDid }: { collected?: SetupSessionCollected; registryDid?: string }) {
   const { copiedKey, copy } = useCopyState()
-  if (!collected || !(collected.vta_did || collected.mediator_did || collected.did_hosting_did || collected.vtc_did)) {
+  if (!(collected?.vta_did || collected?.mediator_did || collected?.did_hosting_did || collected?.vtc_did || registryDid)) {
     return null
   }
   return (
     <div className="p-card" style={{ marginBottom: 16 }}>
       <div className="card-header"><h3 className="card-title">Collected DIDs</h3></div>
       <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-        {collected.vta_did && (
+        {collected?.vta_did && (
           <Row label="VTA DID" value={collected.vta_did} copyKey="did-vta" copiedKey={copiedKey} onCopy={copy} />
         )}
-        {collected.mediator_did && (
+        {collected?.mediator_did && (
           <Row label="Mediator DID" value={collected.mediator_did} copyKey="did-mediator" copiedKey={copiedKey} onCopy={copy} />
         )}
-        {collected.did_hosting_did && (
+        {collected?.did_hosting_did && (
           <Row label="DID hosting daemon DID" value={collected.did_hosting_did} copyKey="did-daemon" copiedKey={copiedKey} onCopy={copy} />
         )}
-        {collected.vtc_did && (
+        {collected?.vtc_did && (
           <Row label="VTC DID" value={collected.vtc_did} copyKey="did-vtc" copiedKey={copiedKey} onCopy={copy} />
+        )}
+        {registryDid && (
+          <Row label="Registry DID" value={registryDid} copyKey="did-registry" copiedKey={copiedKey} onCopy={copy} />
         )}
       </div>
     </div>

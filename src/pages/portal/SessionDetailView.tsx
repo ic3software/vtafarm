@@ -327,7 +327,12 @@ function SessionDetailContent() {
         <div className="p-grid-2 session-overview-grid" style={{ alignItems: 'start' }}>
           {logConsole}
           <div>
-            {isFullStackCompleted && <CollectedDidsCard collected={session.collected} />}
+            {isFullStackCompleted && (
+              <CollectedDidsCard
+                collected={session.collected}
+                registryDid={session.trust_registry?.state === 'active' ? session.trust_registry.did : undefined}
+              />
+            )}
             {!isFullStack && session.vta_did && <CollectedDidsCard collected={{ vta_did: session.vta_did }} />}
             {!isFullStack && <ConnectedToCard session={session} />}
             {configurationCard}
@@ -379,7 +384,12 @@ function SessionDetailContent() {
                 session={session}
                 onUpgraded={() => api.getSession(sessionId).then(setSession).catch(() => {})}
               />
-              {isFullStack && <TrustRegistryCard sessionId={sessionId} />}
+              {isFullStack && session.trust_registry?.state !== 'active' && (
+                <TrustRegistryCard
+                  sessionId={sessionId}
+                  onEnabled={registry => setSession(current => current ? { ...current, trust_registry: registry } : current)}
+                />
+              )}
               <StackConfigEditor sessionId={sessionId} vtaOnly={!isFullStack} />
             </>
           )}

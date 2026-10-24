@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api, type ImageOption, type TrustRegistryState } from '@/lib/api'
 import { imageLabel } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -35,13 +35,22 @@ const PHASES: Record<string, string> = {
   deploy_registry: 'Starting Registry', publish_referral: 'Updating community discovery', configure_vtc: 'Connecting VTC', verify: 'Verifying connection', complete: 'Enabled',
 }
 
-export function TrustRegistryCard({ sessionId, admin = false }: { sessionId: string; admin?: boolean }) {
+export function TrustRegistryCard({
+  sessionId,
+  admin = false,
+  onEnabled,
+}: {
+  sessionId: string
+  admin?: boolean
+  onEnabled?: (registry: TrustRegistryState) => void
+}) {
   const [registry, setRegistry] = useState<TrustRegistryState | null>(null)
   const [image, setImage] = useState('')
   const [error, setError] = useState('')
   const [loadError, setLoadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [refresh, setRefresh] = useState(0)
+  const enabledReported = useRef(false)
   useEffect(() => {
     let active = true
     const load = async () => {
@@ -65,20 +74,25 @@ export function TrustRegistryCard({ sessionId, admin = false }: { sessionId: str
   }
   const enabling = registry?.state === 'enabling'
   const active = registry?.state === 'active'
+  useEffect(() => {
+    if (!active || !registry || enabledReported.current) return
+    enabledReported.current = true
+    onEnabled?.(registry)
+  }, [active, registry, onEnabled])
+
+  if (active) return null
+
   return <div className="p-card">
     <div className="card-header"><div className="p-row between center"><h3 className="card-title">Trust Registry</h3>
       {registry && <span className={`p-badge ${active ? 'badge-success' : registry.state === 'failed' ? 'badge-destructive' : enabling ? 'badge-warning' : 'badge-secondary'}`}>{active ? 'Enabled' : enabling ? 'Enabling…' : registry.state === 'failed' ? 'Enablement failed' : 'Not enabled'}</span>}
     </div></div>
     <div className="card-content p-col gap-16" aria-live="polite">
-      <p className="p-muted text-sm">Publish consented community membership records so other systems can check them. Your community can run without a Registry.</p>
       {loadError && <div role="alert"><p className="p-muted text-sm">{loadError}</p><button className="btn btn-outline btn-sm" onClick={() => setRefresh(n => n + 1)}>Reload status</button></div>}
       {error && <p role="alert" style={{ color: 'hsl(var(--destructive))' }}>{error}</p>}
       {!registry && !loadError && <p className="p-muted text-sm">Loading Registry status…</p>}
       {registry?.phase && registry.phase !== 'complete' && registry.state !== 'disabled' && <p className="text-sm">{PHASES[registry.phase] ?? registry.phase}</p>}
-      {registry?.did && <div><span className="p-label">Registry DID</span><p className="p-mono text-sm" style={{ overflowWrap: 'anywhere' }}>{registry.did}</p></div>}
       {registry?.image && <p className="p-mono text-sm" style={{ overflowWrap: 'anywhere' }}>{registry.image}</p>}
       {registry?.error && <p role="alert" style={{ color: 'hsl(var(--destructive))', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{registry.error}</p>}
-      {active && <p className="field-hint">Registry is enabled. Check membership synchronization in the VTC admin dashboard. Members are published only when they have consented.</p>}
       {registry && !active && !enabling && <>
         <TrustRegistryImagePicker image={image} onChange={setImage} admin={admin} />
         <div className="p-row center" style={{ justifyContent: 'flex-end' }}>

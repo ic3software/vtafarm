@@ -147,7 +147,10 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
         <>
           <DidsEnrollAlert {...didsEnroll} />
           <VtcInstallAlert {...vtcInstall} />
-          <CollectedDidsCard collected={session?.collected} />
+          <CollectedDidsCard
+            collected={session?.collected}
+            registryDid={session?.trust_registry?.state === 'active' ? session.trust_registry.did : undefined}
+          />
 
           <div className="p-card" style={{ marginBottom: 16 }}>
             <div className="card-header"><h3 className="card-title">Configuration</h3></div>

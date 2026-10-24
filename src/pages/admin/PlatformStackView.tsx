@@ -250,7 +250,10 @@ function PlatformStackTabs({
         <div className="p-grid-2 session-overview-grid" style={{ alignItems: 'start' }}>
           <LogConsole label={stack.label ?? session.id} logs={logs} bodyRef={consoleBodyRef} />
           <div>
-            <CollectedDidsCard collected={stack.collected} />
+            <CollectedDidsCard
+              collected={stack.collected}
+              registryDid={stack.trust_registry?.state === 'active' ? stack.trust_registry.did : undefined}
+            />
             {configurationCard}
           </div>
         </div>
@@ -282,7 +285,9 @@ function PlatformStackTabs({
       >
         <div className="session-settings-column">
           <SessionVersionsCard admin session={session} onUpgraded={() => { void onStackUpdated() }} />
-          <TrustRegistryCard sessionId={session.id} admin />
+          {stack.trust_registry?.state !== 'active' && (
+            <TrustRegistryCard sessionId={session.id} admin onEnabled={() => { void onStackUpdated() }} />
+          )}
           <StackConfigEditor admin />
           <SessionExportCard admin session={session} sessionId={session.id} />
         </div>
