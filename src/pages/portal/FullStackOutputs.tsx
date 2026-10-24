@@ -9,7 +9,7 @@ import {
 import { useCopyState } from './portalUtils'
 import { type DidsEnrollState, type VtcInstallState } from './fullStackHooks'
 import { imageTag } from '@/lib/utils'
-import { trustRegistryPhaseLabel } from '@/lib/trustRegistry'
+import { TrustRegistryDetails } from '../TrustRegistryDetails'
 
 function CopyIcon({ copied }: { copied: boolean }) {
   return copied
@@ -381,7 +381,6 @@ export function TrustRegistryStatusCard({
   if (!registry?.enabled || registry.state === 'active') return null
   const failed = registry.state === 'failed'
   const status = registryStatus(registry)
-  const phase = registry.phase ? trustRegistryPhaseLabel(registry.phase) : status.label
   return (
     <div className="p-card" style={{ marginBottom: 16 }}>
       <div className="card-header">
@@ -391,26 +390,7 @@ export function TrustRegistryStatusCard({
         </div>
       </div>
       <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
-        <div className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
-          <span className="p-muted text-sm" style={{ flexShrink: 0 }}>Status</span>
-          <span className="text-sm fw-600" style={{ textAlign: 'right' }}>{phase}</span>
-        </div>
-        <hr className="p-sep"/>
-        <div className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
-          <span className="p-muted text-sm" style={{ flexShrink: 0 }}>Current Image</span>
-          <span className="p-mono text-xs" style={{ textAlign: 'right', overflowWrap: 'anywhere' }}>
-            {registry.image ? imageTag(registry.image) : '—'}
-          </span>
-        </div>
-        {registry.error && (
-          <div className="p-alert alert-destructive" role="alert" style={{ alignItems: 'flex-start', marginTop: 4 }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 9v4m0 4h.01M10.3 3.6 2.2 18a2 2 0 0 0 1.8 3h16a2 2 0 0 0 1.8-3L13.7 3.6a2 2 0 0 0-3.4 0Z"/></svg>
-            <div className="grow" style={{ minWidth: 0 }}>
-              <p className="alert-title">Setup error</p>
-              <pre className="p-mono text-xs" style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{registry.error}</pre>
-            </div>
-          </div>
-        )}
+        <TrustRegistryDetails registry={registry} />
         {!failed && <p className="field-hint" style={{ marginTop: 0 }}>The Registry DID will appear in Collected DIDs when setup completes.</p>}
         {failed && onOpenSettings && (
           <div className="p-row" style={{ justifyContent: 'flex-end' }}>

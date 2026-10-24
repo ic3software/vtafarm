@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type ImageOption, type TrustRegistryState } from '@/lib/api'
 import { imageLabel } from '@/lib/utils'
-import { trustRegistryPhaseLabel } from '@/lib/trustRegistry'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { TrustRegistryDetails } from './TrustRegistryDetails'
 
 export function TrustRegistryImagePicker({ image, onChange, admin = false }: { image: string; onChange: (image: string) => void; admin?: boolean }) {
   const [images, setImages] = useState<ImageOption[]>([])
@@ -89,9 +89,7 @@ export function TrustRegistryCard({
       {loadError && <div role="alert"><p className="p-muted text-sm">{loadError}</p><button className="btn btn-outline btn-sm" onClick={() => setRefresh(n => n + 1)}>Reload status</button></div>}
       {error && <p role="alert" style={{ color: 'hsl(var(--destructive))' }}>{error}</p>}
       {!registry && !loadError && <p className="p-muted text-sm">Loading Registry status…</p>}
-      {registry?.phase && registry.phase !== 'complete' && registry.state !== 'disabled' && <p className="text-sm">{trustRegistryPhaseLabel(registry.phase)}</p>}
-      {registry?.image && <p className="p-mono text-sm" style={{ overflowWrap: 'anywhere' }}>{registry.image}</p>}
-      {registry?.error && <p role="alert" style={{ color: 'hsl(var(--destructive))', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{registry.error}</p>}
+      {registry && registry.state !== 'disabled' && <TrustRegistryDetails registry={registry} />}
       {registry && !active && !enabling && <>
         <TrustRegistryImagePicker image={image} onChange={setImage} admin={admin} />
         <div className="p-row center" style={{ justifyContent: 'flex-end' }}>
