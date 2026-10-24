@@ -1,5 +1,21 @@
 # Changelog
 
+## [v0.15.0] - 2026-10-24
+
+### Added
+
+- Users and administrators can optionally provision a Trust Registry when
+  creating a Full Stack, or enable one later on an existing Full Stack.
+- Trust Registry image selection, setup progress, failure recovery, component
+  version details, and the resulting Registry DID are available in the portal.
+
+### Changed
+
+- Capacity and resource-default views include the optional Trust Registry
+  component when planning or configuring Full Stack deployments.
+
+Requires vtafarm-api 0.15.0.
+
 ## [v0.14.2] - 2026-10-21
 
 ### Changed
