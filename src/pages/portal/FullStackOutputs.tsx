@@ -4,9 +4,12 @@ import {
   type SetupSession,
   type SetupSessionUrls,
   type SetupSessionCollected,
+  type TrustRegistryState,
 } from '@/lib/api'
 import { useCopyState } from './portalUtils'
 import { type DidsEnrollState, type VtcInstallState } from './fullStackHooks'
+import { imageTag } from '@/lib/utils'
+import { trustRegistryPhaseLabel } from '@/lib/trustRegistry'
 
 function CopyIcon({ copied }: { copied: boolean }) {
   return copied
@@ -331,6 +334,88 @@ export function CollectedDidsCard({ collected, registryDid }: { collected?: Setu
         )}
         {registryDid && (
           <Row label="Registry DID" value={registryDid} copyKey="did-registry" copiedKey={copiedKey} onCopy={copy} />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function registryStatus(registry: TrustRegistryState) {
+  switch (registry.state) {
+    case 'active': return { label: 'Active', badge: 'badge-success' }
+    case 'enabling': return { label: 'Enabling…', badge: 'badge-warning' }
+    case 'failed': return { label: 'Enablement failed', badge: 'badge-destructive' }
+    default: return { label: 'Not enabled', badge: 'badge-secondary' }
+  }
+}
+
+// Registry traffic is DIDComm-only; there is deliberately no public HTTP URL
+// to put beside the other endpoints. Report the deployed add-on and its image
+// here so an opted-in Registry never silently disappears from Configuration.
+export function TrustRegistryConfigRows({ registry }: { registry?: TrustRegistryState }) {
+  if (!registry?.enabled) return null
+  const status = registryStatus(registry)
+  return (
+    <>
+      <hr className="p-sep"/>
+      <div className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
+        <span className="p-muted text-sm" style={{ flexShrink: 0 }}>Trust Registry</span>
+        <div className="p-col" style={{ alignItems: 'flex-end', minWidth: 0, gap: 5 }}>
+          <span className={`p-badge ${status.badge}`}>{status.label}</span>
+          {registry.image && (
+            <span className="p-mono text-xs" style={{ textAlign: 'right', overflowWrap: 'anywhere' }}>{imageTag(registry.image)}</span>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
+export function TrustRegistryStatusCard({
+  registry,
+  onOpenSettings,
+}: {
+  registry?: TrustRegistryState
+  onOpenSettings?: () => void
+}) {
+  if (!registry?.enabled || registry.state === 'active') return null
+  const failed = registry.state === 'failed'
+  const status = registryStatus(registry)
+  const phase = registry.phase ? trustRegistryPhaseLabel(registry.phase) : status.label
+  return (
+    <div className="p-card" style={{ marginBottom: 16 }}>
+      <div className="card-header">
+        <div className="p-row between center" style={{ width: '100%' }}>
+          <h3 className="card-title">Trust Registry</h3>
+          <span className={`p-badge ${status.badge}`}>{status.label}</span>
+        </div>
+      </div>
+      <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
+        <div className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
+          <span className="p-muted text-sm" style={{ flexShrink: 0 }}>Status</span>
+          <span className="text-sm fw-600" style={{ textAlign: 'right' }}>{phase}</span>
+        </div>
+        <hr className="p-sep"/>
+        <div className="p-row between" style={{ gap: 16, alignItems: 'flex-start' }}>
+          <span className="p-muted text-sm" style={{ flexShrink: 0 }}>Current Image</span>
+          <span className="p-mono text-xs" style={{ textAlign: 'right', overflowWrap: 'anywhere' }}>
+            {registry.image ? imageTag(registry.image) : '—'}
+          </span>
+        </div>
+        {registry.error && (
+          <div className="p-alert alert-destructive" role="alert" style={{ alignItems: 'flex-start', marginTop: 4 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 9v4m0 4h.01M10.3 3.6 2.2 18a2 2 0 0 0 1.8 3h16a2 2 0 0 0 1.8-3L13.7 3.6a2 2 0 0 0-3.4 0Z"/></svg>
+            <div className="grow" style={{ minWidth: 0 }}>
+              <p className="alert-title">Setup error</p>
+              <pre className="p-mono text-xs" style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{registry.error}</pre>
+            </div>
+          </div>
+        )}
+        {!failed && <p className="field-hint" style={{ marginTop: 0 }}>The Registry DID will appear in Collected DIDs when setup completes.</p>}
+        {failed && onOpenSettings && (
+          <div className="p-row" style={{ justifyContent: 'flex-end' }}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={onOpenSettings}>Open Settings</button>
+          </div>
         )}
       </div>
     </div>

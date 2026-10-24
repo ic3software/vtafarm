@@ -7,6 +7,7 @@ import { PhaseStepper } from '../portal/PhaseStepper'
 import { FULL_STACK_PHASES, phaseIndex, statusBadge, useCopyState, isValidAdminDid, componentHost, useDomainInfo } from '../portal/portalUtils'
 import {
   DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard,
+  TrustRegistryConfigRows, TrustRegistryStatusCard,
 } from '../portal/FullStackOutputs'
 import { useDidsEnroll, useVtcInstall, type DidsEnrollState, type VtcInstallState } from '../portal/fullStackHooks'
 import { adminSessionActions } from '../portal/sessionActions'
@@ -211,6 +212,7 @@ function PlatformStackTabs({
           </>
         )}
         <EndpointConfigRows urls={stack.urls} />
+        <TrustRegistryConfigRows registry={stack.trust_registry} />
         <DidsEnrollConfigRow {...didsEnroll} />
         <VtcInstallConfigRow {...vtcInstall} />
       </div>
@@ -247,12 +249,13 @@ function PlatformStackTabs({
       >
         <DidsEnrollAlert {...didsEnroll} />
         <VtcInstallAlert {...vtcInstall} />
+        <TrustRegistryStatusCard registry={stack.trust_registry} onOpenSettings={() => selectTab('settings')} />
         <div className="p-grid-2 session-overview-grid" style={{ alignItems: 'start' }}>
           <LogConsole label={stack.label ?? session.id} logs={logs} bodyRef={consoleBodyRef} />
           <div>
             <CollectedDidsCard
               collected={stack.collected}
-              registryDid={stack.trust_registry?.state === 'active' ? stack.trust_registry.did : undefined}
+              registryDid={stack.trust_registry?.did || undefined}
             />
             {configurationCard}
           </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type ImageOption, type TrustRegistryState } from '@/lib/api'
 import { imageLabel } from '@/lib/utils'
+import { trustRegistryPhaseLabel } from '@/lib/trustRegistry'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export function TrustRegistryImagePicker({ image, onChange, admin = false }: { image: string; onChange: (image: string) => void; admin?: boolean }) {
@@ -29,12 +30,6 @@ export function TrustRegistryImagePicker({ image, onChange, admin = false }: { i
   </div>
 }
 
-const PHASES: Record<string, string> = {
-  queued: 'Waiting to begin', preflight: 'Checking compatibility', provision_identity: 'Creating Registry identity',
-  setup_key: 'Preparing Registry setup', grant_access: 'Granting Registry setup access',
-  deploy_registry: 'Starting Registry', publish_referral: 'Updating community discovery', configure_vtc: 'Connecting VTC', verify: 'Verifying connection', complete: 'Enabled',
-}
-
 export function TrustRegistryCard({
   sessionId,
   admin = false,
@@ -56,7 +51,11 @@ export function TrustRegistryCard({
     const load = async () => {
       try {
         const state = await (admin ? api.adminGetTrustRegistry() : api.getTrustRegistry(sessionId))
-        if (active) { setRegistry(state); setLoadError('') }
+        if (active) {
+          setRegistry(state)
+          setImage(current => current || state.image)
+          setLoadError('')
+        }
       } catch (err) { if (active) setLoadError(err instanceof Error ? err.message : 'Could not load Trust Registry status.') }
     }
     void load()
@@ -90,7 +89,7 @@ export function TrustRegistryCard({
       {loadError && <div role="alert"><p className="p-muted text-sm">{loadError}</p><button className="btn btn-outline btn-sm" onClick={() => setRefresh(n => n + 1)}>Reload status</button></div>}
       {error && <p role="alert" style={{ color: 'hsl(var(--destructive))' }}>{error}</p>}
       {!registry && !loadError && <p className="p-muted text-sm">Loading Registry status…</p>}
-      {registry?.phase && registry.phase !== 'complete' && registry.state !== 'disabled' && <p className="text-sm">{PHASES[registry.phase] ?? registry.phase}</p>}
+      {registry?.phase && registry.phase !== 'complete' && registry.state !== 'disabled' && <p className="text-sm">{trustRegistryPhaseLabel(registry.phase)}</p>}
       {registry?.image && <p className="p-mono text-sm" style={{ overflowWrap: 'anywhere' }}>{registry.image}</p>}
       {registry?.error && <p role="alert" style={{ color: 'hsl(var(--destructive))', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{registry.error}</p>}
       {registry && !active && !enabling && <>
