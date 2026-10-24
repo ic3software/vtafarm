@@ -83,17 +83,17 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
       {/* Live status bar */}
       <div className="p-card" style={{ marginBottom: 16 }}>
         <div className="card-content" style={{ padding: '14px 20px' }}>
-          <div className="p-row between center">
-            <div className="p-col" style={{ gap: 4 }}>
+          <div className="p-row between center session-status-row">
+            <div className="p-col session-status-details" style={{ gap: 4 }}>
               <span className="p-label" style={{ marginBottom: 0 }}>
                 Session #{sessionId} · <span className="p-mono">{vtaName}</span>
               </span>
               {session?.urls?.vta
-                ? <span className="p-mono text-xs p-muted">{session.urls.vta}</span>
+                ? <span className="p-mono text-xs p-muted session-status-url">{session.urls.vta}</span>
                 : <span className="text-xs p-muted">Waiting for DNS provisioning…</span>
               }
             </div>
-            <div className="p-row gap-8 center">
+            <div className="p-row gap-8 center session-status-actions">
               {session && statusBadge(session.status)}
               <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/portal/session/${sessionId}`)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>

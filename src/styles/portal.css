@@ -171,6 +171,10 @@
    the description — match .card-content's 20px so those cards breathe the same
    as every other one. */
 .portal-root .card-header + .card-footer { margin-top: 20px; }
+.portal-root .session-status-row { gap: 12px; }
+.portal-root .session-status-details { min-width: 0; }
+.portal-root .session-status-url { overflow-wrap: anywhere; }
+.portal-root .session-status-actions { flex: none; }
 
 /* --- Badge --- */
 .portal-root .p-badge {
@@ -616,6 +620,8 @@
 .portal-root .resource-default { --h: 38px; min-width: 110px; white-space: nowrap; }
 .resource-select-content { z-index: 110; }
 @media (max-width: 600px) {
+  .portal-root .session-status-row { align-items: stretch; flex-direction: column; }
+  .portal-root .session-status-actions { justify-content: space-between; width: 100%; }
   .portal-root .resource-fields,
   .portal-root .resource-fields.with-default { grid-template-columns: 1fr; }
   .portal-root .resource-default { width: 100%; }
