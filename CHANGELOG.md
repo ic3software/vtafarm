@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.15.1] - 2026-10-25
+
+### Fixed
+
+- Same-device Keyring actions open the registered `keyring://` app link while
+  preserving the HTTPS trigger link in QR codes for camera scanning.
+- Session status details and actions remain visible and usable on narrow mobile
+  screens instead of overflowing the page.
+
+Requires vtafarm-api 0.15.0.
+
 ## [v0.15.0] - 2026-10-24
 
 ### Added
