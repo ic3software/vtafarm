@@ -31,6 +31,7 @@ import { SecurityView } from '@/pages/admin/SecurityView'
 import { Register } from '@/pages/Register'
 import { Recover } from '@/pages/Recover'
 import { AdminEnroll } from '@/pages/AdminEnroll'
+import { GetStarted } from '@/pages/GetStarted'
 import { UserAuthProvider } from '@/contexts/UserAuthContext'
 import { useUserAuth } from '@/contexts/userAuth'
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
@@ -96,10 +97,17 @@ function HomePage() {
           A demo hosting service for Verifiable Trust Agents
         </p>
         <div className="mt-9 flex flex-wrap justify-center gap-3">
+          <a
+            href="/get-started"
+            className="btn-accent group flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
+          >
+            Get your VTA
+            <span className="inline-block transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true">→</span>
+          </a>
           <button
             type="button"
             onClick={() => handleOpenChange(true)}
-            className="btn-accent group flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
+            className="btn-ghost-light group flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
           >
             {/* Closed envelope crossfades into an open one on hover. */}
             <span className="relative size-4" aria-hidden="true">
@@ -177,6 +185,7 @@ export default function App() {
       <UserAuthProvider>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/get-started" element={<GetStarted />} />
           <Route path="/preview" element={<MobilePreview />} />
 
           <Route path="/login" element={<UserLogin />} />

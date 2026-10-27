@@ -300,6 +300,10 @@ export function PoolBatchDetailView() {
   const [loading, setLoading] = useState(true)
   const [cleaning, setCleaning] = useState(false)
   const [cleaningPool, setCleaningPool] = useState(false)
+  const [addingInventory, setAddingInventory] = useState(false)
+  const [showAddInventory, setShowAddInventory] = useState(false)
+  const [additionCount, setAdditionCount] = useState('')
+  const [changingPublicSignup, setChangingPublicSignup] = useState(false)
   const [showSelectedCleanupConfirm, setShowSelectedCleanupConfirm] = useState(false)
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false)
   const [error, setError] = useState('')
@@ -393,6 +397,43 @@ export function PoolBatchDetailView() {
     }
   }
 
+  async function addInventory() {
+    if (!batch) return
+    const count = Number(additionCount)
+    if (!Number.isInteger(count) || count < 1) {
+      setError('Enter at least one additional VTA.')
+      return
+    }
+    setAddingInventory(true)
+    setError('')
+    try {
+      setBatch(await api.addPoolInventory(batch.id, count, crypto.randomUUID()))
+      setAdditionCount('')
+      setShowAddInventory(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add pool inventory')
+      await load()
+    } finally {
+      setAddingInventory(false)
+    }
+  }
+
+  async function setPublicSignup(enabled: boolean) {
+    if (!batch) return
+    setChangingPublicSignup(true)
+    setError('')
+    try {
+      setBatch(enabled
+        ? await api.enablePoolPublicSignup(batch.id)
+        : await api.disablePoolPublicSignup(batch.id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update public signup')
+      await load()
+    } finally {
+      setChangingPublicSignup(false)
+    }
+  }
+
   if (!validID) return <section className="p-content"><div className="p-alert alert-destructive"><div className="grow"><p className="alert-title">Invalid pool batch ID.</p></div></div></section>
 
   return (
@@ -403,13 +444,25 @@ export function PoolBatchDetailView() {
           <h1>{batch?.label ?? 'VTA pool'}</h1>
           <p className="sub">{batch ? `Batch #${batch.id} · ${imageTag(batch.vta_image ?? '')} · created ${formatCreatedAt(batch.created_at)}` : 'Loading batch…'}</p>
         </div>
-        {batch && <button type="button" className="btn btn-destructive btn-sm" onClick={() => {
-          setError('')
-          setShowCleanupConfirm(true)
-        }}
-          disabled={!canCleanPool || cleaningPool || cleaning} title={cleanPoolTitle}>
-          {cleaningPool ? 'Starting cleanup…' : 'Clean up pool'}
-        </button>}
+        {batch && <div className="p-row gap-8 wrap-flex pool-page-actions">
+          {batch.purpose === 'public_signup' && (
+            <button type="button" className={batch.public_signup_enabled_at ? 'btn btn-outline btn-sm' : 'btn btn-default btn-sm'}
+              onClick={() => void setPublicSignup(!batch.public_signup_enabled_at)} disabled={changingPublicSignup}>
+              {changingPublicSignup ? 'Updating…' : batch.public_signup_enabled_at ? 'Pause public signup' : 'Resume public signup'}
+            </button>
+          )}
+          <button type="button" className="btn btn-default btn-sm" onClick={() => {
+            setError('')
+            setAdditionCount('')
+            setShowAddInventory(true)
+          }} disabled={batch.counts.deleting > 0 || addingInventory}>Add inventory</button>
+          <button type="button" className="btn btn-destructive btn-sm" onClick={() => {
+            setError('')
+            setShowCleanupConfirm(true)
+          }} disabled={!canCleanPool || cleaningPool || cleaning} title={cleanPoolTitle}>
+            {cleaningPool ? 'Starting cleanup…' : 'Clean up pool'}
+          </button>
+        </div>}
       </div>
 
       {error && <div className="p-alert alert-destructive pool-page-error"><div className="grow"><p className="alert-title">Pool operation failed</p><p className="alert-desc">{error}</p></div></div>}
@@ -418,12 +471,13 @@ export function PoolBatchDetailView() {
           <div className="pool-stats">
             <div className="p-stat"><div className="k">Total</div><div className="v">{batch.counts.total}<small> / {batch.requested_count}</small></div></div>
             <div className="p-stat"><div className="k">Preparing</div><div className="v">{batch.counts.creating}</div></div>
-            <div className="p-stat"><div className="k">Waiting</div><div className="v">{batch.counts.waiting}</div></div>
-            <div className="p-stat"><div className="k">Claimed</div><div className="v">{batch.counts.running + batch.counts.activating}</div></div>
-            <div className="p-stat"><div className="k">Failed</div><div className="v">{batch.counts.failed}</div></div>
+            <div className="p-stat"><div className="k">Available</div><div className="v">{batch.counts.available}</div></div>
+            <div className="p-stat"><div className="k">Reserved</div><div className="v">{batch.counts.reserved}</div></div>
+            <div className="p-stat"><div className="k">Handed out</div><div className="v">{batch.counts.handed_out}</div></div>
+            <div className="p-stat"><div className="k">Failed unclaimed</div><div className="v">{batch.counts.failed_unclaimed}</div></div>
           </div>
 
-          <ClaimStation batch={batch} onBatchChange={load} />
+          {batch.purpose === 'admin_station' && <ClaimStation batch={batch} onBatchChange={load} />}
 
           <div className="p-card pool-members-card">
             <div className="card-header with-action">
@@ -458,6 +512,30 @@ export function PoolBatchDetailView() {
             </div>
           </div>
         </>
+      )}
+
+      {showAddInventory && batch && (
+        <div className="p-overlay">
+          <div className="p-dialog" role="dialog" aria-modal="true" aria-labelledby="add-pool-inventory-title">
+            <div className="dialog-header">
+              <h3 className="dialog-title" id="add-pool-inventory-title">Add inventory to {batch.label}</h3>
+              <p className="dialog-desc">New VTAs use the same image and appear in this pool as soon as preparation finishes.</p>
+            </div>
+            <div className="dialog-body p-col gap-12">
+              <label className="p-label" htmlFor="pool-add-count">Additional VTAs</label>
+              <input id="pool-add-count" className="p-input" type="number" min={1} autoFocus
+                value={additionCount} onChange={event => setAdditionCount(event.target.value)} disabled={addingInventory} />
+              <p className="p-muted text-sm" style={{ margin: 0 }}>Current total: {batch.counts.total}. Requested total after addition: {batch.requested_count + (Number(additionCount) || 0)}.</p>
+              {error && <p className="pool-form-error" role="alert">{error}</p>}
+            </div>
+            <div className="dialog-footer">
+              <button type="button" className="btn btn-ghost" onClick={() => setShowAddInventory(false)} disabled={addingInventory}>Cancel</button>
+              <button type="button" className="btn btn-default" onClick={() => void addInventory()} disabled={addingInventory || !Number.isInteger(Number(additionCount)) || Number(additionCount) < 1}>
+                {addingInventory ? 'Adding inventory…' : `Add ${Number(additionCount) || 0} VTA${Number(additionCount) === 1 ? '' : 's'}`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showCleanupConfirm && batch && (

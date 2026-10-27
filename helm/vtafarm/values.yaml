@@ -15,6 +15,9 @@ service:
 api:
   url: ""
 
+publicSignup:
+  discordUrl: ""
+
 ingress:
   host: ""
 

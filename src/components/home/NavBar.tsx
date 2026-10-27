@@ -7,7 +7,7 @@ const NAV_LINKS = [
   { label: 'Docs', href: 'https://github.com/OpenVTC/vti-setup/blob/main/developer/01-personal-vta.md', external: true },
 ]
 
-function BrandMark() {
+export function BrandMark() {
   return (
     <span
       className="relative flex h-[22px] w-[22px] flex-none overflow-hidden rounded-[6px]"
