@@ -4,9 +4,8 @@
 set -eu
 
 : "${API_URL:?API_URL is not set - the frontend has no backend to talk to}"
-: "${PUBLIC_SIGNUP_DISCORD_URL:=}"
 
 # Explicit list: the template is JavaScript, and a bare envsubst eats every $NAME.
-envsubst '${API_URL} ${PUBLIC_SIGNUP_DISCORD_URL}' \
+envsubst '${API_URL}' \
   < /etc/vtafarm/config.js.template \
   > /usr/share/nginx/html/config.js

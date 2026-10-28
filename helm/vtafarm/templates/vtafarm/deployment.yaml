@@ -19,8 +19,6 @@ spec:
             # Rendered into /config.js by the image's entrypoint at startup.
             - name: API_URL
               value: {{ required "api.url is required - the frontend has no backend to talk to without it" .Values.api.url | quote }}
-            - name: PUBLIC_SIGNUP_DISCORD_URL
-              value: {{ .Values.publicSignup.discordUrl | quote }}
           ports:
             - containerPort: {{ .Values.service.port }}
           readinessProbe:

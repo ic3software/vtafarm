@@ -2,7 +2,6 @@ declare global {
   interface Window {
     __VTAFARM_CONFIG__?: {
       apiUrl?: string
-      publicSignupDiscordUrl?: string
     }
   }
 }
@@ -17,7 +16,7 @@ if (!_apiUrl) {
 }
 export const API_BASE: string = _apiUrl
 export const PUBLIC_SIGNUP_CONFIG = {
-  discordUrl: window.__VTAFARM_CONFIG__?.publicSignupDiscordUrl || import.meta.env.VITE_PUBLIC_SIGNUP_DISCORD_URL || '',
+  discordUrl: 'https://discord.gg/TODO',
 }
 
 export interface MobileConnection {

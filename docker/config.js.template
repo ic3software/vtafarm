@@ -1,4 +1,3 @@
 window.__VTAFARM_CONFIG__ = {
-  "apiUrl": "${API_URL}",
-  "publicSignupDiscordUrl": "${PUBLIC_SIGNUP_DISCORD_URL}"
+  "apiUrl": "${API_URL}"
 }
