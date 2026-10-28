@@ -45,6 +45,21 @@ function formatCountdown(seconds: number) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 }
 
+function developmentTriggerFromLink(link: string) {
+  try {
+    const values = new URLSearchParams(new URL(link).hash.slice(1))
+    const claimID = values.get('_id') ?? ''
+    const farmDID = values.get('_from') ?? ''
+    return claimID && farmDID ? { claimID, farmDID } : null
+  } catch {
+    return null
+  }
+}
+
+function shellQuote(value: string) {
+  return `'${value.replaceAll("'", `'"'"'`)}'`
+}
+
 export function GetStarted() {
   const [claim, setClaim] = useState<PublicPoolClaim | null>(null)
   const [stored, setStored] = useState<StoredClaim | null>(() => readStoredClaim())
@@ -55,6 +70,8 @@ export function GetStarted() {
   const [clockMs, setClockMs] = useState(0)
   const [serverOffsetMs, setServerOffsetMs] = useState(0)
   const [copied, setCopied] = useState(false)
+  const [copiedClaimID, setCopiedClaimID] = useState(false)
+  const [copiedClaimCommand, setCopiedClaimCommand] = useState(false)
   const [download, setDownload] = useState<DownloadOption | null>(null)
   const [completed, setCompleted] = useState(() => readStoredClaim()?.completed ?? false)
   const cancellingRequestIdRef = useRef<string | null>(null)
@@ -220,6 +237,28 @@ export function GetStarted() {
     }
   }
 
+  async function copyDevelopmentClaimID() {
+    if (!developmentClaimID) return
+    try {
+      await navigator.clipboard.writeText(developmentClaimID)
+      setCopiedClaimID(true)
+      window.setTimeout(() => setCopiedClaimID(false), 1800)
+    } catch {
+      setError('Unable to copy the claim ID. Select and copy it below.')
+    }
+  }
+
+  async function copyDevelopmentClaimCommand() {
+    if (!developmentClaimCommand) return
+    try {
+      await navigator.clipboard.writeText(developmentClaimCommand)
+      setCopiedClaimCommand(true)
+      window.setTimeout(() => setCopiedClaimCommand(false), 1800)
+    } catch {
+      setError('Unable to copy the development command. Select and copy it below.')
+    }
+  }
+
   function openKeyringDownload(option: DownloadOption) {
     if (window.matchMedia('(max-width: 620px), (pointer: coarse)').matches) {
       window.location.assign(option.url)
@@ -230,6 +269,13 @@ export function GetStarted() {
 
   const connection = claim?.connection
   const platformVTC = claim?.platform_vtc
+  const developmentTrigger = import.meta.env.DEV && connection?.trigger_link
+    ? developmentTriggerFromLink(connection.trigger_link)
+    : null
+  const developmentClaimID = developmentTrigger?.claimID ?? ''
+  const developmentClaimCommand = developmentTrigger
+    ? `make dev-claim HANDLE=${shellQuote(developmentTrigger.claimID)} FARM_DID=${shellQuote(developmentTrigger.farmDID)}`
+    : ''
   const remaining = connection?.status === 'open'
     ? Math.max(0, Math.ceil((Date.parse(connection.expires_at) - (clockMs + serverOffsetMs)) / 1000))
     : null
@@ -297,6 +343,22 @@ export function GetStarted() {
                   ? <button type="button" className="signup-primary-link" disabled><Smartphone aria-hidden="true" />Open in Keyring</button>
                   : <a className="signup-primary-link" href={keyringSameDeviceLink(connection.trigger_link)}><Smartphone aria-hidden="true" />Open in Keyring</a>)}
                 <button type="button" className="signup-text-button" onClick={() => void rejectClaim()} disabled={action !== null}>{action === 'reject' ? 'Cancelling…' : 'Cancel this QR'}</button>
+                {developmentClaimID && (
+                  <div className="signup-development-claim">
+                    <span>Claim ID · development only</span>
+                    <div>
+                      <code>{developmentClaimID}</code>
+                      <button type="button" onClick={() => void copyDevelopmentClaimID()}>
+                        <Copy aria-hidden="true" />{copiedClaimID ? 'Copied' : 'Copy ID'}
+                      </button>
+                    </div>
+                    <span className="signup-development-command-label">Local claim command</span>
+                    <code className="signup-development-command">{developmentClaimCommand}</code>
+                    <button className="signup-development-command-copy" type="button" onClick={() => void copyDevelopmentClaimCommand()}>
+                      <Copy aria-hidden="true" />{copiedClaimCommand ? 'Copied command' : 'Copy command'}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ) : connection.status === 'claimed' ? (
@@ -305,7 +367,6 @@ export function GetStarted() {
               <p className="signup-eyebrow">Security check</p>
               <h2>Compare this code with Keyring</h2>
               <div className="signup-claim-check">{connection.claim_check}</div>
-              <p>Continue only if Keyring shows exactly the same six characters.</p>
               <div className="signup-confirm-actions">
                 <button type="button" onClick={() => void confirmClaim()} disabled={action !== null}>{action === 'confirm' ? 'Confirming…' : 'Codes match'}</button>
                 <button type="button" className="secondary" onClick={() => void rejectClaim()} disabled={action !== null}>{action === 'reject' ? 'Rejecting…' : 'Not mine'}</button>
