@@ -353,6 +353,8 @@ export interface AdminSetupSession {
   mediator_image?: string
   dids_image?: string
   vtc_image?: string
+  trust_registry_enabled?: boolean
+  trust_registry_image?: string
   resources: AdminSessionResourceSummary[]
   created_at: string
   /** vta_only: where its DID hosting came from. */
