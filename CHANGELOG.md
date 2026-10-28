@@ -1,5 +1,25 @@
 # Changelog
 
+## [v0.16.0] - 2026-10-27
+
+### Added
+
+- Visitors can claim a pre-provisioned VTA through a guided public onboarding
+  flow, open the claim in Keyring, compare the confirmation code, and continue
+  to the FPDev community.
+- Administrators can create public-signup pools, monitor available, reserved,
+  and handed-out inventory, pause or resume public allocation, and add VTAs to
+  an existing pool.
+
+### Changed
+
+- The public landing page now leads visitors into the VTA onboarding journey
+  while keeping account sign-in available.
+- Updated React, React Router, Lucide, Vite, shadcn, and TypeScript ESLint
+  dependencies.
+
+Requires vtafarm-api 0.16.0.
+
 ## [v0.15.1] - 2026-10-25
 
 ### Fixed
