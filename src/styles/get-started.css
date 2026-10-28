@@ -1,6 +1,4 @@
 .signup-page { min-height: 100dvh; background: var(--vtafarm-bg); color: var(--vtafarm-ink); }
-.signup-nav { height: 64px; padding: 0 clamp(20px, 5vw, 72px); display: flex; align-items: center; border-bottom: 1px solid var(--vtafarm-line); background: color-mix(in srgb, var(--vtafarm-bg) 90%, transparent); backdrop-filter: blur(14px); }
-.signup-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--vtafarm-accent); font-weight: 600; }
 .signup-hero { max-width: 880px; margin: 0 auto; padding: clamp(54px, 8vw, 92px) 22px 38px; text-align: center; }
 .signup-eyebrow { margin: 0 0 12px; color: var(--vtafarm-accent); font: 600 11px/1.3 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
 .signup-hero h1 { margin: 0; font: 400 clamp(44px, 7vw, 82px)/1.02 var(--font-serif); letter-spacing: -.025em; }

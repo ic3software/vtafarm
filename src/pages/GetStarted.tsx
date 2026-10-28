@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faDiscord } from '@fortawesome/free-brands-svg-icons'
@@ -7,7 +6,7 @@ import { Check, Copy, ExternalLink, KeyRound, Smartphone, X } from 'lucide-react
 import { api, PUBLIC_SIGNUP_CONFIG, type ApiError, type PublicPoolClaim } from '@/lib/api'
 import { KEYRING_DOWNLOADS, type KeyringDownload } from '@/lib/keyringDownloads'
 import { keyringSameDeviceLink } from '@/lib/utils'
-import { BrandMark } from '@/components/home/NavBar'
+import { NavBar } from '@/components/home/NavBar'
 import { KeyringStoreButton } from '@/components/KeyringStoreButton'
 import '@/styles/get-started.css'
 
@@ -279,9 +278,7 @@ export function GetStarted() {
 
   return (
     <main className="signup-page">
-      <header className="signup-nav">
-        <Link to="/" className="signup-brand"><BrandMark />VTA Farm</Link>
-      </header>
+      <NavBar />
 
       <section className="signup-hero">
         <p className="signup-eyebrow">Public onboarding</p>

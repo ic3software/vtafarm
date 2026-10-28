@@ -1,128 +1,58 @@
-import { useState } from 'react'
+import { Moon, Sun } from 'lucide-react'
+import { useTheme } from '@/lib/useTheme'
 
-const NAV_LINKS = [
-  { label: 'How it works', href: '#how' },
-  { label: 'Features', href: '#features' },
-  { label: 'Why VTA Farm', href: '#benefits' },
-  { label: 'Docs', href: 'https://github.com/OpenVTC/vti-setup/blob/main/developer/01-personal-vta.md', external: true },
-]
+const docsUrl = 'https://github.com/OpenVTC/vti-setup/blob/main/developer/01-personal-vta.md'
 
 export function BrandMark() {
   return (
-    <span
-      className="relative flex h-[22px] w-[22px] flex-none overflow-hidden rounded-[6px]"
-      style={{ background: 'var(--vtafarm-ink)' }}
+    <svg
+      className="home-brand-mark"
       aria-hidden="true"
+      width="34"
+      height="34"
+      viewBox="0 0 256 256"
     >
-      <span className="absolute inset-[5px] rotate-45 rounded-[2px]" style={{ background: 'var(--vtafarm-accent)' }} />
-      <span className="absolute left-2 top-2 h-1.5 w-1.5 rotate-45 rounded-[1px]" style={{ background: 'var(--vtafarm-ink)' }} />
-    </span>
+      <rect width="256" height="256" rx="60" fill="#2E8C85" />
+      <line x1="128" y1="62" x2="128" y2="44" stroke="#111010" strokeWidth="10" strokeLinecap="round" />
+      <circle cx="128" cy="34" r="16" fill="var(--vtafarm-accent)" stroke="#111010" strokeWidth="7" />
+      <circle cx="128" cy="34" r="5" fill="#2E8C85" />
+      <rect x="32" y="58" width="192" height="148" rx="62" fill="#FFFFFF" opacity=".16" />
+      <rect x="44" y="68" width="168" height="128" rx="52" fill="#141A1A" stroke="#111010" strokeWidth="6" />
+      <rect x="86" y="104" width="28" height="40" rx="14" fill="#7FE3C4" />
+      <rect x="142" y="104" width="28" height="40" rx="14" fill="#7FE3C4" />
+      <path d="M108 162 Q128 176 148 162" fill="none" stroke="#7FE3C4" strokeWidth="10" strokeLinecap="round" />
+      <circle cx="128" cy="226" r="17" fill="#F7F5F0" stroke="#111010" strokeWidth="5" />
+      <path d="M120 226 L126 232 L137 220" fill="none" stroke="#9D0105" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 
 export function NavBar() {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const close = () => setMenuOpen(false)
-
-  const lineBase: React.CSSProperties = {
-    display: 'block',
-    width: 17,
-    height: 1.8,
-    borderRadius: 2,
-    background: 'var(--vtafarm-ink)',
-    transition: 'transform 260ms cubic-bezier(.4,.1,.2,1), opacity 200ms',
-    flexShrink: 0,
-  }
+  const { dark, toggle } = useTheme()
 
   return (
-    <div
-      className="sticky top-0 z-50"
-      style={{
-        background: 'color-mix(in srgb, var(--vtafarm-bg) 88%, transparent)',
-        backdropFilter: 'saturate(140%) blur(14px)',
-        WebkitBackdropFilter: 'saturate(140%) blur(14px)',
-        borderBottom: '1px solid color-mix(in srgb, var(--vtafarm-line) 70%, transparent)',
-      }}
-    >
-      {/* Main bar */}
-      <div className="section-wrap flex h-16 items-center justify-between">
-        <a href="#" className="flex items-center gap-2.5 text-[15px] font-medium tracking-[-0.005em]">
+    <header className="home-simple-nav">
+      <nav className="home-simple-nav-inner" aria-label="Main">
+        <a href="/" className="home-simple-brand">
           <BrandMark />
           VTA Farm
         </a>
-
-        {/* Desktop nav links */}
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
-          {NAV_LINKS.map(({ label, href, external }) => (
-            <a key={label} href={href} className="nav-link" {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{label}</a>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-1">
-          {/* Desktop CTA */}
-          <a
-            href="/portal"
-            className="btn-ink group hidden items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium md:flex"
-          >
-            Open Portal
-            <span className="inline-block transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true">→</span>
-          </a>
-
-          {/* Mobile burger — 3 animated lines */}
+        <div className="home-simple-nav-links">
+          <a href={docsUrl} target="_blank" rel="noopener noreferrer" className="home-nav-docs">Docs</a>
+        </div>
+        <div className="home-simple-nav-actions">
+          <a href="/login" className="home-nav-login">Sign in</a>
           <button
-            className="flex h-10 w-10 flex-col items-center justify-center gap-[5px] rounded-[10px] md:hidden"
-            style={{ border: '1px solid var(--vtafarm-line)', background: 'transparent', cursor: 'pointer' }}
-            onClick={() => setMenuOpen(v => !v)}
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}
+            type="button"
+            onClick={toggle}
+            className="home-theme-toggle"
+            aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            <span style={{ ...lineBase, transform: menuOpen ? 'translateY(5.8px) rotate(45deg)' : 'none' }} />
-            <span style={{ ...lineBase, opacity: menuOpen ? 0 : 1 }} />
-            <span style={{ ...lineBase, transform: menuOpen ? 'translateY(-5.8px) rotate(-45deg)' : 'none' }} />
+            {dark ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
           </button>
         </div>
-      </div>
-
-      {/* Mobile menu — drop animation */}
-      {menuOpen && (
-        <div
-          className="animate-menu-drop flex flex-col md:hidden"
-          style={{
-            padding: '8px clamp(20px,4vw,56px) 20px',
-            borderTop: '1px solid var(--vtafarm-line-2)',
-            background: 'var(--vtafarm-bg)',
-          }}
-        >
-          {NAV_LINKS.map(({ label, href, external }) => (
-            <a
-              key={label}
-              href={href}
-              className="transition-colors duration-150"
-              {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-              style={{
-                fontSize: 16,
-                color: 'var(--vtafarm-ink-2)',
-                padding: '14px 4px',
-                borderBottom: '1px solid var(--vtafarm-line-2)',
-                display: 'block',
-              }}
-              onMouseOver={e => ((e.currentTarget as HTMLElement).style.color = 'var(--vtafarm-ink)')}
-              onMouseOut={e => ((e.currentTarget as HTMLElement).style.color = 'var(--vtafarm-ink-2)')}
-              onClick={close}
-            >
-              {label}
-            </a>
-          ))}
-          <a
-            href="/portal"
-            className="btn-ink flex items-center justify-center gap-2 rounded-full text-[15px] font-medium"
-            style={{ marginTop: 14, padding: '14px 20px' }}
-            onClick={close}
-          >
-            Open Portal →
-          </a>
-        </div>
-      )}
-    </div>
+      </nav>
+    </header>
   )
 }
