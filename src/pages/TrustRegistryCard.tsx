@@ -5,7 +5,17 @@ import { imageLabel } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TrustRegistryDetails } from './TrustRegistryDetails'
 
-export function TrustRegistryImagePicker({ image, onChange, admin = false }: { image: string; onChange: (image: string) => void; admin?: boolean }) {
+export function TrustRegistryImagePicker({
+  image,
+  onChange,
+  admin = false,
+  defaultToLatest = false,
+}: {
+  image: string
+  onChange: (image: string) => void
+  admin?: boolean
+  defaultToLatest?: boolean
+}) {
   const [images, setImages] = useState<ImageOption[]>([])
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState(0)
@@ -19,6 +29,10 @@ export function TrustRegistryImagePicker({ image, onChange, admin = false }: { i
     }).catch(err => { if (active) setError(err instanceof Error ? err.message : 'Could not load Trust Registry images.') })
     return () => { active = false }
   }, [admin, attempt])
+  useEffect(() => {
+    if (!defaultToLatest || image || images.length === 0) return
+    onChange((images.find(option => option.latest) ?? images[0]).image)
+  }, [defaultToLatest, image, images, onChange])
   return <div className="p-col gap-8">
     <label className="p-label" htmlFor="trust-registry-image">Trust Registry image</label>
     <Select value={image} onValueChange={onChange} disabled={!images.length}>

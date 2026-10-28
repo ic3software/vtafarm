@@ -135,7 +135,11 @@ function SessionDetailContent() {
     ? fullStackPhases(session.trust_registry?.enabled === true)
     : vtaOnlyPhases(session.connection_source === 'external')
   const setupFailed = session.status === 'failed'
-  const canRecover = recoveryComponentsForSession(session.mode, session.failed_stage).length > 0
+  const canRecover = recoveryComponentsForSession(
+    session.mode,
+    session.failed_stage,
+    session.trust_registry?.enabled,
+  ).length > 0
   const setupProgressStatus = setupFailed ? session.failed_stage ?? 'running' : session.status
   const setupPhaseIndex = Math.max(0, phaseIndex(setupPhases, setupProgressStatus))
   const isFullStackCompleted = isFullStack && session.status === 'running'

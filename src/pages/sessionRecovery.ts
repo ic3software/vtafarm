@@ -5,14 +5,19 @@ const recoveryComponents: Partial<Record<SetupStatus, UpgradeComponent>> = {
   deploy_mediator: 'mediator',
   deploy_vta: 'vta',
   deploy_vtc: 'vtc',
+  step_trust_registry: 'trust-registry',
 }
 
 export function recoveryComponentForStage(stage?: SetupStatus): UpgradeComponent | null {
   return stage ? recoveryComponents[stage] ?? null : null
 }
 
-export function recoveryComponentsForSession(mode: SetupMode, stage?: SetupStatus): UpgradeComponent[] {
+export function recoveryComponentsForSession(
+  mode: SetupMode,
+  stage?: SetupStatus,
+  trustRegistryEnabled = false,
+): UpgradeComponent[] {
   if (!recoveryComponentForStage(stage)) return []
   if (mode === 'vta_only') return stage === 'deploy_vta' ? ['vta'] : []
-  return ALL_COMPONENTS.filter(component => component !== 'trust-registry')
+  return ALL_COMPONENTS.filter(component => component !== 'trust-registry' || trustRegistryEnabled)
 }

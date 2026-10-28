@@ -22,6 +22,9 @@ interface RecoverySession {
   mediator_image?: string
   dids_image?: string
   vtc_image?: string
+  trust_registry_enabled?: boolean
+  trust_registry_image?: string
+  trust_registry?: { enabled: boolean }
 }
 
 interface ComponentRow {
@@ -33,7 +36,8 @@ function currentImage(session: RecoverySession, component: UpgradeComponent) {
   if (component === 'vta') return session.vta_image ?? ''
   if (component === 'mediator') return session.mediator_image ?? ''
   if (component === 'dids') return session.dids_image ?? ''
-  return session.vtc_image ?? ''
+  if (component === 'vtc') return session.vtc_image ?? ''
+  return session.trust_registry_image ?? ''
 }
 
 interface Props {
@@ -44,8 +48,12 @@ interface Props {
 
 export function SessionRecoveryModal({ session, admin = false, onClose }: Props) {
   const components = useMemo(
-    () => recoveryComponentsForSession(session.mode, session.failed_stage),
-    [session.failed_stage, session.mode],
+    () => recoveryComponentsForSession(
+      session.mode,
+      session.failed_stage,
+      session.trust_registry?.enabled ?? session.trust_registry_enabled,
+    ),
+    [session.failed_stage, session.mode, session.trust_registry?.enabled, session.trust_registry_enabled],
   )
   const [rows, setRows] = useState<Partial<Record<UpgradeComponent, ComponentRow>>>({})
   const [loading, setLoading] = useState(true)

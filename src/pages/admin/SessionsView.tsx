@@ -498,7 +498,11 @@ export function SessionsView() {
                 <td title={s.error_msg || undefined}>
                   <div className="p-col" style={{ alignItems: 'flex-start', gap: 6 }}>
                     <span className={`p-badge ${statusBadge(s.status)}`}>{s.status}</span>
-                    {s.status === 'failed' && recoveryComponentsForSession(s.mode, s.failed_stage).length > 0 && (
+                    {s.status === 'failed' && recoveryComponentsForSession(
+                      s.mode,
+                      s.failed_stage,
+                      s.trust_registry_enabled,
+                    ).length > 0 && (
                       <button className="btn btn-outline btn-sm" onClick={() => setModal({ kind: 'recover', session: s })}>
                         Recover
                       </button>

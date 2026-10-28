@@ -420,7 +420,11 @@ export function CreateVTAView() {
     : stageProgressStatus
   const progressIndex = phaseIndex(vtaPhases, progressStatus)
   const currentStep = stage === 0 ? 0 : progressIndex >= 0 ? progressIndex : 1
-  const canRecover = !!liveSession && recoveryComponentsForSession(liveSession.mode, liveSession.failed_stage).length > 0
+  const canRecover = !!liveSession && recoveryComponentsForSession(
+    liveSession.mode,
+    liveSession.failed_stage,
+    liveSession.trust_registry?.enabled,
+  ).length > 0
 
   // Live hostname previews. Managed domains carry the user-chosen name in the
   // label, so these track what's typed; an empty field keeps the <name>
@@ -803,7 +807,7 @@ export function CreateVTAView() {
                   {registryEnabled ? 'Enabled' : 'Optional'}
                 </span>
               </label>
-              {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} />}
+              {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} defaultToLatest />}
             </div>}
             {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
             {limitReached && <p className="field-hint">{VTA_LIMIT_MESSAGE}</p>}

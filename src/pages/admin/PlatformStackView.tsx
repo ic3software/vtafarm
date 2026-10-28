@@ -666,7 +666,7 @@ export function PlatformStackView() {
             ))}
 
             <label className="p-row gap-8"><input type="checkbox" checked={registryEnabled} onChange={e => setRegistryEnabled(e.target.checked)} /> Enable Trust Registry (optional)</label>
-            {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} admin />}
+            {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} admin defaultToLatest />}
             {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
           </div>
           <div className="card-footer between">
