@@ -2,23 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faAndroid, faApple, faDiscord } from '@fortawesome/free-brands-svg-icons'
+import { faDiscord } from '@fortawesome/free-brands-svg-icons'
 import { Check, Copy, ExternalLink, KeyRound, Smartphone, X } from 'lucide-react'
 import { api, PUBLIC_SIGNUP_CONFIG, type ApiError, type PublicPoolClaim } from '@/lib/api'
+import { KEYRING_DOWNLOADS, type KeyringDownload } from '@/lib/keyringDownloads'
 import { keyringSameDeviceLink } from '@/lib/utils'
 import { BrandMark } from '@/components/home/NavBar'
+import { KeyringStoreButton } from '@/components/KeyringStoreButton'
 import '@/styles/get-started.css'
 
 const claimStorageKey = 'vtafarm:public-signup-claim'
 const activeStatuses = new Set(['open', 'claimed', 'confirmed', 'provisioning'])
 
 type StoredClaim = { accessToken: string; requestId?: string; completed?: boolean }
-type DownloadOption = { label: string; url: string }
-
-const keyringDownloads = {
-  ios: { label: 'Download for iOS', url: 'https://testflight.apple.com/join/NQYt25SQ' },
-  android: { label: 'Download for Android', url: 'https://play.google.com/store/apps/details?id=asml.bkc.harvard.wallet' },
-} satisfies Record<string, DownloadOption>
 
 function newAccessToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(32))
@@ -72,7 +68,7 @@ export function GetStarted() {
   const [copied, setCopied] = useState(false)
   const [copiedClaimID, setCopiedClaimID] = useState(false)
   const [copiedClaimCommand, setCopiedClaimCommand] = useState(false)
-  const [download, setDownload] = useState<DownloadOption | null>(null)
+  const [download, setDownload] = useState<KeyringDownload | null>(null)
   const [completed, setCompleted] = useState(() => readStoredClaim()?.completed ?? false)
   const cancellingRequestIdRef = useRef<string | null>(null)
   const claimStatus = claim?.connection.status
@@ -259,7 +255,7 @@ export function GetStarted() {
     }
   }
 
-  function openKeyringDownload(option: DownloadOption) {
+  function openKeyringDownload(option: KeyringDownload) {
     if (window.matchMedia('(max-width: 620px), (pointer: coarse)').matches) {
       window.location.assign(option.url)
       return
@@ -318,12 +314,8 @@ export function GetStarted() {
             <>
               <div className="signup-section-head"><span>01</span><div><h2>Install Keyring</h2></div></div>
               <div className="signup-downloads">
-                <button type="button" onClick={() => openKeyringDownload(keyringDownloads.ios)}>
-                  <FontAwesomeIcon icon={faApple} aria-hidden="true" />Download for iOS
-                </button>
-                <button type="button" onClick={() => openKeyringDownload(keyringDownloads.android)}>
-                  <FontAwesomeIcon icon={faAndroid} aria-hidden="true" />Download for Android
-                </button>
+                <KeyringStoreButton store="ios" type="button" onClick={() => openKeyringDownload(KEYRING_DOWNLOADS.ios)} />
+                <KeyringStoreButton store="android" type="button" onClick={() => openKeyringDownload(KEYRING_DOWNLOADS.android)} />
               </div>
               <div className="signup-reserve">
                 <div><p>Finished installing Keyring?</p><h2>Next, get your VTA.</h2></div>
@@ -439,12 +431,17 @@ export function GetStarted() {
       {download && (
         <div className="signup-download-overlay" role="presentation" onMouseDown={() => setDownload(null)}>
           <div className="signup-download-dialog" role="dialog" aria-modal="true" aria-labelledby="keyring-download-title" onMouseDown={event => event.stopPropagation()}>
-            <button type="button" className="signup-download-close" onClick={() => setDownload(null)} aria-label="Close download QR"><X aria-hidden="true" /></button>
-            <p className="signup-eyebrow">Keyring app</p>
-            <h2 id="keyring-download-title">{download.label}</h2>
-            <p>Scan with your phone to open the download page.</p>
-            <div className="signup-qr"><QRCodeSVG value={download.url} size={240} level="M" marginSize={4} title={`${download.label} QR code`} /></div>
-            <a href={download.url} target="_blank" rel="noreferrer">Open download page <ExternalLink aria-hidden="true" /></a>
+            <div className="signup-download-header">
+              <h2 id="keyring-download-title">Download Keyring</h2>
+              <p>Scan to open {download.storeName}.</p>
+            </div>
+            <div className="signup-download-body">
+              <QRCodeSVG className="signup-download-qr" value={download.url} size={240} level="M" marginSize={4} title={`${download.storeName} download QR code`} />
+            </div>
+            <div className="signup-download-footer">
+              <button type="button" onClick={() => setDownload(null)}>Close</button>
+              <a href={download.url} target="_blank" rel="noreferrer">Open {download.storeName}</a>
+            </div>
           </div>
         </div>
       )}

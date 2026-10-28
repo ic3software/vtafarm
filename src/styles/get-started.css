@@ -21,9 +21,6 @@
 .signup-main-card p { color: var(--vtafarm-ink-2); }
 .signup-section-head p { margin: 4px 0 0; }
 .signup-downloads { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 28px; }
-.signup-downloads button { min-height: 38px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--vtafarm-line); border-radius: 8px; background: var(--vtafarm-bg-elev); color: var(--vtafarm-ink); box-shadow: 0 1px 2px rgb(0 0 0 / .06); font: 500 13.5px var(--font-sans); transition: border-color 160ms, background 160ms; }
-.signup-downloads button:hover { border-color: var(--vtafarm-ink-4); background: var(--vtafarm-bg); }
-.signup-downloads button svg { width: 16px; height: 16px; flex: none; }
 .signup-reserve { padding: 22px; display: flex; justify-content: space-between; align-items: center; gap: 24px; border-radius: 15px; background: var(--vtafarm-bg); border: 1px solid var(--vtafarm-line); }
 .signup-reserve p { margin: 0 0 3px; color: var(--vtafarm-ink-3); font-size: 13px; }
 .signup-reserve h2 { color: var(--vtafarm-accent); }
@@ -89,14 +86,16 @@
 .signup-finished h2 { font-size: 28px; }
 .signup-finished p:not(.signup-eyebrow) { margin: 8px 0 22px; }
 .signup-error { margin: 22px 0 0; padding: 11px 13px; border-radius: 9px; background: color-mix(in srgb, var(--destructive) 12%, transparent); color: var(--destructive) !important; text-align: center; }
-.signup-download-overlay { position: fixed; inset: 0; z-index: 100; padding: 20px; display: grid; place-items: center; background: rgb(13 13 13 / .52); backdrop-filter: blur(6px); }
-.signup-download-dialog { width: min(100%, 390px); padding: 30px; position: relative; border: 1px solid var(--vtafarm-line); border-radius: 20px; background: var(--vtafarm-bg-elev); box-shadow: 0 30px 80px rgb(0 0 0 / .24); text-align: center; }
-.signup-download-dialog h2 { margin: 0; color: var(--vtafarm-accent); font-size: 24px; }
-.signup-download-dialog > p:not(.signup-eyebrow) { margin: 7px 0 20px; color: var(--vtafarm-ink-2); }
-.signup-download-dialog .signup-qr { width: fit-content; margin: 0 auto 18px; }
-.signup-download-dialog > a { min-height: 42px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; background: var(--vtafarm-accent); color: #fff; font-weight: 600; }
-.signup-download-dialog > a svg { width: 15px; }
-.signup-download-close { width: 36px; height: 36px; position: absolute; top: 14px; right: 14px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--vtafarm-bg); color: var(--vtafarm-ink-2); }
-.signup-download-close svg { width: 18px; }
+.signup-download-overlay { position: fixed; inset: 0; z-index: 100; padding: 24px; display: grid; place-items: center; background: rgb(0 0 0 / .5); backdrop-filter: blur(2px); }
+.signup-download-dialog { box-sizing: border-box; width: min(100%, 420px); max-height: calc(100dvh - 48px); overflow-y: auto; border: 1px solid var(--vtafarm-line); border-radius: 10px; background: var(--vtafarm-bg-elev); box-shadow: 0 18px 40px -16px rgb(78 31 31 / .22); text-align: left; }
+.signup-download-header { padding: 22px 24px 20px; }
+.signup-download-header h2 { margin: 0 0 4px; color: var(--vtafarm-ink); font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.signup-download-header p { margin: 0; color: var(--vtafarm-ink-3); font-size: 13px; line-height: 1.5; }
+.signup-download-body { padding: 0 24px 20px; display: grid; place-items: center; }
+.signup-download-qr { display: block; width: 240px; max-width: 100%; height: auto; background: #fff; }
+.signup-download-footer { padding: 16px 24px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--vtafarm-line); background: color-mix(in srgb, var(--vtafarm-bg) 40%, transparent); }
+.signup-download-footer button, .signup-download-footer a { box-sizing: border-box; min-height: 36px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font: 500 13.5px/1 var(--font-sans); }
+.signup-download-footer button { border: 1px solid var(--vtafarm-line); background: var(--vtafarm-bg-elev); color: var(--vtafarm-ink); }
+.signup-download-footer a { border: 1px solid transparent; background: var(--vtafarm-accent); color: #fff; }
 @media (max-width: 880px) { .signup-claim-grid { grid-template-columns: 1fr; } .signup-qr { width: min(100%, 320px); margin: auto; } }
 @media (max-width: 620px) { .signup-stepper li { font-size: 11px; } .signup-reserve, .signup-discord { align-items: stretch; flex-direction: column; } .signup-reserve button, .signup-discord a, .signup-discord button { justify-content: center; } .signup-claim-grid { min-height: 0; } .signup-claim-grid > .signup-qr, .signup-community-grid > .signup-qr { display: none; } .signup-community-grid { grid-template-columns: 1fr; } .signup-confirm-actions, .signup-finish-actions { width: 100%; flex-direction: column; } .signup-confirm-actions button, .signup-finish-actions button { width: 100%; } }

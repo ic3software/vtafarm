@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Dialog } from 'radix-ui'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { type IconDefinition } from '@fortawesome/fontawesome-svg-core'
-import { faApple, faGooglePlay, faLinux } from '@fortawesome/free-brands-svg-icons'
-import androidPlayStoreQr from '@/assets/android-play-store.svg'
-import iosTestflightQr from '@/assets/ios-testflight.svg'
+import { faApple, faLinux } from '@fortawesome/free-brands-svg-icons'
+import { KeyringStoreButton } from '@/components/KeyringStoreButton'
+import { KEYRING_DOWNLOADS, type KeyringStore } from '@/lib/keyringDownloads'
 import { keyringSameDeviceLink } from '@/lib/utils'
 
 export type ConnectionMethod = 'local' | 'automatic'
@@ -17,8 +16,10 @@ const CONNECTION_METHODS: Array<{
   downloads: Array<{
     label: string
     href: string
-    icon: IconDefinition
-    qr?: { src: string; store: string }
+    icon?: IconDefinition
+    store?: KeyringStore
+    platform?: 'linux' | 'macos'
+    qr?: { store: string }
     instructions?: { platform: string; commands: string }
   }>
 }> = [
@@ -27,8 +28,8 @@ const CONNECTION_METHODS: Array<{
     label: 'Connect to Keyring',
     downloadTitle: 'Download Keyring',
     downloads: [
-      { label: 'Download for iOS', href: 'https://testflight.apple.com/join/NQYt25SQ', icon: faApple, qr: { src: iosTestflightQr, store: 'TestFlight' } },
-      { label: 'Google Play', href: 'https://play.google.com/store/apps/details?id=asml.bkc.harvard.wallet', icon: faGooglePlay, qr: { src: androidPlayStoreQr, store: 'Google Play' } },
+      { label: KEYRING_DOWNLOADS.ios.label, href: KEYRING_DOWNLOADS.ios.url, store: 'ios', qr: { store: KEYRING_DOWNLOADS.ios.storeName } },
+      { label: KEYRING_DOWNLOADS.android.label, href: KEYRING_DOWNLOADS.android.url, store: 'android', qr: { store: KEYRING_DOWNLOADS.android.storeName } },
     ],
   },
   {
@@ -40,17 +41,35 @@ const CONNECTION_METHODS: Array<{
         label: 'Download for Linux',
         href: 'https://download.firstperson.dev/releases/latest/x86/pnm',
         icon: faLinux,
+        platform: 'linux',
         instructions: { platform: 'Linux', commands: 'chmod +x pnm\n./pnm -h # verify it runs' },
       },
       {
         label: 'Download for macOS',
         href: 'https://download.firstperson.dev/releases/latest/macOS/pnm',
         icon: faApple,
+        platform: 'macos',
         instructions: { platform: 'macOS', commands: 'chmod +x pnm\nxattr -d com.apple.quarantine pnm\n./pnm -h # verify it runs' },
       },
     ],
   },
 ]
+
+function PlatformDownloadBadge({ platform, icon }: { platform: string; icon: IconDefinition }) {
+  const [iconWidth, iconHeight, , , iconPath] = icon.icon
+  const paths = Array.isArray(iconPath) ? iconPath : [iconPath]
+
+  return (
+    <svg className="platform-download-badge" viewBox="0 0 120 40" aria-hidden="true">
+      <rect x="0.5" y="0.5" width="119" height="39" rx="5.5" fill="#050505" stroke="#a6a6a6" />
+      <svg x="8" y="7" width="26" height="26" viewBox={`0 0 ${iconWidth} ${iconHeight}`} fill="#fff">
+        {paths.map((path, index) => <path key={index} d={path} />)}
+      </svg>
+      <text x="40" y="13.5" fill="#fff" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" fontSize="8.5" fontWeight="400">Download for</text>
+      <text x="40" y="31" fill="#fff" fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" fontSize="17" fontWeight="500" letterSpacing="-0.25">{platform}</text>
+    </svg>
+  )
+}
 
 export function ConnectionMethodPicker({ name, value, onChange, disabled, automaticDisabled }: {
   name: string
@@ -102,13 +121,14 @@ export function ConnectionMethodPicker({ name, value, onChange, disabled, automa
           {selectedMethod?.downloads.map(download => (
             <Dialog.Root key={download.href} onOpenChange={() => setCopyFeedback(null)}>
               <Dialog.Trigger asChild>
-                <button className="btn btn-outline btn-sm" type="button">
-                  <FontAwesomeIcon icon={download.icon} aria-hidden="true" />
-                  {download.label}
-                </button>
+                {download.store
+                  ? <KeyringStoreButton store={download.store} type="button" />
+                  : <button className={`platform-download-button is-${download.platform}`} type="button" aria-label={download.label}>
+                      {download.icon && download.instructions && <PlatformDownloadBadge platform={download.instructions.platform} icon={download.icon} />}
+                    </button>}
               </Dialog.Trigger>
               <Dialog.Overlay className="p-overlay" />
-              <Dialog.Content className="p-dialog connection-download-dialog">
+              <Dialog.Content className={`p-dialog connection-download-dialog${download.qr ? ' keyring-download-dialog' : ''}`}>
                 <div className="dialog-header">
                   <Dialog.Title asChild><h3 className="dialog-title">
                     {download.instructions ? `Download PNM for ${download.instructions.platform}` : 'Download Keyring'}
@@ -116,14 +136,14 @@ export function ConnectionMethodPicker({ name, value, onChange, disabled, automa
                   <Dialog.Description asChild>
                     <p className="dialog-desc">
                       {download.qr
-                        ? <>Scan this QR code to open {download.qr.store} on your device.</>
+                        ? <>Scan to open {download.qr.store}.</>
                         : <>Download PNM, then open a terminal in the folder containing <code className="connection-command">pnm</code> and run these commands.</>}
                     </p>
                   </Dialog.Description>
                 </div>
                 <div className="dialog-body">
                   {download.qr
-                    ? <img className="keyring-download-qr" src={download.qr.src} alt={`${download.qr.store} download QR code`} width={280} height={280} />
+                    ? <QRCodeSVG className="keyring-download-qr" value={download.href} size={240} level="M" marginSize={4} title={`${download.qr.store} download QR code`} />
                     : download.instructions && (
                       <div className="p-console">
                         <div className="console-head">
