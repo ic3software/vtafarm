@@ -323,7 +323,8 @@
 .portal-root .connection-method-option:has(input:disabled) { cursor: not-allowed; opacity: .5; }
 .portal-root .connection-downloads :is(a, button):focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
 .portal-root .connection-download-dialog { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: calc(100% - 48px); z-index: 101; }
-.portal-root .keyring-download-qr { display: block; align-self: center; width: 280px; max-width: 100%; height: auto; background: #fff; }
+.portal-root .keyring-download-dialog { max-width: 420px; }
+.portal-root .keyring-download-qr { display: block; align-self: center; width: 240px; max-width: 100%; height: auto; background: #fff; }
 .portal-root .connection-qr { align-self: center; max-width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .portal-root .connection-did-field { padding: 12px 14px; border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / .35); }
 .portal-root .connection-command { display: inline-block; padding: 1px 5px; border-radius: 4px; background: hsl(var(--muted)); color: hsl(var(--foreground)); font-family: var(--mono); font-size: .9em; }
@@ -459,7 +460,7 @@
 /* --- Pooled VTA inventory and claim station --- */
 .portal-root .pool-create-card { margin-bottom: 24px; }
 .portal-root .pool-create-form { display: grid; gap: 16px; padding: 20px 24px 24px; }
-.portal-root .pool-create-grid { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(140px, .35fr) minmax(260px, 1fr); gap: 16px; }
+.portal-root .pool-create-grid { display: grid; grid-template-columns: minmax(210px, 1fr) minmax(130px, .4fr) minmax(180px, .65fr) minmax(240px, 1fr); gap: 16px; }
 .portal-root .pool-capacity { display: flex; align-items: baseline; gap: 8px; color: hsl(var(--muted-foreground)); font-size: 12px; }
 .portal-root .pool-capacity-value { color: hsl(var(--foreground)); font-family: var(--serif); font-size: 28px; font-weight: 600; }
 .portal-root .pool-form-error { margin: 0; color: hsl(var(--destructive)); font-size: 13px; }
@@ -469,7 +470,13 @@
 .portal-root .pool-image-tag { font-size: 12px; }
 .portal-root .pool-empty-row { padding: 24px; text-align: center; }
 .portal-root .pool-page-error { margin-bottom: 18px; }
-.portal-root .pool-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+.portal-root .pool-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
+.portal-root .pool-public-overview { margin-bottom: 20px; }
+.portal-root .pool-overview-stats { grid-template-columns: repeat(5, 1fr); margin: 0; }
+.portal-root .pool-stock-warning { margin: 16px 0 0; padding: 10px 12px; border-radius: 8px; background: hsl(var(--warning) / .12); color: var(--vtafarm-ink-2); font-size: 13px; }
+.portal-root .pool-inventory-notes { margin-top: 12px; }
+.portal-root .pool-page-actions { justify-content: flex-end; }
+@media (max-width: 1120px) { .portal-root .pool-create-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .portal-root .pool-stats { grid-template-columns: repeat(3, 1fr); } }
 .portal-root .pool-station { margin-bottom: 20px; overflow: hidden; }
 .portal-root .pool-station > .card-header { padding-bottom: 20px; }
 .portal-root .pool-station-body { min-height: 390px; border-top: 1px solid hsl(var(--border)); display: grid; place-items: center; padding: 28px; position: relative; }

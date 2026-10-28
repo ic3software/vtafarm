@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom'
-import { Mail, MailOpen } from 'lucide-react'
 import { startRegistration } from '@simplewebauthn/browser'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { HomeLanding } from '@/components/home/HomeLanding'
 import { useTheme } from '@/lib/useTheme'
 import { MobilePreview } from '@/pages/MobilePreview'
 import { UserLogin } from '@/pages/UserLogin'
@@ -31,6 +31,7 @@ import { SecurityView } from '@/pages/admin/SecurityView'
 import { Register } from '@/pages/Register'
 import { Recover } from '@/pages/Recover'
 import { AdminEnroll } from '@/pages/AdminEnroll'
+import { GetStarted } from '@/pages/GetStarted'
 import { UserAuthProvider } from '@/contexts/UserAuthContext'
 import { useUserAuth } from '@/contexts/userAuth'
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
@@ -84,55 +85,15 @@ function HomePage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center">
-      <div className="section-wrap flex flex-col items-center text-center">
-        <h1
-          className="font-serif font-normal leading-[1.05] tracking-[-0.02em] text-vtafarm-accent"
-          style={{ fontSize: 'clamp(48px, 7vw, 96px)' }}
-        >
-          VTA Farm
-        </h1>
-        <p className="mt-5 max-w-[42ch] text-xl leading-[1.5]" style={{ color: 'var(--vtafarm-ink-2)' }}>
-          A demo hosting service for Verifiable Trust Agents
-        </p>
-        <div className="mt-9 flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => handleOpenChange(true)}
-            className="btn-accent group flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
-          >
-            {/* Closed envelope crossfades into an open one on hover. */}
-            <span className="relative size-4" aria-hidden="true">
-              <Mail className="absolute inset-0 size-4 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:opacity-0" />
-              <MailOpen className="absolute inset-0 size-4 opacity-0 transition-all duration-200 group-hover:opacity-100" />
-            </span>
-            Create account
-          </button>
-          <a
-            href="/portal"
-            className="btn-ink group flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
-          >
-            Login
-            <span className="inline-block transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true">→</span>
-          </a>
-          <a
-            href="https://github.com/OpenVTC/vti-setup/blob/main/developer/01-personal-vta.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-ghost-light flex items-center gap-2 rounded-full px-5 py-3 text-[14.5px] font-medium"
-          >
-            Docs
-          </a>
-        </div>
-
-        <Dialog open={open} onOpenChange={handleOpenChange}>
+    <>
+      <HomeLanding onCreateAccount={() => handleOpenChange(true)} />
+      <Dialog open={open} onOpenChange={handleOpenChange}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create your account</DialogTitle>
+              <DialogTitle>Create your VTA Farm account</DialogTitle>
               <DialogDescription>
-                Enter your email, then your device will prompt you to create a
-                passkey — that's your login; there's no password and no
-                confirmation email.
+                Sign up with a passkey — there is no password. After you enter
+                the portal, you can create and manage your Trust Agent.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={submitSignup} className="flex flex-col gap-3">
@@ -160,13 +121,12 @@ function HomePage() {
               )}
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" size="lg" disabled={busy} className="h-11 w-full text-[14.5px]">
-                {busy ? 'Setting up…' : 'Sign up with Passkey'}
+                {busy ? 'Setting up…' : 'Create account with Passkey'}
               </Button>
             </form>
           </DialogContent>
-        </Dialog>
-      </div>
-    </main>
+      </Dialog>
+    </>
   )
 }
 
@@ -177,6 +137,7 @@ export default function App() {
       <UserAuthProvider>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/get-started" element={<GetStarted />} />
           <Route path="/preview" element={<MobilePreview />} />
 
           <Route path="/login" element={<UserLogin />} />

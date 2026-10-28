@@ -1,1 +1,3 @@
-window.__VTAFARM_CONFIG__ = { "apiUrl": "${API_URL}" }
+window.__VTAFARM_CONFIG__ = {
+  "apiUrl": "${API_URL}"
+}

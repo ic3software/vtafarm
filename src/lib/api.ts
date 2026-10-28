@@ -1,6 +1,8 @@
 declare global {
   interface Window {
-    __VTAFARM_CONFIG__?: { apiUrl?: string }
+    __VTAFARM_CONFIG__?: {
+      apiUrl?: string
+    }
   }
 }
 
@@ -13,6 +15,9 @@ if (!_apiUrl) {
   )
 }
 export const API_BASE: string = _apiUrl
+export const PUBLIC_SIGNUP_CONFIG = {
+  discordUrl: 'https://discord.gg/TODO',
+}
 
 export interface MobileConnection {
   request_id: string
@@ -606,6 +611,10 @@ export interface PoolCounts {
   running: number
   failed: number
   deleting: number
+  available: number
+  reserved: number
+  handed_out: number
+  failed_unclaimed: number
 }
 
 export interface PoolSession {
@@ -623,11 +632,31 @@ export interface PoolSession {
 export interface PoolBatch {
   id: number
   label: string
+  purpose: 'admin_station' | 'public_signup'
   requested_count: number
   vta_image?: string
   created_at: string
+  public_signup_enabled_at?: string
   counts: PoolCounts
   sessions?: PoolSession[]
+}
+
+export interface PublicPoolClaim {
+  server_time: string
+  platform_vtc?: {
+    did: string
+    url: string
+  }
+  connection: {
+    request_id: string
+    status: MobileConnection['status']
+    vta_did?: string
+    expires_at: string
+    confirm_by?: string
+    trigger_link?: string
+    claim_check?: string
+    error?: string
+  }
 }
 
 export interface PoolClaim {
@@ -804,6 +833,16 @@ function filenameFromDisposition(header: string | null): string | undefined {
 }
 
 export const api = {
+  // ── Public pooled VTA signup ────────────────────────────────────────────────
+  createPublicPoolClaim: (accessToken: string) =>
+    req<PublicPoolClaim>('POST', '/api/v1/public/pool-claims', undefined, false, { 'X-VTA-Claim-Token': accessToken }),
+  getPublicPoolClaim: (requestID: string, accessToken: string) =>
+    req<PublicPoolClaim>('GET', `/api/v1/public/pool-claims/${encodeURIComponent(requestID)}`, undefined, false, { 'X-VTA-Claim-Token': accessToken }),
+  confirmPublicPoolClaim: (requestID: string, accessToken: string) =>
+    req<PublicPoolClaim>('POST', `/api/v1/public/pool-claims/${encodeURIComponent(requestID)}/confirm`, undefined, false, { 'X-VTA-Claim-Token': accessToken }),
+  rejectPublicPoolClaim: (requestID: string, accessToken: string) =>
+    req<PublicPoolClaim>('POST', `/api/v1/public/pool-claims/${encodeURIComponent(requestID)}/reject`, undefined, false, { 'X-VTA-Claim-Token': accessToken }),
+
   // ── Auth — User ──────────────────────────────────────────────────────────────
   userPasskeyLoginBegin: () =>
     req<{ session_id: string; publicKey: unknown }>('POST', '/api/v1/auth/user/passkey/begin'),
@@ -848,10 +887,16 @@ export const api = {
   // ── Admin — pooled VTA inventory ────────────────────────────────────────────
   listPoolBatches: () => req<PoolBatch[]>('GET', '/api/v1/admin/pool-batches'),
   getPoolBatch: (id: number) => req<PoolBatch>('GET', `/api/v1/admin/pool-batches/${id}`),
-  createPoolBatch: (label: string, count: number, vta_image: string, idempotencyKey: string) =>
-    req<PoolBatch>('POST', '/api/v1/admin/pool-batches', { label, count, vta_image }, true, {
+  createPoolBatch: (label: string, count: number, vta_image: string, purpose: PoolBatch['purpose'], idempotencyKey: string) =>
+    req<PoolBatch>('POST', '/api/v1/admin/pool-batches', { label, count, vta_image, purpose }, true, {
       'Idempotency-Key': idempotencyKey,
     }),
+  addPoolInventory: (batchID: number, count: number, idempotencyKey: string) =>
+    req<PoolBatch>('POST', `/api/v1/admin/pool-batches/${batchID}/inventory`, { count }, true, { 'Idempotency-Key': idempotencyKey }),
+  enablePoolPublicSignup: (batchID: number) =>
+    req<PoolBatch>('POST', `/api/v1/admin/pool-batches/${batchID}/public-signup`),
+  disablePoolPublicSignup: (batchID: number) =>
+    req<PoolBatch>('DELETE', `/api/v1/admin/pool-batches/${batchID}/public-signup`),
   cleanupPoolBatch: (batchID: number) =>
     req<{ batch_id: number; session_ids: number[]; status: 'deleting' } | null>('DELETE', `/api/v1/admin/pool-batches/${batchID}`),
   reservePoolClaim: (batchID: number) =>
