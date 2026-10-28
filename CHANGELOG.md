@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.16.1] - 2026-10-28
+
+### Fixed
+
+- Failed Full Stack setup recovery includes the Trust Registry when it is
+  enabled and selects an available Trust Registry image for the retry.
+
+Requires vtafarm-api 0.16.1.
+
 ## [v0.16.0] - 2026-10-27
 
 ### Added
