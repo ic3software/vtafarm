@@ -16,7 +16,7 @@ if (!_apiUrl) {
 }
 export const API_BASE: string = _apiUrl
 export const PUBLIC_SIGNUP_CONFIG = {
-  discordUrl: 'https://discord.gg/TODO',
+  discordUrl: 'https://discord.gg/RC7WVr6jDR',
 }
 
 export interface MobileConnection {

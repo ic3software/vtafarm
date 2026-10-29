@@ -18,17 +18,24 @@ export function HomeLanding({ onCreateAccount }: HomeLandingProps) {
           <div className="home-start-options" aria-label="Get started with VTA Farm">
             <a href="/get-started" className="home-start-option home-start-option-primary group">
               <span>
-                <strong>Get a VTA</strong>
+                <strong>Create your first Trust Agent</strong>
               </span>
               <ArrowRight aria-hidden="true" className="transition-transform group-hover:translate-x-1" />
             </a>
 
-            <button type="button" onClick={onCreateAccount} className="home-start-option group">
+            <button type="button" onClick={onCreateAccount} className="home-start-option home-start-option-secondary group">
               <span>
-                <strong>Create a VTA Farm account</strong>
+                <strong>Set up an account</strong>
               </span>
               <ArrowRight aria-hidden="true" className="transition-transform group-hover:translate-x-1" />
             </button>
+
+            <a href="/login" className="home-start-option home-start-option-secondary group">
+              <span>
+                <strong>Sign in to VTA Farm</strong>
+              </span>
+              <ArrowRight aria-hidden="true" className="transition-transform group-hover:translate-x-1" />
+            </a>
           </div>
 
         </div>

@@ -1,8 +1,6 @@
 import { Moon, Sun } from 'lucide-react'
 import { useTheme } from '@/lib/useTheme'
 
-const docsUrl = 'https://github.com/OpenVTC/vti-setup/blob/main/developer/01-personal-vta.md'
-
 export function BrandMark() {
   return (
     <svg
@@ -37,11 +35,7 @@ export function NavBar() {
           <BrandMark />
           VTA Farm
         </a>
-        <div className="home-simple-nav-links">
-          <a href={docsUrl} target="_blank" rel="noopener noreferrer" className="home-nav-docs">Docs</a>
-        </div>
         <div className="home-simple-nav-actions">
-          <a href="/login" className="home-nav-login">Sign in</a>
           <button
             type="button"
             onClick={toggle}

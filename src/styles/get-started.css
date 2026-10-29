@@ -2,7 +2,6 @@
 .signup-hero { max-width: 880px; margin: 0 auto; padding: clamp(54px, 8vw, 92px) 22px 38px; text-align: center; }
 .signup-eyebrow { margin: 0 0 12px; color: var(--vtafarm-accent); font: 600 11px/1.3 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
 .signup-hero h1 { margin: 0; font: 400 clamp(44px, 7vw, 82px)/1.02 var(--font-serif); letter-spacing: -.025em; }
-.signup-hero h1 em { color: var(--vtafarm-accent); }
 .signup-stepper { max-width: 900px; margin: 0 auto 22px; padding: 0 22px; list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); }
 .signup-stepper li { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 11px 8px; border-bottom: 2px solid var(--vtafarm-line); color: var(--vtafarm-ink-3); font-size: 12px; }
 .signup-stepper li span { width: 23px; height: 23px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--vtafarm-line-2); font: 600 10px var(--font-mono); }
@@ -22,7 +21,7 @@
 .signup-reserve { padding: 22px; display: flex; justify-content: space-between; align-items: center; gap: 24px; border-radius: 15px; background: var(--vtafarm-bg); border: 1px solid var(--vtafarm-line); }
 .signup-reserve p { margin: 0 0 3px; color: var(--vtafarm-ink-3); font-size: 13px; }
 .signup-reserve h2 { color: var(--vtafarm-accent); }
-.signup-reserve button, .signup-confirm button, .signup-progress button, .signup-community-actions button, .signup-discord a, .signup-discord button, .signup-finish-actions button, .signup-finished button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--vtafarm-accent); color: #fff; font: 600 14px var(--font-sans); white-space: nowrap; }
+.signup-reserve button, .signup-confirm button, .signup-progress button, .signup-discord a, .signup-discord button, .signup-finish-actions button, .signup-finished a { min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--vtafarm-accent); color: #fff; font: 600 14px var(--font-sans); white-space: nowrap; }
 .signup-reserve button:disabled, .signup-confirm button:disabled { opacity: .55; }
 .signup-claim-grid { min-height: 420px; display: grid; grid-template-columns: 320px 1fr; gap: 42px; align-items: center; }
 .signup-qr { padding: 18px; position: relative; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--vtafarm-line); border-radius: 17px; background: #fff; }
@@ -44,7 +43,7 @@
 .signup-primary-link { min-height: 46px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; background: var(--vtafarm-ink); color: var(--vtafarm-bg); font: 600 14px var(--font-sans); }
 .signup-primary-link:disabled { opacity: .4; cursor: not-allowed; }
 .signup-primary-link svg { width: 17px; }
-.signup-text-button { display: block; margin-top: 14px; padding: 6px 0; border: 0; background: transparent; color: var(--vtafarm-ink-3); text-decoration: underline; }
+.signup-text-button { display: block; margin-top: 4px; padding: 6px 0; border: 0; background: transparent; color: var(--vtafarm-ink-3); text-decoration: underline; }
 .signup-text-button:disabled { cursor: wait; opacity: .55; }
 .signup-confirm, .signup-progress { min-height: 420px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .signup-progress h2 + p { margin-top: 10px; }
@@ -60,27 +59,29 @@
 .signup-success > svg { width: 36px; height: 36px; flex: 0 0 36px; padding: 8px; border-radius: 50%; background: color-mix(in srgb, #22a06b 15%, transparent); color: #158052; }
 .signup-success > div { min-width: 0; }
 .signup-success code { display: block; margin-top: 5px; overflow-wrap: anywhere; color: var(--vtafarm-ink-2); }
-.signup-community-grid { padding: 28px 0; display: grid; grid-template-columns: 1fr 250px; gap: 30px; align-items: center; }
+.signup-community-grid { display: flex; align-items: center; justify-content: space-between; gap: 22px; }
 .signup-community-grid p { max-width: 55ch; }
-.signup-community-did { display: block; margin: 16px 0; padding: 10px; border-radius: 8px; background: var(--vtafarm-bg); overflow-wrap: anywhere; font-size: 12px; }
-.signup-community-actions { display: flex; flex-wrap: wrap; gap: 9px; }
-.signup-community-actions button, .signup-community-actions a { min-height: 40px; padding: 0 14px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--vtafarm-line); border-radius: 999px; background: transparent; color: var(--vtafarm-ink); font: 600 13px var(--font-sans); }
-.signup-community-actions svg { width: 15px; }
+.signup-community-grid a { flex: none; min-height: 44px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; background: var(--vtafarm-accent); color: #fff; font: 600 14px var(--font-sans); white-space: nowrap; }
+.signup-community-grid a:hover { background: var(--vtafarm-accent-2); }
+.signup-community-grid a svg { width: 15px; }
 .signup-community-unavailable { margin-top: 28px; padding: 20px; border: 1px solid var(--vtafarm-line); border-radius: 14px; background: var(--vtafarm-bg); }
 .signup-community-unavailable p { margin: 5px 0 0; }
-.signup-next-steps { display: grid; gap: 12px; }
-.signup-membership, .signup-discord { padding: 20px; border-radius: 14px; }
-.signup-membership { border: 1px solid var(--vtafarm-line); background: var(--vtafarm-bg); }
+.signup-community-grid, .signup-membership, .signup-discord { padding: 24px 0; }
+.signup-membership, .signup-discord { border-top: 1px solid var(--vtafarm-line); }
 .signup-membership p:not(.signup-eyebrow), .signup-discord p:not(.signup-eyebrow) { margin: 5px 0 0; }
-.signup-discord { display: flex; align-items: center; justify-content: space-between; gap: 22px; background: var(--vtafarm-accent-soft); }
+.signup-discord { display: flex; align-items: center; justify-content: space-between; gap: 22px; }
 .signup-discord p { margin: 5px 0 0; }
 .signup-discord a, .signup-discord button { display: inline-flex; align-items: center; gap: 8px; }
 .signup-discord a svg, .signup-discord button svg { width: 17px; height: 17px; }
 .signup-discord button:disabled { opacity: .5; cursor: not-allowed; }
-.signup-finish-actions { margin-top: 22px; padding-top: 22px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--vtafarm-line); }
-.signup-finish-actions button:disabled, .signup-finished button:disabled { opacity: .55; }
+.signup-finish-actions { padding-top: 22px; display: flex; justify-content: center; gap: 10px; border-top: 1px solid var(--vtafarm-line); }
+.signup-finish-actions button { border: 1px solid var(--vtafarm-ink-4); background: var(--vtafarm-bg-elev); color: var(--vtafarm-ink); }
+.signup-finish-actions button:hover { border-color: var(--vtafarm-ink-3); }
+.signup-finish-actions button:disabled { opacity: .55; }
 .signup-finished { min-height: 330px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .signup-finished > svg { width: 46px; height: 46px; margin-bottom: 16px; padding: 11px; border-radius: 50%; background: color-mix(in srgb, #22a06b 15%, transparent); color: #158052; }
+.signup-finished a { display: inline-flex; align-items: center; }
+.signup-finished a:hover { background: var(--vtafarm-accent-2); }
 .signup-finished h2 { font-size: 28px; }
 .signup-finished p:not(.signup-eyebrow) { margin: 8px 0 22px; }
 .signup-error { margin: 22px 0 0; padding: 11px 13px; border-radius: 9px; background: color-mix(in srgb, var(--destructive) 12%, transparent); color: var(--destructive) !important; text-align: center; }
@@ -96,4 +97,6 @@
 .signup-download-footer button { border: 1px solid var(--vtafarm-line); background: var(--vtafarm-bg-elev); color: var(--vtafarm-ink); }
 .signup-download-footer a { border: 1px solid transparent; background: var(--vtafarm-accent); color: #fff; }
 @media (max-width: 880px) { .signup-claim-grid { grid-template-columns: 1fr; } .signup-qr { width: min(100%, 320px); margin: auto; } }
-@media (max-width: 620px) { .signup-stepper li { font-size: 11px; } .signup-reserve, .signup-discord { align-items: stretch; flex-direction: column; } .signup-reserve button, .signup-discord a, .signup-discord button { justify-content: center; } .signup-claim-grid { min-height: 0; } .signup-claim-grid > .signup-qr, .signup-community-grid > .signup-qr { display: none; } .signup-community-grid { grid-template-columns: 1fr; } .signup-confirm-actions, .signup-finish-actions { width: 100%; flex-direction: column; } .signup-confirm-actions button, .signup-finish-actions button { width: 100%; } }
+@media (max-width: 620px) { .signup-stepper li { font-size: 11px; } .signup-reserve, .signup-community-grid, .signup-discord { align-items: stretch; flex-direction: column; } .signup-reserve button, .signup-community-grid a, .signup-discord a, .signup-discord button { justify-content: center; } .signup-claim-grid { min-height: 0; } .signup-confirm-actions, .signup-finish-actions { width: 100%; flex-direction: column; } .signup-confirm-actions button, .signup-finish-actions button { width: 100%; } }
+.signup-same-device-only { display: none; }
+@media (max-width: 620px), (pointer: coarse) { .signup-claim-grid > .signup-qr, .signup-qr-only { display: none; } .signup-same-device-only { display: block; } .signup-primary-link.signup-same-device-only { display: inline-flex; margin-top: 24px; } .signup-claim-copy { display: flex; flex-direction: column; align-items: center; text-align: center; } .signup-claim-copy .signup-section-head { align-items: center; } .signup-claim-copy .signup-development-claim { align-self: stretch; text-align: left; } }

@@ -64,7 +64,6 @@ export function GetStarted() {
   const [error, setError] = useState('')
   const [clockMs, setClockMs] = useState(0)
   const [serverOffsetMs, setServerOffsetMs] = useState(0)
-  const [copied, setCopied] = useState(false)
   const [copiedClaimID, setCopiedClaimID] = useState(false)
   const [copiedClaimCommand, setCopiedClaimCommand] = useState(false)
   const [download, setDownload] = useState<KeyringDownload | null>(null)
@@ -110,7 +109,7 @@ export function GetStarted() {
         setStored(null)
         setClaim(null)
       } else {
-        setError(err instanceof Error ? err.message : 'Unable to resume this VTA claim.')
+        setError(err instanceof Error ? err.message : 'Unable to resume this Trust Agent claim.')
       }
     }
   }, [applyClaim])
@@ -164,10 +163,10 @@ export function GetStarted() {
     } catch (err) {
       const apiError = err as ApiError
       setError(apiError.reason === 'public_pool_empty'
-        ? 'No VTA is available right now. Please try again later or contact us on Discord.'
+        ? 'No Trust Agent is available right now. Please try again later or contact us on Discord.'
         : apiError.reason === 'public_signup_disabled'
-          ? 'VTA reservation is currently unavailable. Please contact an administrator.'
-          : err instanceof Error ? err.message : 'Unable to reserve a VTA.')
+          ? 'Trust Agent reservation is currently unavailable. Please contact an administrator.'
+          : err instanceof Error ? err.message : 'Unable to reserve a Trust Agent.')
     } finally {
       setBusy(false)
     }
@@ -180,7 +179,7 @@ export function GetStarted() {
     try {
       applyClaim(await api.confirmPublicPoolClaim(claim.connection.request_id, stored.accessToken), stored.accessToken)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to confirm this VTA claim.')
+      setError(err instanceof Error ? err.message : 'Unable to confirm this Trust Agent claim.')
     } finally {
       setAction(null)
     }
@@ -196,7 +195,7 @@ export function GetStarted() {
       await api.rejectPublicPoolClaim(requestId, stored.accessToken)
       startOver()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to reject this VTA claim.')
+      setError(err instanceof Error ? err.message : 'Unable to reject this Trust Agent claim.')
     } finally {
       if (cancellingRequestIdRef.current === requestId) cancellingRequestIdRef.current = null
       setAction(null)
@@ -219,17 +218,6 @@ export function GetStarted() {
       setStored(next)
     }
     setCompleted(true)
-  }
-
-  async function copyCommunityDid() {
-    if (!claim?.platform_vtc?.did) return
-    try {
-      await navigator.clipboard.writeText(claim.platform_vtc.did)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1800)
-    } catch {
-      setError('Unable to copy the community DID. Select and copy it below.')
-    }
   }
 
   async function copyDevelopmentClaimID() {
@@ -281,13 +269,12 @@ export function GetStarted() {
       <NavBar />
 
       <section className="signup-hero">
-        <p className="signup-eyebrow">Public onboarding</p>
-        <h1>From your phone to <em>your first community.</em></h1>
+        <h1>From your phone to your first community.</h1>
       </section>
 
       {!initializing && (
         <ol className="signup-stepper" aria-label="Onboarding progress">
-          {['Install Keyring', 'Link your VTA', 'Join FPDev'].map((label, index) => {
+          {['Install Keyring', 'Link your Trust Agent', 'Join the demo community'].map((label, index) => {
             const phase = index + 1
             const complete = phase < activePhase
             return (
@@ -305,7 +292,7 @@ export function GetStarted() {
             <div className="signup-progress" role="status" aria-live="polite">
               <span className="signup-spinner" />
               <h2>Loading your progress…</h2>
-              <p>Checking your saved VTA claim.</p>
+              <p>Checking your saved Trust Agent claim.</p>
             </div>
           ) : !connection ? (
             <>
@@ -315,23 +302,23 @@ export function GetStarted() {
                 <KeyringStoreButton store="android" type="button" onClick={() => openKeyringDownload(KEYRING_DOWNLOADS.android)} />
               </div>
               <div className="signup-reserve">
-                <div><p>Finished installing Keyring?</p><h2>Next, get your VTA.</h2></div>
-                <button type="button" onClick={() => void startClaim()} disabled={busy}>{busy ? 'Reserving…' : 'Get my VTA'}</button>
+                <div><p>Finished installing Keyring?</p><h2>Next, get your Trust Agent.</h2></div>
+                <button type="button" onClick={() => void startClaim()} disabled={busy}>{busy ? 'Reserving…' : 'Get my Trust Agent'}</button>
               </div>
             </>
           ) : connection.status === 'open' ? (
             <div className="signup-claim-grid">
               <div className={`signup-qr${action === 'reject' ? ' is-cancelling' : ''}`}>
-                {connection.trigger_link && <QRCodeSVG value={connection.trigger_link} size={280} level="M" marginSize={4} title="Keyring VTA claim QR code" />}
+                {connection.trigger_link && <QRCodeSVG value={connection.trigger_link} size={280} level="M" marginSize={4} title="Keyring Trust Agent claim QR code" />}
                 {action === 'reject' && <div className="signup-qr-cancelling"><X aria-hidden="true" /><strong>Cancelling QR…</strong><span>Returning to the first step.</span></div>}
               </div>
               <div className="signup-claim-copy">
-                <div className="signup-section-head"><span>02</span><div><h2>Link this VTA to Keyring</h2><p>Scan on another screen, or open Keyring directly on this phone.</p></div></div>
-                <p className="signup-timer">QR expires in <strong>{formatCountdown(remaining ?? 0)}</strong></p>
+                <div className="signup-section-head"><span>02</span><div><h2>Link your Trust Agent</h2><p className="signup-qr-only">Scan the code from Keyring (QR Code &gt; Scan).</p></div></div>
                 {connection.trigger_link && (action === 'reject'
-                  ? <button type="button" className="signup-primary-link" disabled><Smartphone aria-hidden="true" />Open in Keyring</button>
-                  : <a className="signup-primary-link" href={keyringSameDeviceLink(connection.trigger_link)}><Smartphone aria-hidden="true" />Open in Keyring</a>)}
-                <button type="button" className="signup-text-button" onClick={() => void rejectClaim()} disabled={action !== null}>{action === 'reject' ? 'Cancelling…' : 'Cancel this QR'}</button>
+                  ? <button type="button" className="signup-primary-link signup-same-device-only" disabled><Smartphone aria-hidden="true" />Open in Keyring</button>
+                  : <a className="signup-primary-link signup-same-device-only" href={keyringSameDeviceLink(connection.trigger_link)}><Smartphone aria-hidden="true" />Open in Keyring</a>)}
+                <p className="signup-timer">QR expires in <strong>{formatCountdown(remaining ?? 0)}</strong></p>
+                <button type="button" className="signup-text-button" onClick={() => void rejectClaim()} disabled={action !== null}>{action === 'reject' ? 'Cancelling…' : 'Cancel'}</button>
                 {developmentClaimID && (
                   <div className="signup-development-claim">
                     <span>Claim ID · development only</span>
@@ -362,44 +349,40 @@ export function GetStarted() {
               </div>
             </div>
           ) : connection.status === 'confirmed' || connection.status === 'provisioning' ? (
-            <div className="signup-progress"><span className="signup-spinner" /><h2>Your VTA is being activated</h2><p>Keep Keyring open. The handover completes automatically.</p></div>
+            <div className="signup-progress"><span className="signup-spinner" /><h2>Your Trust Agent is being activated</h2><p>Keep Keyring open. The handover completes automatically.</p></div>
           ) : connection.status === 'released' ? (
             <div className="signup-released">
-              <div className="signup-success"><Check aria-hidden="true" /><div><h2>Your VTA is linked to Keyring</h2><code>{connection.vta_did}</code></div></div>
+              <div className="signup-success"><Check aria-hidden="true" /><div><h2>Your Trust Agent is linked to Keyring</h2><code>{connection.vta_did}</code></div></div>
               {completed ? (
                 <div className="signup-finished">
                   <Check aria-hidden="true" />
                   <p className="signup-eyebrow">Complete</p>
                   <h2>You&rsquo;re all set</h2>
-                  <p>Your VTA is linked and your onboarding steps are complete.</p>
-                  <button type="button" onClick={startOver}>Get another VTA</button>
+                  <p>Your Trust Agent is linked and your onboarding steps are complete.</p>
+                  <a href="/" onClick={() => sessionStorage.removeItem(claimStorageKey)}>Go to the homepage</a>
                 </div>
               ) : platformVTC ? (
                 <>
                   <div className="signup-community-grid">
                     <div>
-                      <p className="signup-eyebrow">Join FPDev · 1 of 3</p>
-                      <h2>Join the FPDev community</h2>
-                      <p>Scan this code with Keyring. On this phone, copy the DID and paste it under <strong>Communities → Join</strong>.</p>
-                      <code className="signup-community-did">{platformVTC.did}</code>
-                      <div className="signup-community-actions">
-                        <button type="button" onClick={() => void copyCommunityDid()}><Copy aria-hidden="true" />{copied ? 'Copied' : 'Copy DID'}</button>
-                        <a href={platformVTC.url} target="_blank" rel="noreferrer">Open community site <ExternalLink aria-hidden="true" /></a>
-                      </div>
+                      <p className="signup-eyebrow">1 of 3</p>
+                      <h2>Join the demo community</h2>
+                      <p className="signup-qr-only">Open the demo community site and scan the QR code.</p>
+                      <p className="signup-same-device-only">Open the demo community site and click the <em>Join in Keyring</em> button.</p>
                     </div>
-                    <div className="signup-qr community"><QRCodeSVG value={platformVTC.did} size={220} level="M" marginSize={4} title="FPDev community DID QR code" /></div>
+                    <a href={platformVTC.url} target="_blank" rel="noreferrer">Open community site <ExternalLink aria-hidden="true" /></a>
                   </div>
                   <div className="signup-next-steps">
                     <div className="signup-membership">
-                      <p className="signup-eyebrow">Join FPDev · 2 of 3</p>
+                      <p className="signup-eyebrow">2 of 3</p>
                       <h2>Submit your join request</h2>
-                      <p>Confirm in Keyring. FPDev will show as <strong>Pending</strong> until an administrator approves it.</p>
+                      <p>Confirm in Keyring. The demo community will show as <strong>Pending</strong> until an administrator approves it.</p>
                     </div>
                     <div className="signup-discord">
                       <div>
-                        <p className="signup-eyebrow">Join FPDev · 3 of 3</p>
+                        <p className="signup-eyebrow">3 of 3</p>
                         <h2>Request approval on Discord</h2>
-                        <p>When FPDev shows as <strong>Pending</strong>, tell an administrator your request is ready.</p>
+                        <p>When the demo community shows as <strong>Pending</strong>, tell an administrator your request is ready.</p>
                       </div>
                       {PUBLIC_SIGNUP_CONFIG.discordUrl
                         ? <a href={PUBLIC_SIGNUP_CONFIG.discordUrl} target="_blank" rel="noreferrer"><FontAwesomeIcon icon={faDiscord} aria-hidden="true" />Join Discord</a>
@@ -412,13 +395,13 @@ export function GetStarted() {
                 </>
               ) : (
                 <div className="signup-community-unavailable" role="alert">
-                  <h2>FPDev community is not ready</h2>
+                  <h2>The demo community is not ready</h2>
                   <p>This Farm&rsquo;s platform VTC is unavailable. Please contact an administrator before submitting a join request.</p>
                 </div>
               )}
             </div>
           ) : (
-            <div className="signup-progress"><h2>This claim was {connection.status}</h2><p>No VTA was handed over. Generate a fresh QR to try again.</p><button type="button" onClick={startOver}>Generate another QR</button></div>
+            <div className="signup-progress"><h2>This claim was {connection.status}</h2><p>No Trust Agent was handed over. Generate a fresh QR to try again.</p><button type="button" onClick={startOver}>Generate another QR</button></div>
           )}
           {error && <p className="signup-error" role="alert">{error}</p>}
         </div>
