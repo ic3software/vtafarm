@@ -315,8 +315,8 @@ export function GetStarted() {
               <div className="signup-claim-copy">
                 <div className="signup-section-head"><span>02</span><div><h2>Link your Trust Agent</h2><p className="signup-qr-only">Scan the code from Keyring (QR Code &gt; Scan).</p></div></div>
                 {connection.trigger_link && (action === 'reject'
-                  ? <button type="button" className="signup-primary-link signup-same-device-only" disabled><Smartphone aria-hidden="true" />Open in Keyring</button>
-                  : <a className="signup-primary-link signup-same-device-only" href={keyringSameDeviceLink(connection.trigger_link)}><Smartphone aria-hidden="true" />Open in Keyring</a>)}
+                  ? <button type="button" className="signup-primary-link signup-same-device-only" disabled><Smartphone aria-hidden="true" />Link in Keyring</button>
+                  : <a className="signup-primary-link signup-same-device-only" href={keyringSameDeviceLink(connection.trigger_link)}><Smartphone aria-hidden="true" />Link in Keyring</a>)}
                 <p className="signup-timer">QR expires in <strong>{formatCountdown(remaining ?? 0)}</strong></p>
                 <button type="button" className="signup-text-button" onClick={() => void rejectClaim()} disabled={action !== null}>{action === 'reject' ? 'Cancelling…' : 'Cancel'}</button>
                 {developmentClaimID && (
