@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.17.0] - 2026-10-30
+
+### Added
+
+- Users can sign in with a Keyring identity by scanning a QR code or opening
+  Keyring on the same device, confirming the two-digit request number, and
+  choosing the Farm account when one identity can access more than one.
+- Account settings list claim-derived Keyring sign-in identities and allow
+  users to revoke an identity and the Farm sessions created through it.
+
+### Changed
+
+- The home page and Get Started flow present clearer paths for creating a
+  Trust Agent, setting up an account, signing in, installing Keyring, linking
+  the agent, and joining the demo community.
+- Frontend responses deny framing to protect sign-in and portal interactions.
+
+Requires vtafarm-api 0.17.0.
+
 ## [v0.16.1] - 2026-10-28
 
 ### Fixed
