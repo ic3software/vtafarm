@@ -48,7 +48,7 @@ export function AdminPanel() {
 
   const path = location.pathname
   const crumb = path.includes('/settings') ? 'Settings'
-    : path.includes('/resource-defaults') ? 'Resource defaults'
+    : path.includes('/resource-defaults') ? 'Defaults'
     : path.includes('/users') ? 'Users'
     : path.includes('/platform-stack') ? 'Platform stack'
     : path.includes('/pools') ? 'VTA pools'
@@ -109,7 +109,7 @@ export function AdminPanel() {
               onClick={() => goTo('/admin/resource-defaults')}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg>
-              Resource defaults
+              Defaults
             </div>
             <div
               className={`nav-item ${path.includes('/pools') ? 'active' : ''}`}

@@ -15,9 +15,12 @@ export function imageTag(image: string) {
 /**
  * Dropdown label for a registry image: the tag, the channel(s) pointing at
  * it, then the build date, e.g. "0.10.0-cf959b0 [nightly] 2026-10-15".
+ * `markDefault` also appends " [default]" to the admin-pinned image; only the
+ * user-facing create form opts in, so admin pickers look unchanged.
  */
-export function imageLabel(img: ImageOption): string {
+export function imageLabel(img: ImageOption, { markDefault = false } = {}): string {
   let s = img.tag
+  if (markDefault && img.default) s += ' [default]'
   if (img.latest) s += ' [latest]'
   if (img.nightly) s += ' [nightly]'
   if (img.main) s += ' [main]'
