@@ -18,6 +18,10 @@ import {
   type KeyringSignInConfig,
 } from '@/lib/keyringSignIn'
 
+function shellQuote(value: string) {
+  return `'${value.replaceAll("'", `'"'"'`)}'`
+}
+
 export function UserLogin() {
   const { user, setUserSession } = useUserAuth()
   const navigate = useNavigate()
@@ -31,6 +35,7 @@ export function UserLogin() {
   const [accountChoices, setAccountChoices] = useState<KeyringAccountChoice[]>([])
   const [selectedBindingId, setSelectedBindingId] = useState<number | undefined>()
   const [tabVisible, setTabVisible] = useState(!document.hidden)
+  const [copiedDevelopmentCommand, setCopiedDevelopmentCommand] = useState(false)
 
   async function handlePasskeyLogin() {
     setError('')
@@ -58,6 +63,7 @@ export function UserLogin() {
     setMatchNumber('')
     setAccountChoices([])
     setSelectedBindingId(undefined)
+    setCopiedDevelopmentCommand(false)
     setKeyringStatus('Creating a private sign-in request…')
     try {
       const config = await fetchKeyringSignInConfig()
@@ -82,6 +88,7 @@ export function UserLogin() {
     setMatchNumber('')
     setAccountChoices([])
     setSelectedBindingId(undefined)
+    setCopiedDevelopmentCommand(false)
     setKeyringStatus('')
     if (config && request) await cancelKeyringRequest(config, request.requestId)
   }
@@ -157,6 +164,21 @@ export function UserLogin() {
     }
   }, [keyringConfig, keyringRequest, navigate, selectedBindingId, setUserSession])
 
+  const developmentSignInCommand = import.meta.env.DEV && keyringConfig && keyringRequest
+    ? `make dev-keyring-sign-in REQUEST_ID=${shellQuote(keyringRequest.requestId)} FARM_DID=${shellQuote(keyringConfig.farm_did)}`
+    : ''
+
+  async function copyDevelopmentSignInCommand() {
+    if (!developmentSignInCommand) return
+    try {
+      await navigator.clipboard.writeText(developmentSignInCommand)
+      setCopiedDevelopmentCommand(true)
+      window.setTimeout(() => setCopiedDevelopmentCommand(false), 1800)
+    } catch {
+      setError('Unable to copy the development command. Select and copy it below.')
+    }
+  }
+
   if (user) return <Navigate to="/portal" replace />
 
   return (
@@ -186,6 +208,15 @@ export function UserLogin() {
                     <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Sign-in code hidden while this tab is inactive.</span>
                   )}
                 </div>
+                {developmentSignInCommand && (
+                  <div style={{ display: 'grid', gap: 8, padding: 12, border: '1px dashed hsl(var(--border))', borderRadius: 'var(--radius)', background: 'hsl(var(--muted) / .45)' }}>
+                    <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>Development wallet command</span>
+                    <code className="p-mono" style={{ overflowWrap: 'anywhere', fontSize: 11, lineHeight: 1.5 }}>{developmentSignInCommand}</code>
+                    <button className="btn btn-outline btn-sm" type="button" onClick={() => void copyDevelopmentSignInCommand()}>
+                      {copiedDevelopmentCommand ? 'Copied command' : 'Copy command'}
+                    </button>
+                  </div>
+                )}
                 {matchNumber && (
                   <div style={{ textAlign: 'center', padding: '12px 16px', borderRadius: 'var(--radius)', background: 'hsl(var(--muted))' }}>
                     <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginBottom: 4 }}>Number shown to Keyring</div>
