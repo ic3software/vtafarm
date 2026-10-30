@@ -1,9 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { startAuthentication } from '@simplewebauthn/browser'
+import { QRCodeSVG } from 'qrcode.react'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
 import { useUserAuth } from '@/contexts/userAuth'
+import { keyringSameDeviceLink } from '@/lib/utils'
+import {
+  cancelKeyringRequest,
+  fetchKeyringSignInConfig,
+  forgetKeyringRequest,
+  KeyringSignInError,
+  openKeyringRequest,
+  redeemKeyringRequest,
+  type KeyringAccountChoice,
+  type KeyringRequest,
+  type KeyringSignInConfig,
+} from '@/lib/keyringSignIn'
 
 export function UserLogin() {
   const { user, setUserSession } = useUserAuth()
@@ -11,8 +24,13 @@ export function UserLogin() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  if (user) return <Navigate to="/portal" replace />
+  const [keyringConfig, setKeyringConfig] = useState<KeyringSignInConfig | null>(null)
+  const [keyringRequest, setKeyringRequest] = useState<KeyringRequest | null>(null)
+  const [keyringStatus, setKeyringStatus] = useState('')
+  const [matchNumber, setMatchNumber] = useState('')
+  const [accountChoices, setAccountChoices] = useState<KeyringAccountChoice[]>([])
+  const [selectedBindingId, setSelectedBindingId] = useState<number | undefined>()
+  const [tabVisible, setTabVisible] = useState(!document.hidden)
 
   async function handlePasskeyLogin() {
     setError('')
@@ -34,6 +52,113 @@ export function UserLogin() {
     }
   }
 
+  async function handleKeyringLogin() {
+    setError('')
+    setLoading(true)
+    setMatchNumber('')
+    setAccountChoices([])
+    setSelectedBindingId(undefined)
+    setKeyringStatus('Creating a private sign-in request…')
+    try {
+      const config = await fetchKeyringSignInConfig()
+      const request = await openKeyringRequest(config)
+      setKeyringConfig(config)
+      setKeyringRequest(request)
+      setKeyringStatus('Scan the code or open it in Keyring, then approve the sign-in.')
+    } catch (err) {
+      forgetKeyringRequest()
+      setKeyringStatus('')
+      setError(err instanceof Error ? err.message : 'Unable to start Keyring sign-in.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleCancelKeyring() {
+    const config = keyringConfig
+    const request = keyringRequest
+    setKeyringRequest(null)
+    setKeyringConfig(null)
+    setMatchNumber('')
+    setAccountChoices([])
+    setSelectedBindingId(undefined)
+    setKeyringStatus('')
+    if (config && request) await cancelKeyringRequest(config, request.requestId)
+  }
+
+  useEffect(() => {
+    const onVisibility = () => setTabVisible(!document.hidden)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [])
+
+  useEffect(() => {
+    if (!keyringConfig || !keyringRequest) return
+    let stopped = false
+    let timer = 0
+    let controller: AbortController | null = null
+
+    const poll = async () => {
+      if (stopped) return
+      if (document.hidden) {
+        timer = window.setTimeout(poll, 500)
+        return
+      }
+      controller = new AbortController()
+      try {
+        const result = await redeemKeyringRequest(keyringConfig, keyringRequest.requestId, controller.signal, selectedBindingId)
+        if (stopped) return
+        forgetKeyringRequest()
+        setUserSession(result.user)
+        navigate('/portal')
+      } catch (err) {
+        if (stopped || (err as { name?: string }).name === 'AbortError') return
+        if (err instanceof TypeError && Date.now() < keyringRequest.claimClosesAt + 120_000) {
+          setKeyringStatus('Connection interrupted. Retrying this signed request…')
+          timer = window.setTimeout(poll, 1000)
+          return
+        }
+        if (err instanceof KeyringSignInError && (err.code === 'pending' || err.code === 'accountSelectionRequired')) {
+          const number = typeof err.details.matchNumber === 'string' ? err.details.matchNumber : ''
+          const state = typeof err.details.state === 'string' ? err.details.state : 'pending'
+          const accounts = Array.isArray(err.details.accounts)
+            ? err.details.accounts.filter((choice): choice is KeyringAccountChoice => {
+                const candidate = choice as Partial<KeyringAccountChoice>
+                return Number.isSafeInteger(candidate.bindingId) && typeof candidate.displayName === 'string'
+              })
+            : []
+          setMatchNumber(number)
+          if (accounts.length > 0) {
+            setAccountChoices(accounts)
+            setKeyringStatus('This Keyring identity can access more than one Farm account. Select the account for this sign-in.')
+            return
+          }
+          setKeyringStatus(number
+            ? `Keyring claimed this request. Enter ${number} in Keyring and approve.`
+            : state === 'identified' ? 'Identity verified. Waiting for your approval in Keyring…' : 'Waiting for Keyring…')
+          timer = window.setTimeout(poll, 900)
+          return
+        }
+        setKeyringRequest(null)
+        setKeyringConfig(null)
+        setMatchNumber('')
+        setAccountChoices([])
+        setSelectedBindingId(undefined)
+        forgetKeyringRequest()
+        setError(err instanceof Error ? err.message : 'Keyring sign-in failed.')
+      }
+    }
+
+    void poll()
+    return () => {
+      stopped = true
+      controller?.abort()
+      window.clearTimeout(timer)
+    }
+  }, [keyringConfig, keyringRequest, navigate, selectedBindingId, setUserSession])
+
+  if (user) return <Navigate to="/portal" replace />
+
   return (
     <div className="portal-root">
       <div className="p-auth">
@@ -47,14 +172,70 @@ export function UserLogin() {
               Welcome back
             </h1>
             <p className="p-muted" style={{ margin: '0 0 32px', fontSize: 14 }}>
-              Sign in with your passkey to manage your Trust Agent.
+              Sign in with Keyring or your passkey to manage your Trust Agent.
             </p>
 
+            {keyringRequest ? (
+              <div style={{ display: 'grid', gap: 14, marginBottom: 18 }}>
+                <div style={{ display: 'grid', placeItems: 'center', minHeight: 220, padding: 14, border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', background: '#fff' }}>
+                  {tabVisible ? (
+                    <a href={keyringSameDeviceLink(keyringRequest.triggerLink)} aria-label="Open sign-in request in Keyring">
+                      <QRCodeSVG value={keyringRequest.triggerLink} size={190} level="M" />
+                    </a>
+                  ) : (
+                    <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Sign-in code hidden while this tab is inactive.</span>
+                  )}
+                </div>
+                {matchNumber && (
+                  <div style={{ textAlign: 'center', padding: '12px 16px', borderRadius: 'var(--radius)', background: 'hsl(var(--muted))' }}>
+                    <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginBottom: 4 }}>Number shown to Keyring</div>
+                    <div className="p-mono" style={{ fontSize: 34, fontWeight: 700, letterSpacing: '.18em' }}>{matchNumber}</div>
+                  </div>
+                )}
+                {accountChoices.length > 0 && selectedBindingId === undefined && (
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {accountChoices.map(choice => (
+                      <button
+                        key={choice.bindingId}
+                        className="btn btn-outline btn-block"
+                        type="button"
+                        onClick={() => {
+                          setKeyringStatus(`Continuing as ${choice.displayName}…`)
+                          setSelectedBindingId(choice.bindingId)
+                        }}
+                      >
+                        Continue as {choice.displayName}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'hsl(var(--muted-foreground))' }}>{keyringStatus}</p>
+                <a className="btn btn-default btn-lg btn-block" href={keyringSameDeviceLink(keyringRequest.triggerLink)}>
+                  Open in Keyring <span className="arrow">→</span>
+                </a>
+                <button className="btn btn-ghost btn-block" type="button" onClick={() => void handleCancelKeyring()}>Cancel</button>
+              </div>
+            ) : (
+              <button
+                className="btn btn-default btn-lg btn-block"
+                type="button"
+                onClick={handleKeyringLogin}
+                disabled={loading}
+                style={{ gap: 10, marginBottom: 12 }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 18, height: 18, flexShrink: 0 }}>
+                  <rect x="3" y="5" width="18" height="14" rx="2"/><path d="M16 12h.01M7 9h5M7 13h5"/>
+                </svg>
+                {loading ? 'Starting Keyring…' : 'Sign in with Keyring'}
+                {!loading && <span className="arrow">→</span>}
+              </button>
+            )}
+
             <button
-              className="btn btn-default btn-lg btn-block"
+              className="btn btn-outline btn-lg btn-block"
               type="button"
               onClick={handlePasskeyLogin}
-              disabled={loading}
+              disabled={loading || Boolean(keyringRequest)}
               style={{ gap: 10 }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 18, height: 18, flexShrink: 0 }}>

@@ -36,6 +36,19 @@ Built with React 19, Vite 8, TypeScript 6, Tailwind CSS v4, and shadcn/ui.
 
    The app runs at `http://localhost:5173` with HMR enabled.
 
+   To expose the frontend through the configured Cloudflare Tunnel for Keyring
+   phone testing, keep the `vtafarm-local` connector running and use:
+
+   ```bash
+   pnpm dev:tunnel
+   ```
+
+   This binds Vite to `127.0.0.1:5173`, allows only
+   `dev-vtafarm.firstperson.dev` as the additional public hostname, and uses
+   `https://dev-vtafarm-api.firstperson.dev` as the API origin. From the parent
+   workspace, `make dev-tunnel` starts this frontend mode together with the
+   local API and its dependencies.
+
 4. **Available routes**
 
    | URL | Description |

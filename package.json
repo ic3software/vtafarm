@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:tunnel": "VITE_API_URL=${VITE_API_URL:-https://dev-vtafarm-api.firstperson.dev} __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=${__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS:-dev-vtafarm.firstperson.dev} vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

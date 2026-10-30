@@ -291,6 +291,12 @@ export interface UserInfo {
   role: 'user' | 'admin'
 }
 
+export interface WalletLoginBinding {
+  id: number
+  login_did: string
+  created_at: string
+}
+
 export interface User {
   id: number
   unique_id: string
@@ -851,6 +857,9 @@ export const api = {
   userPasskeyLoginComplete: (sessionId: string, credential: unknown) =>
     req<{ token: string; user: UserInfo }>('POST', `/api/v1/auth/user/passkey/complete?session_id=${encodeURIComponent(sessionId)}`, credential),
   userLogout: () => req<null>('POST', '/api/v1/auth/user/logout'),
+
+  listWalletLoginBindings: () => req<WalletLoginBinding[]>('GET', '/api/v1/user/wallet-login-bindings'),
+  revokeWalletLoginBinding: (id: number) => req<null>('DELETE', `/api/v1/user/wallet-login-bindings/${id}`),
 
   // ── Auth — Admin ─────────────────────────────────────────────────────────────
   adminPasskeyLoginBegin: () =>
