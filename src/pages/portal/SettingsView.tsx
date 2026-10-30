@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { startRegistration } from '@simplewebauthn/browser'
-import { api, type PasskeyRecord } from '@/lib/api'
+import { api, type PasskeyRecord, type WalletLoginBinding } from '@/lib/api'
 import { initials } from './portalUtils'
 import type { PortalContext } from './Portal'
 
@@ -20,6 +20,8 @@ export function SettingsView() {
   const [addingPasskey, setAddingPasskey] = useState(false)
   const [addPasskeyError, setAddPasskeyError] = useState('')
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [walletBindings, setWalletBindings] = useState<WalletLoginBinding[]>([])
+  const [revokingBindingId, setRevokingBindingId] = useState<number | null>(null)
 
   // The fetch does not raise the spinner: `loadingPasskeys` starts true, so the
   // mount path needs no toggle, and doing it synchronously inside the effect is
@@ -31,6 +33,7 @@ export function SettingsView() {
   )
 
   useEffect(() => { void loadPasskeys() }, [loadPasskeys])
+  useEffect(() => { void api.listWalletLoginBindings().then(setWalletBindings).catch(() => {}) }, [])
 
   async function handleAddPasskey(e: FormEvent) {
     e.preventDefault()
@@ -67,6 +70,17 @@ export function SettingsView() {
     }
   }
 
+  async function handleRevokeWalletBinding(id: number) {
+    if (!window.confirm('Revoke this Keyring sign-in identity? Any Farm sessions created with it will stop working.')) return
+    setRevokingBindingId(id)
+    try {
+      await api.revokeWalletLoginBinding(id)
+      setWalletBindings(current => current.filter(binding => binding.id !== id))
+    } finally {
+      setRevokingBindingId(null)
+    }
+  }
+
   return (
     <section className="p-content" style={{ maxWidth: 680 }}>
       <div className="page-head">
@@ -88,7 +102,7 @@ export function SettingsView() {
       </div>
 
       {/* Passkeys */}
-      <div className="p-card">
+      <div className="p-card" style={{ marginBottom: 20 }}>
         <div className="card-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
             <h3 className="card-title">Passkeys</h3>
@@ -129,6 +143,28 @@ export function SettingsView() {
                 title={passkeys.length === 1 ? 'Cannot remove your only passkey' : undefined}
               >
                 {deletingId === pk.id ? 'Removing…' : 'Remove'}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-card">
+        <div className="card-header">
+          <h3 className="card-title">Keyring sign-in</h3>
+          <p className="card-desc">Claim-derived wallet identities allowed to enter this account.</p>
+        </div>
+        <div className="card-content" style={{ padding: 0 }}>
+          {walletBindings.length === 0 ? (
+            <p style={{ padding: '16px 20px', margin: 0, fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>No Keyring sign-in identity is active.</p>
+          ) : walletBindings.map((binding, index) => (
+            <div key={binding.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderTop: index > 0 ? '1px solid hsl(var(--border))' : undefined }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="p-mono" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis' }}>{binding.login_did}</div>
+                <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>Authorized {fmt(binding.created_at)}</div>
+              </div>
+              <button className="btn btn-ghost btn-sm" style={{ color: 'hsl(var(--destructive))' }} disabled={revokingBindingId === binding.id} onClick={() => void handleRevokeWalletBinding(binding.id)}>
+                {revokingBindingId === binding.id ? 'Revoking…' : 'Revoke'}
               </button>
             </div>
           ))}
