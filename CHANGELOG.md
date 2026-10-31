@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.17.1] - 2026-10-31
+
+### Added
+
+- Administrators can pin the default VTA image from the Defaults page.
+
+### Changed
+
+- The Trust Agent creation form preselects and labels the administrator-pinned
+  image, falling back to the image tagged `latest` when no valid pin exists.
+
+Requires vtafarm-api 0.17.1.
+
 ## [v0.17.0] - 2026-10-30
 
 ### Added
