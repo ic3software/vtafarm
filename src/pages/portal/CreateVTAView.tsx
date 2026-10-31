@@ -131,8 +131,9 @@ export function CreateVTAView() {
       .then(imgs => {
         const fixtureImages = devImageFixtures('vta') ?? imgs
         setImages(fixtureImages)
-        const latestImg = fixtureImages.find(i => i.latest) ?? fixtureImages[0]
-        setSelectedImage(latestImg?.image ?? '')
+        // Admin-pinned default first, then whatever `latest` points to.
+        const preselected = fixtureImages.find(i => i.default) ?? fixtureImages.find(i => i.latest) ?? fixtureImages[0]
+        setSelectedImage(preselected?.image ?? '')
       })
       .catch(() => {})
   }, [])
@@ -683,7 +684,7 @@ export function CreateVTAView() {
                     className="w-(--radix-select-trigger-width)" style={imageSelectContentStyle}>
                     {images.map(img => (
                       <SelectItem key={img.image} value={img.image} className="p-mono">
-                        {imageLabel(img)}
+                        {imageLabel(img, { markDefault: true })}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -691,7 +692,7 @@ export function CreateVTAView() {
               ) : (
                 <input className="p-input p-mono" placeholder="Loading images…" disabled />
               )}
-              <div className="field-hint">Stay with the default 'latest' image unless you have been told otherwise.</div>
+              <div className="field-hint">Stay with the preselected image unless you have been told otherwise.</div>
             </div>
             {mode !== 'vta_only' && (
               <>

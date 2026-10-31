@@ -693,8 +693,18 @@ export interface ImageOption {
   nightly?: boolean
   /** The last main-branch build. */
   main?: boolean
+  /**
+   * The image an admin pinned as the user-facing default. Absent when none is
+   * pinned or the pinned image is no longer listed, in which case the create
+   * form falls back to `latest`.
+   */
+  default?: boolean
   /** Image creation time, RFC 3339 UTC; absent when the registry didn't say. */
   created?: string
+}
+/** Admin-pinned default image per component; components without a pin are omitted. */
+export interface ImageDefaults {
+  images: Partial<Record<UpgradeComponent, string>>
 }
 export type UpgradeBatchStatus = 'running' | 'paused' | 'completed' | 'cancelled'
 export type UpgradeTaskStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped' | 'rolling_back' | 'rolled_back' | 'rollback_failed'
@@ -929,6 +939,10 @@ export const api = {
   adminResourceDefaults: () => req<ResourceDefaults>('GET', '/api/v1/admin/resource-defaults'),
   adminSaveResourceDefaults: (resources: Array<{ component: UpgradeComponent; memory_request: string; memory_limit: string }>) =>
     req<ResourceDefaults>('PUT', '/api/v1/admin/resource-defaults', { resources }),
+  adminImageDefaults: () => req<ImageDefaults>('GET', '/api/v1/admin/image-defaults'),
+  /** An empty image clears the pin so users follow `latest` again. */
+  adminSaveImageDefault: (component: UpgradeComponent, image: string) =>
+    req<ImageDefaults>('PUT', '/api/v1/admin/image-defaults', { component, image }),
   adminSessionResources: (id: string) =>
     req<AdminSessionResources>('GET', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/resources`),
   adminApplySessionResources: (
