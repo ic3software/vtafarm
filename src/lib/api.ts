@@ -931,7 +931,7 @@ export const api = {
   cleanupPoolSessions: (sessionIDs: number[]) =>
     req<{ session_ids: number[]; status: 'deleting' }>('POST', '/api/v1/admin/pool-sessions/cleanup', { session_ids: sessionIDs }),
   retryPoolSession: (sessionID: number) =>
-    req<{ session_id: number; status: 'pool_creating' }>('POST', `/api/v1/admin/pool-sessions/${sessionID}/retry`),
+    req<{ session_id: number; status: 'pool_creating' | 'provisioning' }>('POST', `/api/v1/admin/pool-sessions/${sessionID}/retry`),
 
   // ── Admin — setup sessions ───────────────────────────────────────────────────
   adminListSessions: (page = 1, mode?: string) =>

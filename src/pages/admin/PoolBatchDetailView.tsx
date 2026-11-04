@@ -266,8 +266,10 @@ function SessionRow({ session, selected, onSelect, onRetry }: {
           : <span className="p-muted">unclaimed</span>}</td>
       <td className="pool-session-error" title={session.error_msg}>{session.error_msg || '—'}</td>
       <td>
-        {session.status === 'failed' && !session.claimed && (
-          <button type="button" className="btn btn-outline btn-sm" onClick={onRetry}>Retry</button>
+        {session.status === 'failed' && (
+          <button type="button" className="btn btn-outline btn-sm" onClick={onRetry}>
+            {session.claimed ? 'Retry activation' : 'Retry'}
+          </button>
         )}
       </td>
     </tr>
