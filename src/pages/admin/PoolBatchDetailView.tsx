@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { api, type PoolBatch, type PoolClaim, type PoolSession } from '@/lib/api'
+import { api, type ApiError, type PoolBatch, type PoolClaim, type PoolSession } from '@/lib/api'
 import { imageTag } from '@/lib/utils'
 import { statusBadge } from '../portal/portalUtils'
 
@@ -318,11 +318,18 @@ export function PoolBatchDetailView() {
       setSelected(current => new Set([...current].filter(sessionID => next.sessions?.some(item => item.session_id === sessionID && item.cleanable))))
       setError('')
     } catch (err) {
+      if ((err as ApiError).status === 404) {
+        setBatch(null)
+        setSelected(new Set())
+        sessionStorage.removeItem(claimStorageKey(batchID))
+        navigate('/admin/pools', { replace: true })
+        return
+      }
       setError(err instanceof Error ? err.message : 'Failed to load pool batch')
     } finally {
       setLoading(false)
     }
-  }, [batchID, validID])
+  }, [batchID, navigate, validID])
 
   useEffect(() => {
     const timer = window.setTimeout(() => { void load() }, 0)
