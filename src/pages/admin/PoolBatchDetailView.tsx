@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { api, type PoolBatch, type PoolClaim, type PoolSession } from '@/lib/api'
+import { api, type ApiError, type PoolBatch, type PoolClaim, type PoolSession } from '@/lib/api'
 import { imageTag } from '@/lib/utils'
 import { statusBadge } from '../portal/portalUtils'
 
@@ -266,8 +267,10 @@ function SessionRow({ session, selected, onSelect, onRetry }: {
           : <span className="p-muted">unclaimed</span>}</td>
       <td className="pool-session-error" title={session.error_msg}>{session.error_msg || '—'}</td>
       <td>
-        {session.status === 'failed' && !session.claimed && (
-          <button type="button" className="btn btn-outline btn-sm" onClick={onRetry}>Retry</button>
+        {session.status === 'failed' && (
+          <button type="button" className="btn btn-outline btn-sm" onClick={onRetry}>
+            {session.claimed ? 'Retry activation' : 'Retry'}
+          </button>
         )}
       </td>
     </tr>
@@ -316,11 +319,18 @@ export function PoolBatchDetailView() {
       setSelected(current => new Set([...current].filter(sessionID => next.sessions?.some(item => item.session_id === sessionID && item.cleanable))))
       setError('')
     } catch (err) {
+      if ((err as ApiError).status === 404) {
+        setBatch(null)
+        setSelected(new Set())
+        sessionStorage.removeItem(claimStorageKey(batchID))
+        navigate('/admin/pools', { replace: true })
+        return
+      }
       setError(err instanceof Error ? err.message : 'Failed to load pool batch')
     } finally {
       setLoading(false)
     }
-  }, [batchID, validID])
+  }, [batchID, navigate, validID])
 
   useEffect(() => {
     const timer = window.setTimeout(() => { void load() }, 0)
@@ -407,9 +417,12 @@ export function PoolBatchDetailView() {
     setAddingInventory(true)
     setError('')
     try {
-      setBatch(await api.addPoolInventory(batch.id, count, crypto.randomUUID()))
-      setAdditionCount('')
-      setShowAddInventory(false)
+      const next = await api.addPoolInventory(batch.id, count, crypto.randomUUID())
+      flushSync(() => {
+        setAdditionCount('')
+        setShowAddInventory(false)
+      })
+      setBatch(next)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add pool inventory')
       await load()
@@ -469,7 +482,7 @@ export function PoolBatchDetailView() {
       {loading && !batch ? <div className="p-card"><div className="p-muted pool-empty-row">Loading…</div></div> : batch && (
         <>
           <div className="pool-stats">
-            <div className="p-stat"><div className="k">Total</div><div className="v">{batch.counts.total}<small> / {batch.requested_count}</small></div></div>
+            <div className="p-stat"><div className="k">Total</div><div className="v">{batch.counts.total}</div></div>
             <div className="p-stat"><div className="k">Preparing</div><div className="v">{batch.counts.creating}</div></div>
             <div className="p-stat"><div className="k">Available</div><div className="v">{batch.counts.available}</div></div>
             <div className="p-stat"><div className="k">Reserved</div><div className="v">{batch.counts.reserved}</div></div>
@@ -525,7 +538,7 @@ export function PoolBatchDetailView() {
               <label className="p-label" htmlFor="pool-add-count">Additional VTAs</label>
               <input id="pool-add-count" className="p-input" type="number" min={1} autoFocus
                 value={additionCount} onChange={event => setAdditionCount(event.target.value)} disabled={addingInventory} />
-              <p className="p-muted text-sm" style={{ margin: 0 }}>Current total: {batch.counts.total}. Requested total after addition: {batch.requested_count + (Number(additionCount) || 0)}.</p>
+              <p className="p-muted text-sm" style={{ margin: 0 }}>Current total: {batch.counts.total}. Total after addition: {batch.counts.total + (Number(additionCount) || 0)}.</p>
               {error && <p className="pool-form-error" role="alert">{error}</p>}
             </div>
             <div className="dialog-footer">
