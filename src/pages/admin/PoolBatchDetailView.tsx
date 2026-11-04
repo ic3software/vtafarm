@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { api, type ApiError, type PoolBatch, type PoolClaim, type PoolSession } from '@/lib/api'
@@ -416,9 +417,12 @@ export function PoolBatchDetailView() {
     setAddingInventory(true)
     setError('')
     try {
-      setBatch(await api.addPoolInventory(batch.id, count, crypto.randomUUID()))
-      setAdditionCount('')
-      setShowAddInventory(false)
+      const next = await api.addPoolInventory(batch.id, count, crypto.randomUUID())
+      flushSync(() => {
+        setAdditionCount('')
+        setShowAddInventory(false)
+      })
+      setBatch(next)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add pool inventory')
       await load()
