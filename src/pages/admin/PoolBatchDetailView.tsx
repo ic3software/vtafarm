@@ -471,7 +471,7 @@ export function PoolBatchDetailView() {
       {loading && !batch ? <div className="p-card"><div className="p-muted pool-empty-row">Loading…</div></div> : batch && (
         <>
           <div className="pool-stats">
-            <div className="p-stat"><div className="k">Total</div><div className="v">{batch.counts.total}<small> / {batch.requested_count}</small></div></div>
+            <div className="p-stat"><div className="k">Total</div><div className="v">{batch.counts.total}</div></div>
             <div className="p-stat"><div className="k">Preparing</div><div className="v">{batch.counts.creating}</div></div>
             <div className="p-stat"><div className="k">Available</div><div className="v">{batch.counts.available}</div></div>
             <div className="p-stat"><div className="k">Reserved</div><div className="v">{batch.counts.reserved}</div></div>
@@ -527,7 +527,7 @@ export function PoolBatchDetailView() {
               <label className="p-label" htmlFor="pool-add-count">Additional VTAs</label>
               <input id="pool-add-count" className="p-input" type="number" min={1} autoFocus
                 value={additionCount} onChange={event => setAdditionCount(event.target.value)} disabled={addingInventory} />
-              <p className="p-muted text-sm" style={{ margin: 0 }}>Current total: {batch.counts.total}. Requested total after addition: {batch.requested_count + (Number(additionCount) || 0)}.</p>
+              <p className="p-muted text-sm" style={{ margin: 0 }}>Current total: {batch.counts.total}. Total after addition: {batch.counts.total + (Number(additionCount) || 0)}.</p>
               {error && <p className="pool-form-error" role="alert">{error}</p>}
             </div>
             <div className="dialog-footer">
