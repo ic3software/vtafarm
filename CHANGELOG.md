@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.18.0] - 2026-11-04
+
+### Added
+
+- Administrators can retry activation for a claimed pooled VTA that failed
+  after confirmation.
+
+### Changed
+
+- Pool batch details report the current inventory total, support replenishing
+  an emptied batch, and return to the pool list when a batch no longer exists.
+- Updated Lucide, React Router, ESLint, and React and Node.js type definitions.
+
+Requires vtafarm-api 0.18.0.
+
 ## [v0.17.1] - 2026-10-31
 
 ### Added
