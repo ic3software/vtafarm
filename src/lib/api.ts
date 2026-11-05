@@ -339,7 +339,9 @@ export interface Invitation {
 export interface AdminSetupSession {
   /** Numeric PK — the sort key, never an address. Routes take `vta_name`. */
   id: number
+  user_id: number
   user_unique_id: string
+  user_email?: string
   /** The session's name AND its identifier: globally unique, and what the routes take. */
   vta_name: string
   vtc_name?: string
@@ -546,8 +548,8 @@ export interface AdminSessionsPage {
   total: number
   page: number
   page_size: number
-  /** Per-mode totals, independent of the active filter, plus "all". */
-  counts: Record<'all' | SetupMode, number>
+  /** Distinct statuses matching search and mode, independent of the active status filter. */
+  statuses: SetupStatus[]
 }
 
 export interface DashboardNode {
@@ -934,8 +936,13 @@ export const api = {
     req<{ session_id: number; status: 'pool_creating' | 'provisioning' }>('POST', `/api/v1/admin/pool-sessions/${sessionID}/retry`),
 
   // ── Admin — setup sessions ───────────────────────────────────────────────────
-  adminListSessions: (page = 1, mode?: string) =>
-    req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?page=${page}${mode ? `&mode=${encodeURIComponent(mode)}` : ''}`),
+  adminListSessions: (page = 1, filters: { mode?: string; query?: string; status?: SetupStatus } = {}) => {
+    const params = new URLSearchParams({ page: String(page) })
+    if (filters.mode) params.set('mode', filters.mode)
+    if (filters.query) params.set('q', filters.query)
+    if (filters.status) params.set('status', filters.status)
+    return req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?${params}`)
+  },
   adminResourceDefaults: () => req<ResourceDefaults>('GET', '/api/v1/admin/resource-defaults'),
   adminSaveResourceDefaults: (resources: Array<{ component: UpgradeComponent; memory_request: string; memory_limit: string }>) =>
     req<ResourceDefaults>('PUT', '/api/v1/admin/resource-defaults', { resources }),
@@ -1064,7 +1071,8 @@ export const api = {
   }) =>
     req<{ id?: number; status?: UpgradeBatchStatus; targets: UpgradeTarget[]; skipped: UpgradeSkipped[] }>(
       'POST', '/api/v1/admin/upgrades', data),
-  listUpgrades: () => req<UpgradeBatchSummary[]>('GET', '/api/v1/admin/upgrades'),
+  listUpgrades: (activeOnly = false) =>
+    req<UpgradeBatchSummary[]>('GET', `/api/v1/admin/upgrades${activeOnly ? '?active=true' : ''}`),
   getUpgrade: (id: number) => req<UpgradeBatchDetail>('GET', `/api/v1/admin/upgrades/${id}`),
   cancelUpgrade: (id: number) =>
     req<{ id: number; status: UpgradeBatchStatus }>('POST', `/api/v1/admin/upgrades/${id}/cancel`),
