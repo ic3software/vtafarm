@@ -1,5 +1,22 @@
 # Changelog
 
+## [v0.18.1] - 2026-11-05
+
+### Added
+
+- Administrators can search sessions by session or VTC name, numeric session
+  or user ID, owner email, or owner public ID, and filter the results by setup
+  mode and status.
+
+### Changed
+
+- Session-list filters and pagination are preserved in the URL, and the list
+  shows owner details with clearer loading, empty, and error states.
+- Active upgrade status is loaded independently from session filtering so
+  search and pagination do not repeatedly fetch upgrade history.
+
+Requires vtafarm-api 0.18.1.
+
 ## [v0.18.0] - 2026-11-04
 
 ### Added
