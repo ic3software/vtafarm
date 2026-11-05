@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
-import { api, ALL_COMPONENTS, type AdminSessionResourceSummary, type AdminSessionsPage, type AdminSetupSession, type UpgradeBatchSummary, type UpgradeComponent } from '@/lib/api'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { api, ALL_COMPONENTS, type AdminSessionResourceSummary, type AdminSetupSession, type SetupMode, type SetupStatus, type UpgradeBatchSummary, type UpgradeComponent } from '@/lib/api'
 import { UpgradeModal } from './UpgradeModal'
 import { ResourceModal } from './ResourceModal'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { imageTag, pageNumbers } from '@/lib/utils'
 import { SessionRecoveryModal } from '../SessionRecoveryModal'
 import { recoveryComponentsForSession } from '../sessionRecovery'
@@ -36,9 +38,56 @@ function statusBadge(status: string) {
   return 'badge-secondary'
 }
 
-const modeLabels: Record<string, string> = {
+const modeLabels: Record<SetupMode, string> = {
   vta_only: 'VTA only',
   full_stack: 'Full stack',
+}
+
+function modeFromQuery(value: string | null): SetupMode | null {
+  return value === 'vta_only' || value === 'full_stack' ? value : null
+}
+
+function pageFromQuery(value: string | null) {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
+}
+
+function statusLabel(status: string) {
+  const label = status.replaceAll('_', ' ')
+    .replace(/\bdid\b/gi, 'DID')
+    .replace(/\bvta\b/gi, 'VTA')
+    .replace(/\bvtc\b/gi, 'VTC')
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
+function SessionSearch({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [input, setInput] = useState(value)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const next = input.trim()
+      if (next !== value) onChange(next)
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [input, onChange, value])
+
+  return (
+    <div className="input-group" style={{ flex: '0 0 320px', width: 320, marginRight: 4 }}>
+      <input
+        className="p-input"
+        type="search"
+        value={input}
+        onChange={event => setInput(event.target.value)}
+        placeholder="Search session, ID, email, or user"
+        aria-label="Search sessions"
+      />
+      {input && (
+        <button className="ig-suffix" type="button" onClick={() => setInput('')}>
+          Clear
+        </button>
+      )}
+    </div>
+  )
 }
 
 // Where the session's hostnames come from. `managed` is the default and by far
@@ -205,18 +254,23 @@ type ModalState =
   | null
 
 export function SessionsView() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const searchParamsString = searchParams.toString()
+  const modeFilter = modeFromQuery(searchParams.get('mode'))
+  const statusFilter = (searchParams.get('status') ?? '') as SetupStatus | ''
+  const searchQuery = (searchParams.get('q') ?? '').trim()
+  const page = pageFromQuery(searchParams.get('page'))
   const [sessions, setSessions] = useState<AdminSetupSession[]>([])
-  const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [pageSize, setPageSize] = useState(20)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   // vta_name → mode, so the upgrade modal can pre-check the right components
   const [selected, setSelected] = useState<Map<string, string>>(new Map())
   const [modal, setModal] = useState<ModalState>(null)
   const [activeBatch, setActiveBatch] = useState<UpgradeBatchSummary | null>(null)
-  // null = all modes; filtering happens server-side (the list is paginated).
-  const [modeFilter, setModeFilter] = useState<string | null>(null)
-  const [counts, setCounts] = useState<AdminSessionsPage['counts'] | null>(null)
+  const [availableStatuses, setAvailableStatuses] = useState<SetupStatus[]>([])
+  const requestSequence = useRef(0)
   // Delete is irreversible and reaches another user's session, so it's gated
   // behind a dialog that requires typing the session's name.
   const [deleteTarget, setDeleteTarget] = useState<AdminSetupSession | null>(null)
@@ -224,20 +278,32 @@ export function SessionsView() {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
 
-  const fetchPage = useCallback((p: number) => (
-    api.adminListSessions(p, modeFilter ?? undefined)
+  const fetchPage = useCallback((p: number) => {
+    const sequence = ++requestSequence.current
+    return api.adminListSessions(p, {
+      mode: modeFilter ?? undefined,
+      query: searchQuery || undefined,
+      status: statusFilter || undefined,
+    })
       .then(res => {
-        setSessions(res.items); setTotal(res.total); setPage(res.page)
-        setPageSize(res.page_size); setCounts(res.counts)
+        if (sequence !== requestSequence.current) return
+        setSessions(res.items); setTotal(res.total)
+        setPageSize(res.page_size); setAvailableStatuses(res.statuses)
+        setLoadError('')
       })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  ), [modeFilter])
+      .catch(err => {
+        if (sequence !== requestSequence.current) return
+        setLoadError(err instanceof Error ? err.message : 'Failed to load sessions')
+      })
+      .finally(() => {
+        if (sequence === requestSequence.current) setLoading(false)
+      })
+  }, [modeFilter, searchQuery, statusFilter])
 
   // Surface a batch that is still running/paused (e.g. started in a previous
   // visit) so the admin can get back to its progress view.
   const refreshActiveBatch = useCallback(() => (
-    api.listUpgrades()
+    api.listUpgrades(true)
       .then(batches => {
         const active = batches.find(b => b.status === 'running' || b.status === 'paused')
         setActiveBatch(active ?? null)
@@ -245,10 +311,19 @@ export function SessionsView() {
       .catch(() => {})
   ), [])
 
-  // loading starts true, so the initial fetch needs no synchronous setState
-  // here. Re-runs on filter change (fetchPage's identity tracks modeFilter);
-  // toggleModeFilter sets loading before that happens.
-  useEffect(() => { void fetchPage(1); void refreshActiveBatch() }, [fetchPage, refreshActiveBatch])
+  // Session results and the upgrade banner have independent lifecycles. Search
+  // and mode changes must not refetch upgrade history.
+  useEffect(() => { void fetchPage(page) }, [fetchPage, page])
+  useEffect(() => { void refreshActiveBatch() }, [refreshActiveBatch])
+
+  const updateSearch = useCallback((next: string) => {
+    setLoading(true)
+    const params = new URLSearchParams(searchParamsString)
+    if (next) params.set('q', next)
+    else params.delete('q')
+    params.delete('page')
+    setSearchParams(params, { replace: true })
+  }, [searchParamsString, setSearchParams])
 
   const hasActiveSetup = sessions.some(session => ![
     'running', 'failed', 'awaiting_admin_did', 'awaiting_did_publication',
@@ -262,13 +337,34 @@ export function SessionsView() {
 
   function loadPage(p: number) {
     setLoading(true)
-    void fetchPage(p)
+    if (p === page) {
+      void fetchPage(p)
+      return
+    }
+    const params = new URLSearchParams(searchParamsString)
+    if (p > 1) params.set('page', String(p))
+    else params.delete('page')
+    setSearchParams(params)
   }
 
-  function setFilter(mode: string | null) {
+  function setFilter(mode: SetupMode | null) {
     if (mode === modeFilter) return
     setLoading(true)
-    setModeFilter(mode)
+    const params = new URLSearchParams(searchParamsString)
+    if (mode) params.set('mode', mode)
+    else params.delete('mode')
+    params.delete('page')
+    setSearchParams(params)
+  }
+
+  function setStatus(status: SetupStatus | '') {
+    if (status === statusFilter) return
+    setLoading(true)
+    const params = new URLSearchParams(searchParamsString)
+    if (status) params.set('status', status)
+    else params.delete('status')
+    params.delete('page')
+    setSearchParams(params)
   }
 
   function closeModal(didUpgrade: boolean) {
@@ -344,7 +440,9 @@ export function SessionsView() {
   }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
-
+  const statusOptions = statusFilter && !availableStatuses.includes(statusFilter)
+    ? [statusFilter, ...availableStatuses]
+    : availableStatuses
   return (
     <section className="p-content">
       <div className="page-head">
@@ -358,22 +456,48 @@ export function SessionsView() {
         </button>
       </div>
 
-      <div className="p-row" style={{ gap: 8, marginBottom: 14 }}>
-        <button
-          className={`btn btn-sm ${modeFilter === null ? 'btn-default' : 'btn-outline'}`}
-          aria-pressed={modeFilter === null}
-          onClick={() => setFilter(null)}>
-          All{counts ? ` (${counts.all})` : ''}
-        </button>
-        {Object.entries(modeLabels).map(([mode, label]) => (
-          <button key={mode}
-            className={`btn btn-sm ${modeFilter === mode ? 'btn-default' : 'btn-outline'}`}
-            aria-pressed={modeFilter === mode}
-            onClick={() => setFilter(mode)}>
-            {label}{counts ? ` (${counts[mode as keyof typeof counts] ?? 0})` : ''}
-          </button>
-        ))}
+      <div className="p-row" style={{ gap: 8, marginBottom: 14, flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: 3 }}>
+        <SessionSearch key={searchQuery} value={searchQuery} onChange={updateSearch} />
+        <div style={{ flex: '0 0 190px', width: 190 }}>
+          <Select
+            value={statusFilter || 'all'}
+            onValueChange={value => setStatus(value === 'all' ? '' : value as SetupStatus)}
+          >
+            <SelectTrigger aria-label="Filter sessions by status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start" className="w-(--radix-select-trigger-width)">
+              <SelectItem value="all">All statuses</SelectItem>
+              {statusOptions.map(status => (
+                <SelectItem key={status} value={status}>{statusLabel(status)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div style={{ flex: '0 0 160px', width: 160 }}>
+          <Select
+            value={modeFilter ?? 'all'}
+            onValueChange={value => setFilter(value === 'all' ? null : value as SetupMode)}
+          >
+            <SelectTrigger aria-label="Filter sessions by mode">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start" className="w-(--radix-select-trigger-width)">
+              <SelectItem value="all">All modes</SelectItem>
+              {Object.entries(modeLabels).map(([mode, label]) => (
+                <SelectItem key={mode} value={mode}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {loadError && (
+        <div className="p-row" role="alert" style={{ alignItems: 'center', gap: 10, marginBottom: 14, color: 'hsl(var(--destructive))' }}>
+          <span>{loadError}</span>
+          <button className="btn btn-outline btn-sm" onClick={() => loadPage(page)}>Retry</button>
+        </div>
+      )}
 
       {activeBatch && (
         <div className="p-row" style={{
@@ -413,8 +537,8 @@ export function SessionsView() {
         </div>
       )}
 
-      <div className="table-wrap">
-        <table className="p-table">
+      <div className="table-wrap" aria-busy={loading}>
+        <table className="p-table" style={{ opacity: loading && sessions.length > 0 ? 0.65 : 1 }}>
           <thead>
             <tr>
               <th style={{ width: 28 }}>
@@ -436,7 +560,7 @@ export function SessionsView() {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
+            {loading && sessions.length === 0 ? (
               <tr>
                 <td colSpan={13} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
                   Loading…
@@ -445,7 +569,7 @@ export function SessionsView() {
             ) : sessions.length === 0 ? (
               <tr>
                 <td colSpan={13} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
-                  No sessions yet.
+                  {searchQuery || modeFilter || statusFilter ? 'No sessions match these filters.' : 'No sessions yet.'}
                 </td>
               </tr>
             ) : sessions.map(s => (
@@ -472,7 +596,12 @@ export function SessionsView() {
                     </div>
                   </div>
                 </td>
-                <td><span className="p-mono" style={{ fontSize: 12 }}>{s.user_unique_id}</span></td>
+                <td>
+                  <div style={{ fontSize: 12 }}>{s.user_email ?? s.user_unique_id}</div>
+                  <div className="p-mono" style={{ fontSize: 11.5, color: 'hsl(var(--muted-foreground))' }}>
+                    #{s.user_id} · {s.user_unique_id}
+                  </div>
+                </td>
                 <td><span className="p-badge badge-default">{modeLabels[s.mode] ?? s.mode}</span></td>
                 <td>
                   <span className={`p-badge ${domainBadge[s.domain_type] ?? 'badge-secondary'}`}>
@@ -589,11 +718,9 @@ export function SessionsView() {
           sessions={modal.sessions}
           onClose={didApply => {
             setModal(null)
-            if (didApply) {
-              setSelected(new Map())
-              setLoading(true)
-              void fetchPage(page)
-            }
+            if (didApply) setSelected(new Map())
+            setLoading(true)
+            void fetchPage(page)
           }}
         />
       )}
