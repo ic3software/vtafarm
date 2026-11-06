@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.18.2] - 2026-11-05
+
+### Changed
+
+- Administrators can show 20, 50, 100, or 500 sessions per page, with the
+  selected page size preserved in the URL.
+- Bulk image upgrades target explicitly selected sessions and offer only the
+  components supported by those sessions.
+- The general Sessions page manages user sessions only; the platform stack
+  remains on its dedicated administration page.
+
+Requires vtafarm-api 0.18.3.
+
 ## [v0.18.1] - 2026-11-05
 
 ### Added
