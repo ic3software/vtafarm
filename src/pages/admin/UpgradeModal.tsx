@@ -50,13 +50,21 @@ interface UpgradeModalProps {
   selection: string[] | 'all'
   /** Components pre-checked in the configure step. */
   defaultComponents?: UpgradeComponent[]
+  /** Components applicable to the selected sessions. */
+  availableComponents?: UpgradeComponent[]
   /** Open straight into the progress view of an existing batch. */
   batchId?: number
   /** didUpgrade: whether a batch ran (parent should refresh its list). */
   onClose: (didUpgrade: boolean) => void
 }
 
-export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: initialBatchId, onClose }: UpgradeModalProps) {
+export function UpgradeModal({
+  selection,
+  defaultComponents = ['vta'],
+  availableComponents = ALL_COMPONENTS,
+  batchId: initialBatchId,
+  onClose,
+}: UpgradeModalProps) {
   const [rows, setRows] = useState<Record<UpgradeComponent, ComponentRow> | null>(null)
   const [preview, setPreview] = useState<{ targets: UpgradeTarget[]; skipped: UpgradeSkipped[] } | null>(null)
   const [batchId, setBatchId] = useState<number | null>(initialBatchId ?? null)
@@ -111,7 +119,7 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
   }, [batchId])
 
   const chosen = rows
-    ? ALL_COMPONENTS.filter(c => rows[c].include && rows[c].image)
+    ? availableComponents.filter(c => rows[c].include && rows[c].image)
         .map(c => ({ component: c, image: rows[c].image }))
     : []
   const chosenImageByComponent = Object.fromEntries(
@@ -159,17 +167,11 @@ export function UpgradeModal({ selection, defaultComponents = ['vta'], batchId: 
           <>
             <div className="dialog-header">
               <h3 className="dialog-title">Upgrade sessions</h3>
-              <p className="dialog-desc">
-                {selection === 'all'
-                  ? 'Roll new images out to every eligible running session.'
-                  : `Roll new images out to ${selection.length} selected session${selection.length === 1 ? '' : 's'}.`}
-                {' '}Pick the components to upgrade — sessions are upgraded one task at a time, and the batch pauses on the first failure.
-              </p>
             </div>
             <div className="dialog-body">
               {rows === null ? (
                 <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Loading image lists…</p>
-              ) : ALL_COMPONENTS.map(component => {
+              ) : availableComponents.map(component => {
                 const row = rows[component]
                 return (
                   <div key={component} className="p-row" style={{ alignItems: 'center', gap: 10 }}>

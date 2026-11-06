@@ -52,6 +52,13 @@ function pageFromQuery(value: string | null) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
 }
 
+const PAGE_SIZES = [20, 50, 100, 500] as const
+
+function pageSizeFromQuery(value: string | null) {
+  const parsed = Number(value)
+  return PAGE_SIZES.find(size => size === parsed) ?? PAGE_SIZES[0]
+}
+
 function statusLabel(status: string) {
   const label = status.replaceAll('_', ' ')
     .replace(/\bdid\b/gi, 'DID')
@@ -197,10 +204,6 @@ function ResourcesCell({ session }: { session: AdminSetupSession }) {
   )
 }
 
-function isPlatform(s: AdminSetupSession) {
-  return s.domain_type === 'platform'
-}
-
 // Both read the session's live containers, so only a running session offers them.
 function ExportCell({ session }: { session: AdminSetupSession }) {
   const [busy, setBusy] = useState<'configs' | 'logs' | null>(null)
@@ -247,7 +250,7 @@ function confirmWord(s: AdminSetupSession) {
 }
 
 type ModalState =
-  | { kind: 'create'; selection: string[] | 'all'; defaultComponents: UpgradeComponent[] }
+  | { kind: 'create'; selection: string[]; defaultComponents: UpgradeComponent[]; availableComponents: UpgradeComponent[] }
   | { kind: 'progress'; batchId: number }
   | { kind: 'resources'; sessions: Array<{ id: string; mode: string }> }
   | { kind: 'recover'; session: AdminSetupSession }
@@ -260,9 +263,9 @@ export function SessionsView() {
   const statusFilter = (searchParams.get('status') ?? '') as SetupStatus | ''
   const searchQuery = (searchParams.get('q') ?? '').trim()
   const page = pageFromQuery(searchParams.get('page'))
+  const pageSize = pageSizeFromQuery(searchParams.get('page_size'))
   const [sessions, setSessions] = useState<AdminSetupSession[]>([])
   const [total, setTotal] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   // vta_name → mode, so the upgrade modal can pre-check the right components
@@ -284,11 +287,12 @@ export function SessionsView() {
       mode: modeFilter ?? undefined,
       query: searchQuery || undefined,
       status: statusFilter || undefined,
+      pageSize,
     })
       .then(res => {
         if (sequence !== requestSequence.current) return
         setSessions(res.items); setTotal(res.total)
-        setPageSize(res.page_size); setAvailableStatuses(res.statuses)
+        setAvailableStatuses(res.statuses)
         setLoadError('')
       })
       .catch(err => {
@@ -298,7 +302,7 @@ export function SessionsView() {
       .finally(() => {
         if (sequence === requestSequence.current) setLoading(false)
       })
-  }, [modeFilter, searchQuery, statusFilter])
+  }, [modeFilter, pageSize, searchQuery, statusFilter])
 
   // Surface a batch that is still running/paused (e.g. started in a previous
   // visit) so the admin can get back to its progress view.
@@ -367,6 +371,16 @@ export function SessionsView() {
     setSearchParams(params)
   }
 
+  function setPageSize(size: number) {
+    if (size === pageSize) return
+    setLoading(true)
+    const params = new URLSearchParams(searchParamsString)
+    if (size === PAGE_SIZES[0]) params.delete('page_size')
+    else params.set('page_size', String(size))
+    params.delete('page')
+    setSearchParams(params)
+  }
+
   function closeModal(didUpgrade: boolean) {
     setModal(null)
     void refreshActiveBatch()
@@ -389,10 +403,7 @@ export function SessionsView() {
     setDeleting(true)
     setDeleteError('')
     try {
-      // The platform stack's confirm word is its label, and the API requires it
-      // in the body — this input is what makes the request valid, not just a
-      // client-side speed bump.
-      await api.adminDeleteSession(vta_name, isPlatform(deleteTarget) ? deleteTarget.vta_name : undefined)
+      await api.adminDeleteSession(vta_name)
       setSelected(prev => {
         if (!prev.has(vta_name)) return prev
         const next = new Map(prev)
@@ -439,6 +450,10 @@ export function SessionsView() {
     return set.size > 0 ? [...set] : ['vta']
   }
 
+  function availableComponents(): UpgradeComponent[] {
+    return [...selected.values()].some(mode => mode === 'full_stack') ? ALL_COMPONENTS : ['vta']
+  }
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const statusOptions = statusFilter && !availableStatuses.includes(statusFilter)
     ? [statusFilter, ...availableStatuses]
@@ -450,10 +465,6 @@ export function SessionsView() {
           <h1>Sessions</h1>
           <p className="sub">All users' VTA setup sessions, newest first. Select running sessions to upgrade their images.</p>
         </div>
-        <button className="btn btn-outline btn-sm"
-          onClick={() => setModal({ kind: 'create', selection: 'all', defaultComponents: ALL_COMPONENTS })}>
-          Upgrade all
-        </button>
       </div>
 
       <div className="p-row" style={{ gap: 8, marginBottom: 14, flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: 3 }}>
@@ -490,6 +501,21 @@ export function SessionsView() {
             </SelectContent>
           </Select>
         </div>
+        <div style={{ flex: '0 0 160px', width: 160 }}>
+          <Select
+            value={String(pageSize)}
+            onValueChange={value => setPageSize(Number(value))}
+          >
+            <SelectTrigger className="w-full" aria-label="Rows per page">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start" className="w-(--radix-select-trigger-width)">
+              {PAGE_SIZES.map(size => (
+                <SelectItem key={size} value={String(size)}>{size} per page</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {loadError && (
@@ -521,7 +547,12 @@ export function SessionsView() {
         <div className="p-row" style={{ alignItems: 'center', gap: 10, marginBottom: 14, fontSize: 13 }}>
           <span>{selected.size} selected</span>
           <button className="btn btn-default btn-sm"
-            onClick={() => setModal({ kind: 'create', selection: [...selected.keys()], defaultComponents: selectedComponents() })}>
+            onClick={() => setModal({
+              kind: 'create',
+              selection: [...selected.keys()],
+              defaultComponents: selectedComponents(),
+              availableComponents: availableComponents(),
+            })}>
             Upgrade selected
           </button>
           <button className="btn btn-outline btn-sm"
@@ -708,7 +739,12 @@ export function SessionsView() {
       </div>
 
       {modal?.kind === 'create' && (
-        <UpgradeModal selection={modal.selection} defaultComponents={modal.defaultComponents} onClose={closeModal} />
+        <UpgradeModal
+          selection={modal.selection}
+          defaultComponents={modal.defaultComponents}
+          availableComponents={modal.availableComponents}
+          onClose={closeModal}
+        />
       )}
       {modal?.kind === 'progress' && (
         <UpgradeModal selection={[]} batchId={modal.batchId} onClose={closeModal} />
@@ -742,33 +778,17 @@ export function SessionsView() {
         <div className="p-overlay">
           <div className="p-dialog">
             <div className="dialog-header">
-              <h3 className="dialog-title">
-                {isPlatform(deleteTarget) ? 'Delete the platform stack?' : 'Delete this session?'}
-              </h3>
+              <h3 className="dialog-title">Delete this session?</h3>
               {/* No FQDN: a name identifies a session on its own now that
                   vta_name is globally unique, and the hostname is in the row
-                  behind this dialog. No owner on the platform stack either —
-                  "user platform" is the system account, which says nothing. */}
+                  behind this dialog. */}
               <p className="dialog-desc">
                 Permanently destroys <span className="p-mono">{deleteTarget.vta_name}</span>
-                {!isPlatform(deleteTarget) && <>
-                  {' '}(user <span className="p-mono">{deleteTarget.user_unique_id}</span>)
-                </>}
+                {' '}(user <span className="p-mono">{deleteTarget.user_unique_id}</span>)
                 {' '}— DNS, cluster resources, secrets and data. Cannot be undone.
               </p>
             </div>
             <div className="dialog-body">
-              {isPlatform(deleteTarget) && (
-                <div className="p-alert alert-destructive">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-                  {/* Only the consequence. That this is the farm's own stack is
-                      already the dialog's title, and repeating it here pushed
-                      the one thing an admin cannot infer further down. */}
-                  <div className="grow">
-                    <p className="alert-title">Every VTA-only session loses its mediator and DID hosting.</p>
-                  </div>
-                </div>
-              )}
               <div>
                 <label className="p-label">
                   Type <span className="p-mono">{confirmWord(deleteTarget)}</span> to confirm
@@ -794,7 +814,7 @@ export function SessionsView() {
                 onClick={handleDelete}
                 disabled={deleting || deleteInput !== confirmWord(deleteTarget)}
               >
-                {deleting ? 'Deleting…' : isPlatform(deleteTarget) ? 'Delete platform stack' : 'Delete session'}
+                {deleting ? 'Deleting…' : 'Delete session'}
               </button>
             </div>
           </div>
