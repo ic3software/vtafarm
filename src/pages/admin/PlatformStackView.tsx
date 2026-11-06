@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type KeyboardEvent, type RefObject } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { api, API_BASE, ALL_COMPONENTS, type ImageOption, type PlatformStack, type SetupSession, type UpgradeComponent } from '@/lib/api'
 import { imageLabel } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -364,7 +364,6 @@ function PlatformStackTabs({
 }
 
 export function PlatformStackView() {
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { copiedKey, copy } = useCopyState()
   // The admin-cookie twin of the portal's route: this panel authenticates
@@ -707,9 +706,6 @@ export function PlatformStackView() {
                 </div>
                 <div className="p-row gap-8 center">
                   {status && statusBadge(status)}
-                  <button className="btn btn-ghost btn-sm" onClick={() => navigate('/admin/sessions')}>
-                    Manage in Sessions
-                  </button>
                 </div>
               </div>
             </div>
@@ -725,8 +721,8 @@ export function PlatformStackView() {
           <div className="grow">
             <p className="alert-title">Setup failed</p>
             <p className="alert-desc">
-              {stack.error_msg || 'An error occurred.'} Delete the stack from the Sessions
-              page — deleting it takes every VTA-only session's mediator and DID host with
+              {stack.error_msg || 'An error occurred.'} Use Settings below to delete the
+              stack — deleting it takes every VTA-only session's mediator and DID host with
               it — then create it again.
             </p>
           </div>
@@ -795,11 +791,9 @@ export function PlatformStackView() {
         </div>
       )}
 
-      {/* Outputs appear only once the stack is running — the same point a
-          user's session surfaces its own. Before that they are either empty or
-          half-minted, and a half-filled configuration block invites someone to
-          paste it somewhere. */}
-      {isRunning && sessionLike && (
+      {/* A failed stack still exposes Settings so it can be removed here
+          instead of leaking platform management back into Sessions. */}
+      {(isRunning || failed) && sessionLike && (
         <PlatformStackTabs
           stack={stack}
           session={sessionLike}

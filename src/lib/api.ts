@@ -936,11 +936,12 @@ export const api = {
     req<{ session_id: number; status: 'pool_creating' | 'provisioning' }>('POST', `/api/v1/admin/pool-sessions/${sessionID}/retry`),
 
   // ── Admin — setup sessions ───────────────────────────────────────────────────
-  adminListSessions: (page = 1, filters: { mode?: string; query?: string; status?: SetupStatus } = {}) => {
+  adminListSessions: (page = 1, filters: { mode?: string; query?: string; status?: SetupStatus; pageSize?: number } = {}) => {
     const params = new URLSearchParams({ page: String(page) })
     if (filters.mode) params.set('mode', filters.mode)
     if (filters.query) params.set('q', filters.query)
     if (filters.status) params.set('status', filters.status)
+    if (filters.pageSize) params.set('page_size', String(filters.pageSize))
     return req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?${params}`)
   },
   adminResourceDefaults: () => req<ResourceDefaults>('GET', '/api/v1/admin/resource-defaults'),
