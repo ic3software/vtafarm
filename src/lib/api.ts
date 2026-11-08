@@ -997,7 +997,11 @@ export const api = {
     req<{ mode: PlacementMode; items: PlacementPreviewItem[] }>('POST', '/api/v1/admin/placement/preview', { kind, items, all }),
   createPlacementPlan: (kind: PlacementPlanKind, items: PlacementPlanItem[] = [], all = false) =>
     req<{ plan: PlacementPlan; items: PlacementPreviewItem[] }>('POST', '/api/v1/admin/placement/plans', { kind, items, all }),
-  listPlacementPlans: () => req<{ plans: PlacementPlan[] }>('GET', '/api/v1/admin/placement/plans'),
+  listPlacementPlans: (page = 1, pageSize = 10) =>
+    req<{ plans: PlacementPlan[]; total: number; page: number; page_size: number; has_running_plan: boolean }>(
+      'GET',
+      `/api/v1/admin/placement/plans?page=${page}&page_size=${pageSize}`,
+    ),
   getPlacementPlan: (id: number) => req<PlacementPlan>('GET', `/api/v1/admin/placement/plans/${id}`),
   cancelPlacementPlan: (id: number) => req<null>('POST', `/api/v1/admin/placement/plans/${id}/cancel`),
   retryPlacementTask: (planID: number, taskID: number, targetNode?: string) =>
