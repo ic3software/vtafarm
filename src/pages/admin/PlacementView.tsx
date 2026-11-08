@@ -113,7 +113,6 @@ export function PlacementView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState(ALL_FILTER)
   const [nodeFilter, setNodeFilter] = useState(ALL_FILTER)
   const [page, setPage] = useState(1)
   const [planPage, setPlanPage] = useState(1)
@@ -171,15 +170,11 @@ export function PlacementView() {
         workload.storage.longhorn_state,
         workload.storage.longhorn_robustness,
       ].some(value => value?.toLowerCase().includes(normalizedQuery))
-      const matchesStatus = statusFilter === ALL_FILTER
-        || (statusFilter === 'ready' && workload.ready && !workload.gated)
-        || (statusFilter === 'not_ready' && !workload.ready && !workload.gated)
-        || (statusFilter === 'gated' && workload.gated)
       const matchesNode = nodeFilter === ALL_FILTER
         || (nodeFilter === 'unscheduled' ? !workload.node_name : workload.node_name === nodeFilter)
-      return matchesQuery && matchesStatus && matchesNode
+      return matchesQuery && matchesNode
     }) ?? []
-  }, [nodeFilter, overview, query, statusFilter])
+  }, [nodeFilter, overview, query])
 
   const pageCount = Math.max(1, Math.ceil(filteredWorkloads.length / PAGE_SIZE))
   const currentPage = Math.min(page, pageCount)
@@ -441,25 +436,11 @@ export function PlacementView() {
               aria-label="Search workloads"
             />
           </div>
-          <Select value={statusFilter} onValueChange={value => {
-            setStatusFilter(value)
-            setPage(1)
-          }}>
-            <SelectTrigger className="placement-filter-trigger" aria-label="Filter by workload status">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" align="start" className="w-(--radix-select-trigger-width)">
-              <SelectItem value={ALL_FILTER}>All statuses</SelectItem>
-              <SelectItem value="ready">Ready</SelectItem>
-              <SelectItem value="not_ready">Not ready</SelectItem>
-              <SelectItem value="gated">Awaiting placement</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={nodeFilter} onValueChange={value => {
             setNodeFilter(value)
             setPage(1)
           }}>
-            <SelectTrigger className="placement-filter-trigger" aria-label="Filter by current node">
+            <SelectTrigger className="placement-filter-trigger placement-node-filter" aria-label="Filter by current node">
               <SelectValue />
             </SelectTrigger>
             <SelectContent position="popper" align="start" className="w-(--radix-select-trigger-width)">
