@@ -612,6 +612,90 @@ export interface AdminDashboard {
   estimates: { vta_only: DashboardEstimate; full_stack: DashboardEstimate }
 }
 
+export type PlacementMode = 'disabled' | 'canary' | 'enabled'
+export type PlacementPlanKind = 'reconcile' | 'relocate'
+
+export interface PlacementNode {
+  name: string
+  schedulable: boolean
+  memory_state: 'green' | 'yellow' | 'orange' | 'hot' | 'unknown' | ''
+  eligible: boolean
+  memory_allocatable_bytes: number
+  memory_requested_bytes: number
+  memory_used_bytes: number
+  memory_reserved_bytes: number
+  vta_only_pods: number
+  metrics_available: boolean
+}
+
+export interface PlacementStorageIdentity {
+  pvc_name: string
+  pvc_uid: string
+  pv_name: string
+  pv_uid: string
+  csi_volume_handle: string
+  longhorn_volume: string
+  longhorn_state: string
+  longhorn_robustness: string
+  last_backup_name?: string
+  last_backup_at?: string
+}
+
+export interface PlacementWorkload {
+  session_id: number
+  vta_name: string
+  namespace: string
+  deployment_name: string
+  deployment_uid: string
+  pod_name?: string
+  pod_uid?: string
+  node_name?: string
+  ready: boolean
+  gated: boolean
+  memory_request_bytes: number
+  storage: PlacementStorageIdentity
+}
+
+export interface PlacementOverview {
+  mode: PlacementMode
+  nodes: PlacementNode[]
+  workloads: PlacementWorkload[]
+}
+
+export interface PlacementPlanItem {
+  session_id: number
+  target_node: string
+}
+
+export interface PlacementPreviewItem extends PlacementPlanItem {
+  vta_name: string
+  source_node: string
+  p95_memory_bytes: number
+  projected_memory_percent: number
+  allowed: boolean
+  reason?: string
+}
+
+export interface PlacementTask {
+  id: number
+  session_id: number
+  source_node: string
+  target_node: string
+  state: string
+  error_msg?: string
+  updated_at: string
+}
+
+export interface PlacementPlan {
+  id: number
+  kind: PlacementPlanKind | 'provision'
+  status: 'running' | 'paused' | 'completed' | 'cancelled'
+  error_msg?: string
+  created_at: string
+  updated_at: string
+  tasks?: PlacementTask[]
+}
+
 export interface PoolCounts {
   total: number
   creating: number
@@ -906,6 +990,20 @@ export const api = {
 
   // ── Admin — dashboard ────────────────────────────────────────────────────────
   adminDashboard: () => req<AdminDashboard>('GET', '/api/v1/admin/dashboard'),
+
+  // ── Admin — Kubernetes workload placement ─────────────────────────────────
+  placementOverview: () => req<PlacementOverview>('GET', '/api/v1/admin/placement'),
+  previewPlacement: (kind: PlacementPlanKind, items: PlacementPlanItem[] = [], all = false) =>
+    req<{ mode: PlacementMode; items: PlacementPreviewItem[] }>('POST', '/api/v1/admin/placement/preview', { kind, items, all }),
+  createPlacementPlan: (kind: PlacementPlanKind, items: PlacementPlanItem[] = [], all = false) =>
+    req<{ plan: PlacementPlan; items: PlacementPreviewItem[] }>('POST', '/api/v1/admin/placement/plans', { kind, items, all }),
+  listPlacementPlans: () => req<{ plans: PlacementPlan[] }>('GET', '/api/v1/admin/placement/plans'),
+  getPlacementPlan: (id: number) => req<PlacementPlan>('GET', `/api/v1/admin/placement/plans/${id}`),
+  cancelPlacementPlan: (id: number) => req<null>('POST', `/api/v1/admin/placement/plans/${id}/cancel`),
+  retryPlacementTask: (planID: number, taskID: number, targetNode?: string) =>
+    req<null>('POST', `/api/v1/admin/placement/plans/${planID}/tasks/${taskID}/retry`, targetNode ? { target_node: targetNode } : undefined),
+  rollbackPlacementTask: (planID: number, taskID: number) =>
+    req<null>('POST', `/api/v1/admin/placement/plans/${planID}/tasks/${taskID}/rollback`),
 
   // ── Admin — pooled VTA inventory ────────────────────────────────────────────
   listPoolBatches: () => req<PoolBatch[]>('GET', '/api/v1/admin/pool-batches'),
