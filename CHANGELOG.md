@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.19.1] - 2026-11-09
+
+### Fixed
+
+- Placement plans offer cancellation only while queued tasks remain and no
+  placement step is active.
+- Platform Stack setup progress includes the Trust Registry phase only when it
+  is enabled and continues to show Registry details after activation.
+
+Requires vtafarm-api 0.19.2.
+
 ## [v0.19.0] - 2026-11-08
 
 ### Added
