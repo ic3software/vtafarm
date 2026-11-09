@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.19.0] - 2026-11-08
+
+### Added
+
+- Administrators can inspect cluster node headroom, VTA-only workload
+  placement, scheduling readiness, and persistent storage health from the new
+  Workload Placement page.
+- Placement plans support exact-node selection or system recommendations,
+  review before application, progress tracking, cancellation, retry, and
+  rollback while respecting disabled, canary, and enabled activation modes.
+
+Requires vtafarm-api 0.19.0.
+
 ## [v0.18.2] - 2026-11-05
 
 ### Changed
