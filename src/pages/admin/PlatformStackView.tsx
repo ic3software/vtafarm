@@ -4,7 +4,7 @@ import { api, API_BASE, ALL_COMPONENTS, type ImageOption, type PlatformStack, ty
 import { imageLabel } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PhaseStepper } from '../portal/PhaseStepper'
-import { FULL_STACK_PHASES, phaseIndex, statusBadge, useCopyState, isValidAdminDid, componentHost, useDomainInfo } from '../portal/portalUtils'
+import { fullStackPhases, phaseIndex, statusBadge, useCopyState, isValidAdminDid, componentHost, useDomainInfo } from '../portal/portalUtils'
 import {
   DidsEnrollAlert, DidsEnrollConfigRow, VtcInstallAlert, VtcInstallConfigRow, CollectedDidsCard, EndpointConfigRows, AdminKeysCard,
   TrustRegistryStatusCard,
@@ -686,7 +686,8 @@ export function PlatformStackView() {
   const isRunning = status === 'running'
   const awaitingAdminDid = status === 'awaiting_admin_did'
   const progressStatus = failed ? stack.failed_stage ?? 'running' : status
-  const currentIndex = Math.max(0, phaseIndex(FULL_STACK_PHASES, progressStatus))
+  const setupPhases = fullStackPhases(stack.trust_registry?.enabled === true)
+  const currentIndex = Math.max(0, phaseIndex(setupPhases, progressStatus))
   const vtaDid = stack.collected?.vta_did
 
   return (
@@ -711,7 +712,7 @@ export function PlatformStackView() {
             </div>
           </div>
 
-          <PhaseStepper phases={FULL_STACK_PHASES} currentIndex={currentIndex} failed={failed} spinning={!failed} />
+          <PhaseStepper phases={setupPhases} currentIndex={currentIndex} failed={failed} spinning={!failed} />
         </>
       )}
 
@@ -773,7 +774,7 @@ export function PlatformStackView() {
         <div className="p-card" style={{ marginBottom: 16 }}>
           <div className="card-header with-action">
             <div>
-              <h3 className="card-title">{FULL_STACK_PHASES[currentIndex]?.label ?? 'Setup'}</h3>
+              <h3 className="card-title">{setupPhases[currentIndex]?.label ?? 'Setup'}</h3>
               <p className="card-desc">
                 Provisioning <span className="p-mono">{stack.label}</span>. This takes several
                 minutes — the page refreshes itself.
