@@ -28,6 +28,7 @@ import { PoolBatchDetailView } from '@/pages/admin/PoolBatchDetailView'
 import { PlatformStackView } from '@/pages/admin/PlatformStackView'
 import { InvitationsView } from '@/pages/admin/InvitationsView'
 import { SecurityView } from '@/pages/admin/SecurityView'
+import { PlacementView } from '@/pages/admin/PlacementView'
 import { Register } from '@/pages/Register'
 import { Recover } from '@/pages/Recover'
 import { AdminEnroll } from '@/pages/AdminEnroll'
@@ -161,6 +162,7 @@ export default function App() {
               <Route path="users" element={<UsersView />} />
               <Route path="sessions" element={<SessionsView />} />
               <Route path="resource-defaults" element={<ResourceDefaultsView />} />
+              <Route path="placement" element={<PlacementView />} />
               <Route path="load-testing" element={<LoadTestingView />} />
               <Route path="load-testing/:id" element={<LoadTestingDetailView />} />
               <Route path="pools" element={<PoolBatchesView />} />

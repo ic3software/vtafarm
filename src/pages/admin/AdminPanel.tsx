@@ -49,6 +49,7 @@ export function AdminPanel() {
   const path = location.pathname
   const crumb = path.includes('/settings') ? 'Settings'
     : path.includes('/resource-defaults') ? 'Defaults'
+    : path.includes('/placement') ? 'Workload placement'
     : path.includes('/users') ? 'Users'
     : path.includes('/platform-stack') ? 'Platform stack'
     : path.includes('/pools') ? 'VTA pools'
@@ -110,6 +111,13 @@ export function AdminPanel() {
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/></svg>
               Defaults
+            </div>
+            <div
+              className={`nav-item ${path.includes('/placement') ? 'active' : ''}`}
+              onClick={() => goTo('/admin/placement')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="4" width="7" height="6" rx="1"/><rect x="14" y="4" width="7" height="6" rx="1"/><rect x="3" y="14" width="7" height="6" rx="1"/><path d="M14 17h7M18 14l3 3-3 3"/></svg>
+              Placement
             </div>
             <div
               className={`nav-item ${path.includes('/pools') ? 'active' : ''}`}
