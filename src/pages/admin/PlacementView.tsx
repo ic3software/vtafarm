@@ -604,6 +604,10 @@ export function PlacementView() {
                 const taskSummary = summarizeTasks(tasks)
                 const completedPercent = tasks.length > 0 ? Math.round(taskSummary.completed * 100 / tasks.length) : 0
                 const detailsExpanded = expandedPlans.has(plan.id)
+                const canCancel = plan.status === 'running'
+                  && plan.kind !== 'provision'
+                  && taskSummary.queued > 0
+                  && taskSummary.active === 0
                 return (
                 <Fragment key={plan.id}>
                 <tr key={plan.id}>
@@ -647,7 +651,7 @@ export function PlacementView() {
                   <td className="placement-plan-error">{plan.error_msg || '—'}</td>
                   <td className="col-actions">
                     <div className="placement-row-actions">
-                      {plan.status === 'running' && plan.kind !== 'provision' && (
+                      {canCancel && (
                         <Button variant="ghost" size="sm" disabled={busy} onClick={() => void cancelPlan(plan.id)}>
                           <X aria-hidden="true" />
                           Cancel
