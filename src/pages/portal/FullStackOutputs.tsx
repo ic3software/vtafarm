@@ -355,7 +355,7 @@ export function TrustRegistryStatusCard({
   registry?: TrustRegistryState
   onOpenSettings?: () => void
 }) {
-  if (!registry?.enabled || registry.state === 'active') return null
+  if (!registry?.enabled) return null
   const failed = registry.state === 'failed'
   const status = registryStatus(registry)
   return (
@@ -368,7 +368,7 @@ export function TrustRegistryStatusCard({
       </div>
       <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
         <TrustRegistryDetails registry={registry} />
-        {!failed && <p className="field-hint" style={{ marginTop: 0 }}>The Registry DID will appear in Collected DIDs when setup completes.</p>}
+        {registry.state === 'enabling' && <p className="field-hint" style={{ marginTop: 0 }}>The Registry DID will appear in Collected DIDs when setup completes.</p>}
         {failed && onOpenSettings && (
           <div className="p-row" style={{ justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-outline btn-sm" onClick={onOpenSettings}>Open Settings</button>
