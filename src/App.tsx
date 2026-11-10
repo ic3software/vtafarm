@@ -36,6 +36,7 @@ import { GetStarted } from '@/pages/GetStarted'
 import { UserAuthProvider } from '@/contexts/UserAuthContext'
 import { useUserAuth } from '@/contexts/userAuth'
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
+import { MaintenanceProvider } from '@/contexts/MaintenanceContext'
 
 function HomePage() {
   const navigate = useNavigate()
@@ -135,47 +136,49 @@ export default function App() {
   useTheme()
   return (
     <BrowserRouter>
-      <UserAuthProvider>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/get-started" element={<GetStarted />} />
-          <Route path="/preview" element={<MobilePreview />} />
+      <MaintenanceProvider>
+        <UserAuthProvider>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/get-started" element={<GetStarted />} />
+            <Route path="/preview" element={<MobilePreview />} />
 
-          <Route path="/login" element={<UserLogin />} />
-          <Route path="/register/:token" element={<Register />} />
-          <Route path="/recover/:token" element={<Recover />} />
-          <Route path="/portal" element={<Portal />}>
-            <Route index element={<AgentsView />} />
-            <Route path="create" element={<CreateVTAView />} />
-            <Route path="domains" element={<DomainsView />} />
-            <Route path="session/:id" element={<SessionDetailView />} />
-            <Route path="settings" element={<SettingsView />} />
-          </Route>
-
-          {/* AdminAuthProvider scoped to /admin/* only */}
-          <Route path="/admin" element={<AdminAuthProvider><Outlet /></AdminAuthProvider>}>
-            <Route path="login" element={<AdminLogin />} />
-            <Route path="enroll/:token" element={<AdminEnroll />} />
-            <Route element={<AdminPanel />}>
-              <Route index element={<DashboardView />} />
-              <Route path="admins" element={<AdminsView />} />
-              <Route path="users" element={<UsersView />} />
-              <Route path="sessions" element={<SessionsView />} />
-              <Route path="resource-defaults" element={<ResourceDefaultsView />} />
-              <Route path="placement" element={<PlacementView />} />
-              <Route path="load-testing" element={<LoadTestingView />} />
-              <Route path="load-testing/:id" element={<LoadTestingDetailView />} />
-              <Route path="pools" element={<PoolBatchesView />} />
-              <Route path="pools/:id" element={<PoolBatchDetailView />} />
-              <Route path="platform-stack" element={<PlatformStackView />} />
-              <Route path="invitations" element={<InvitationsView />} />
-              <Route path="settings" element={<SecurityView />} />
+            <Route path="/login" element={<UserLogin />} />
+            <Route path="/register/:token" element={<Register />} />
+            <Route path="/recover/:token" element={<Recover />} />
+            <Route path="/portal" element={<Portal />}>
+              <Route index element={<AgentsView />} />
+              <Route path="create" element={<CreateVTAView />} />
+              <Route path="domains" element={<DomainsView />} />
+              <Route path="session/:id" element={<SessionDetailView />} />
+              <Route path="settings" element={<SettingsView />} />
             </Route>
-          </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </UserAuthProvider>
+            {/* AdminAuthProvider scoped to /admin/* only */}
+            <Route path="/admin" element={<AdminAuthProvider><Outlet /></AdminAuthProvider>}>
+              <Route path="login" element={<AdminLogin />} />
+              <Route path="enroll/:token" element={<AdminEnroll />} />
+              <Route element={<AdminPanel />}>
+                <Route index element={<DashboardView />} />
+                <Route path="admins" element={<AdminsView />} />
+                <Route path="users" element={<UsersView />} />
+                <Route path="sessions" element={<SessionsView />} />
+                <Route path="resource-defaults" element={<ResourceDefaultsView />} />
+                <Route path="placement" element={<PlacementView />} />
+                <Route path="load-testing" element={<LoadTestingView />} />
+                <Route path="load-testing/:id" element={<LoadTestingDetailView />} />
+                <Route path="pools" element={<PoolBatchesView />} />
+                <Route path="pools/:id" element={<PoolBatchDetailView />} />
+                <Route path="platform-stack" element={<PlatformStackView />} />
+                <Route path="invitations" element={<InvitationsView />} />
+                <Route path="settings" element={<SecurityView />} />
+              </Route>
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </UserAuthProvider>
+      </MaintenanceProvider>
     </BrowserRouter>
   )
 }

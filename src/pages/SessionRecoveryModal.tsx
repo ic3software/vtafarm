@@ -3,6 +3,7 @@ import { api, type ImageOption, type SetupMode, type SetupStatus, type UpgradeCo
 import { imageLabel, imageTag } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { recoveryComponentsForSession } from './sessionRecovery'
+import { useMaintenance } from '@/contexts/maintenance'
 
 const imageSelectContentStyle = { maxHeight: 'min(18rem, var(--radix-select-content-available-height))' }
 
@@ -47,6 +48,8 @@ interface Props {
 }
 
 export function SessionRecoveryModal({ session, admin = false, onClose }: Props) {
+  const { state: maintenance } = useMaintenance()
+  const maintenanceBlocked = !admin && maintenance?.enabled === true
   const components = useMemo(
     () => recoveryComponentsForSession(
       session.mode,
@@ -182,7 +185,7 @@ export function SessionRecoveryModal({ session, admin = false, onClose }: Props)
         </div>
         <div className="dialog-footer">
           <button className="btn btn-ghost" disabled={busy} onClick={() => onClose(false)}>Cancel</button>
-          <button className="btn btn-default" disabled={busy || !ready} onClick={submit}>
+          <button className="btn btn-default" disabled={maintenanceBlocked || busy || !ready} title={maintenanceBlocked ? 'Maintenance mode is active' : undefined} onClick={submit}>
             {busy ? 'Starting…' : 'Recover and continue'}
           </button>
         </div>

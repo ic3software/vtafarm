@@ -4,6 +4,7 @@ import '@/styles/portal.css'
 import { useAdminAuth } from '@/contexts/adminAuth'
 import { useTheme } from '@/lib/useTheme'
 import { initials } from '../portal/portalUtils'
+import { MaintenanceBanner } from '@/components/MaintenanceBanner'
 
 export interface AdminContext {
   uniqueId: string
@@ -193,6 +194,8 @@ export function AdminPanel() {
               <svg className="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
             </button>
           </header>
+
+          <MaintenanceBanner admin />
 
           <Outlet context={{ uniqueId: admin.unique_id } satisfies AdminContext} />
         </div>

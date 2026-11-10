@@ -12,6 +12,7 @@ import {
 import { imageChangeDirection, imageLabel, imageTag } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { VersionChangeList } from '@/components/VersionChangeList'
+import { useMaintenance } from '@/contexts/maintenance'
 
 const imageSelectContentStyle = { maxHeight: 'min(18rem, var(--radix-select-content-available-height))' }
 const componentLabelStyle = { flex: '0 0 90px' }
@@ -83,6 +84,8 @@ function sessionUpgradeFromBatch(batch: UpgradeBatchDetail, sessionId: string): 
 }
 
 export function SessionVersionsCard({ session, onUpgraded, admin = false }: SessionVersionsCardProps) {
+  const { state: maintenance } = useMaintenance()
+  const maintenanceBlocked = !admin && maintenance?.enabled === true
   const [registryState, setRegistryState] = useState<{ active: boolean; image: string }>({ active: false, image: '' })
   useEffect(() => {
     if (session.mode !== 'full_stack') return
@@ -306,7 +309,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
             })}
             {error && <p style={{ margin: 0, fontSize: 12, color: 'hsl(var(--destructive))' }}>{error}</p>}
             <div className="p-row center" style={{ justifyContent: 'flex-end' }}>
-              <button className="btn btn-default btn-sm" disabled={changes.length === 0} onClick={() => setConfirming(true)}>
+              <button className="btn btn-default btn-sm" disabled={maintenanceBlocked || changes.length === 0} onClick={() => setConfirming(true)} title={maintenanceBlocked ? 'Maintenance mode is active' : undefined}>
                 Update
               </button>
             </div>
@@ -343,7 +346,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
             </div>
             <div className="dialog-footer">
               <button className="btn btn-ghost" disabled={busy} onClick={() => { setConfirming(false); setError('') }}>Cancel</button>
-              <button className="btn btn-default" disabled={busy || changes.length === 0} onClick={submit}>
+              <button className="btn btn-default" disabled={maintenanceBlocked || busy || changes.length === 0} onClick={submit}>
                 {busy
                   ? <><svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Starting…</>
                   : `Update ${changes.length} component${changes.length === 1 ? '' : 's'}`}

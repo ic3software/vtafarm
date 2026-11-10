@@ -5,6 +5,7 @@ import { useUserAuth } from '@/contexts/userAuth'
 import { useTheme } from '@/lib/useTheme'
 import { api, type SetupSession } from '@/lib/api'
 import { initials } from './portalUtils'
+import { MaintenanceBanner } from '@/components/MaintenanceBanner'
 
 export interface PortalContext {
   sessions: SetupSession[]
@@ -213,6 +214,8 @@ export function Portal() {
               <svg className="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
             </button>
           </header>
+
+          <MaintenanceBanner />
 
           <Outlet context={{ sessions, sessionsLoading: sessionsLoading || loadedPath !== location.pathname, sessionsError, loadSessions, uniqueId: user.unique_id, email, fullstackAccess, vtaCount, vtaLimit } satisfies PortalContext} />
         </div>

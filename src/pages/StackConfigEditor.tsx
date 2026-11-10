@@ -4,6 +4,7 @@ import {
   type ApiError,
   type UpgradeComponent,
 } from '@/lib/api'
+import { useMaintenance } from '@/contexts/maintenance'
 
 const LABELS: Record<UpgradeComponent, string> = {
   vta: 'VTA',
@@ -17,6 +18,8 @@ const EDIT_COMPONENTS: UpgradeComponent[] = ['vta', 'vtc', 'mediator', 'dids']
 const VTA_ONLY_COMPONENTS: UpgradeComponent[] = ['vta']
 
 export function StackConfigEditor({ sessionId, admin = false, vtaOnly = false }: { sessionId?: string; admin?: boolean; vtaOnly?: boolean }) {
+  const { state: maintenance } = useMaintenance()
+  const maintenanceBlocked = !admin && maintenance?.enabled === true
   const components = vtaOnly ? VTA_ONLY_COMPONENTS : EDIT_COMPONENTS
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState<UpgradeComponent>('vta')
@@ -218,7 +221,7 @@ export function StackConfigEditor({ sessionId, admin = false, vtaOnly = false }:
                 <button className="btn btn-outline" onClick={validate} disabled={!loaded || loading || validating || applying}>
                   {validating ? 'Checking syntax…' : 'Check TOML syntax'}
                 </button>
-                <button className="btn btn-default" onClick={apply} disabled={!validated || !confirmed || applying}>
+                <button className="btn btn-default" onClick={apply} disabled={maintenanceBlocked || !validated || !confirmed || applying} title={maintenanceBlocked ? 'Maintenance mode is active' : undefined}>
                   {applying ? 'Applying & restarting…' : 'Apply & restart'}
                 </button>
               </div>

@@ -4,6 +4,7 @@ import { api, type ImageOption, type TrustRegistryState } from '@/lib/api'
 import { imageLabel } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TrustRegistryDetails } from './TrustRegistryDetails'
+import { useMaintenance } from '@/contexts/maintenance'
 
 export function TrustRegistryImagePicker({
   image,
@@ -54,6 +55,8 @@ export function TrustRegistryCard({
   admin?: boolean
   onEnabled?: (registry: TrustRegistryState) => void
 }) {
+  const { state: maintenance } = useMaintenance()
+  const maintenanceBlocked = !admin && maintenance?.enabled === true
   const [registry, setRegistry] = useState<TrustRegistryState | null>(null)
   const [image, setImage] = useState('')
   const [error, setError] = useState('')
@@ -148,7 +151,7 @@ export function TrustRegistryCard({
       {registry && !active && !enabling && <>
         <TrustRegistryImagePicker image={image} onChange={setImage} admin={admin} />
         <div className="p-row center" style={{ justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-default btn-sm" disabled={!image || submitting || !!loadError} onClick={() => void enable()}>{submitting ? 'Starting…' : registry.state === 'failed' ? 'Retry enablement' : 'Enable Trust Registry'}</button>
+          <button type="button" className="btn btn-default btn-sm" disabled={maintenanceBlocked || !image || submitting || !!loadError} title={maintenanceBlocked ? 'Maintenance mode is active' : undefined} onClick={() => void enable()}>{submitting ? 'Starting…' : registry.state === 'failed' ? 'Retry enablement' : 'Enable Trust Registry'}</button>
         </div>
       </>}
     </div>

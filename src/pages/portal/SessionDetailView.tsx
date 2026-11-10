@@ -14,6 +14,7 @@ import { StackConfigEditor } from '../StackConfigEditor'
 import { ExternalDIDPublicationCard } from './ExternalDIDPublicationCard'
 import { SessionRecoveryModal } from '../SessionRecoveryModal'
 import { recoveryComponentsForSession } from '../sessionRecovery'
+import { useMaintenance } from '@/contexts/maintenance'
 import type { PortalContext } from './Portal'
 
 type SessionTab = 'overview' | 'connections' | 'settings' | 'credentials'
@@ -35,6 +36,7 @@ export function SessionDetailView() {
 }
 
 function SessionDetailContent() {
+  const { state: maintenance } = useMaintenance()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -248,7 +250,7 @@ function SessionDetailContent() {
               : ' removes the agent, DNS record, and all session data.'}
           </span>
           <div>
-            <button className="btn btn-destructive btn-sm" onClick={() => setShowDeleteConfirm(true)}>
+            <button className="btn btn-destructive btn-sm" onClick={() => setShowDeleteConfirm(true)} disabled={maintenance?.enabled} title={maintenance?.enabled ? 'Maintenance mode is active' : undefined}>
               Delete Agent
             </button>
           </div>
@@ -287,7 +289,7 @@ function SessionDetailContent() {
           </div>
           <div className="p-row gap-8" style={{ flexShrink: 0 }}>
             {canRecover && <button className="btn btn-default btn-sm" onClick={() => setShowRecovery(true)}>Recover</button>}
-            <button className="btn btn-destructive btn-sm" onClick={() => setShowDeleteConfirm(true)}>Delete agent</button>
+            <button className="btn btn-destructive btn-sm" onClick={() => setShowDeleteConfirm(true)} disabled={maintenance?.enabled}>Delete agent</button>
           </div>
         </div>
       )}
@@ -455,7 +457,7 @@ function SessionDetailContent() {
             </div>
             <div className="dialog-footer">
               <button className="btn btn-ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-              <button className="btn btn-destructive" onClick={handleDelete} disabled={deleting || deleteInput !== name}>
+              <button className="btn btn-destructive" onClick={handleDelete} disabled={maintenance?.enabled || deleting || deleteInput !== name}>
                 {deleting ? 'Deleting…' : 'Delete Agent'}
               </button>
             </div>

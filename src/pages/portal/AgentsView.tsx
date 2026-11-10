@@ -4,8 +4,10 @@ import { api, type SetupAvailability } from '@/lib/api'
 import type { PortalContext } from './Portal'
 import { statusBadge, timeAgo, modeLabel } from './portalUtils'
 import { VtaLimitDialog } from './VtaLimitDialog'
+import { useMaintenance } from '@/contexts/maintenance'
 
 export function AgentsView() {
+  const { state: maintenance } = useMaintenance()
   const { sessions, sessionsLoading, sessionsError, loadSessions, fullstackAccess, vtaCount, vtaLimit } = useOutletContext<PortalContext>()
   const [showLimitDialog, setShowLimitDialog] = useState(false)
   const limitReached = vtaLimit !== null && vtaCount >= vtaLimit
@@ -17,9 +19,9 @@ export function AgentsView() {
   // Don't send someone into a form they can't submit. Fail open: until
   // availability resolves — or if the call fails — the button stays live and
   // POST /setup remains the authoritative gate.
-  const canCreate = !availability ||
+  const canCreate = !maintenance?.enabled && (!availability ||
     availability.vta_only.available ||
-    (fullstackAccess && availability.full_stack.available)
+    (fullstackAccess && availability.full_stack.available))
   // With one mode blocked the reason is unambiguous; with both, VTA-only's is
   // the one that applies to every account.
   const blockedReason = availability?.vta_only.detail
@@ -43,7 +45,7 @@ export function AgentsView() {
             className="btn btn-default"
             onClick={() => limitReached ? setShowLimitDialog(true) : navigate('/portal/create')}
             disabled={sessionsLoading || !!sessionsError || (!limitReached && !canCreate)}
-            title={limitReached || canCreate ? undefined : blockedReason}
+            title={maintenance?.enabled ? 'Maintenance mode is active' : limitReached || canCreate ? undefined : blockedReason}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 5v14M5 12h14"/></svg>
             Create Agent
@@ -54,7 +56,7 @@ export function AgentsView() {
       {/* A disabled button with no reason is worse than no button. This is the
           shared mediator and DID hosting being absent — nothing the user can
           fix, so say so plainly rather than leaving them clicking. */}
-      {!limitReached && !canCreate && blockedReason && (
+      {!maintenance?.enabled && !limitReached && !canCreate && blockedReason && (
         <div className="p-alert alert-warning" style={{ marginBottom: 20 }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
           <div className="grow">
@@ -99,7 +101,9 @@ export function AgentsView() {
           </div>
           <h3>No agents yet</h3>
           <p>
-            {canCreate
+            {maintenance?.enabled
+              ? 'Agent creation is temporarily unavailable while maintenance mode is active.'
+              : canCreate
               ? 'Create your first Trust Agent to get started.'
               : 'Agent creation isn’t available yet — check back once an admin has finished setting up the platform.'}
           </p>

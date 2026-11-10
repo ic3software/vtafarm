@@ -860,6 +860,24 @@ export interface SessionUpgrade {
   tasks: SessionUpgradeTask[]
 }
 
+export interface MaintenanceState {
+  enabled: boolean
+  message: string
+  enabled_at?: string
+  updated_at: string
+}
+
+export interface MaintenanceOperation {
+  operation_type: string
+  target: string
+  started_at: string
+}
+
+export interface MaintenanceSnapshot extends MaintenanceState {
+  can_enable: boolean
+  active_operations: MaintenanceOperation[]
+}
+
 export interface ApiError extends Error {
   status: number
   /**
@@ -897,6 +915,7 @@ async function req<T>(
   const data = await res.json().catch(() => ({ error: res.statusText }))
   if (!res.ok) {
     if (res.status === 401 && dispatchUnauthorized) window.dispatchEvent(new Event('vtafarm:unauthorized'))
+    if (data.reason === 'maintenance_mode') window.dispatchEvent(new Event('vtafarm:maintenance'))
     throw apiError(data.error ?? 'Request failed', res.status, data.reason, {
       validationErrors: data.validation_errors,
       rolledBack: data.rolled_back,
@@ -937,6 +956,8 @@ function filenameFromDisposition(header: string | null): string | undefined {
 }
 
 export const api = {
+  maintenanceStatus: () => req<MaintenanceState>('GET', '/api/v1/status/maintenance', undefined, false),
+
   // ── Public pooled VTA signup ────────────────────────────────────────────────
   createPublicPoolClaim: (accessToken: string) =>
     req<PublicPoolClaim>('POST', '/api/v1/public/pool-claims', undefined, false, { 'X-VTA-Claim-Token': accessToken }),
@@ -990,6 +1011,9 @@ export const api = {
 
   // ── Admin — dashboard ────────────────────────────────────────────────────────
   adminDashboard: () => req<AdminDashboard>('GET', '/api/v1/admin/dashboard'),
+  adminMaintenanceStatus: () => req<MaintenanceSnapshot>('GET', '/api/v1/admin/maintenance'),
+  setMaintenanceMode: (enabled: boolean, message: string) =>
+    req<MaintenanceSnapshot>('PUT', '/api/v1/admin/maintenance', { enabled, message }),
 
   // ── Admin — Kubernetes workload placement ─────────────────────────────────
   placementOverview: () => req<PlacementOverview>('GET', '/api/v1/admin/placement'),

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, type MobileConnectionState, type SetupSession } from '@/lib/api'
 import { isValidAdminDid } from './portalUtils'
 import { ConnectionMethodPicker, KeyringConnectionPanel, PnmAdminDidForm, PnmSetupInstructions, VtaDidCopyField, type ConnectionMethod } from './ConnectionMethodUi'
+import { useMaintenance } from '@/contexts/maintenance'
 
 const accepted = (state: MobileConnectionState | null) =>
   !!state?.connection && ['claimed', 'confirmed', 'provisioning', 'released'].includes(state.connection.status)
@@ -15,6 +16,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
   ready: boolean
   onSessionChange: (session: SetupSession) => void
 }) {
+  const { state: maintenance } = useMaintenance()
   const [method, setMethod] = useState<ConnectionMethod>('automatic')
   const [snapshot, setSnapshot] = useState<{ data: MobileConnectionState; receivedAt: number } | null>(null)
   const [qrPayload, setQrPayload] = useState<{ requestId: string; value: string } | null>(null)
@@ -253,7 +255,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
         name={`connection-${sessionId}`}
         value={method}
         onChange={choose}
-        disabled={busy || loading || inProgress || manualAccepted}
+        disabled={maintenance?.enabled || busy || loading || inProgress || manualAccepted}
         automaticDisabled={!state?.enabled}
       />
       {loading && <p role="status">Loading connection options…</p>}
