@@ -29,6 +29,7 @@ import { PlatformStackView } from '@/pages/admin/PlatformStackView'
 import { InvitationsView } from '@/pages/admin/InvitationsView'
 import { SecurityView } from '@/pages/admin/SecurityView'
 import { PlacementView } from '@/pages/admin/PlacementView'
+import { MaintenanceView } from '@/pages/admin/MaintenanceView'
 import { Register } from '@/pages/Register'
 import { Recover } from '@/pages/Recover'
 import { AdminEnroll } from '@/pages/AdminEnroll'
@@ -171,6 +172,7 @@ export default function App() {
                 <Route path="pools/:id" element={<PoolBatchDetailView />} />
                 <Route path="platform-stack" element={<PlatformStackView />} />
                 <Route path="invitations" element={<InvitationsView />} />
+                <Route path="maintenance" element={<MaintenanceView />} />
                 <Route path="settings" element={<SecurityView />} />
               </Route>
             </Route>

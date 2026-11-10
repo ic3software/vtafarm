@@ -3,6 +3,7 @@ import { api, type MaintenanceOperation, type MaintenanceSnapshot } from '@/lib/
 import { useMaintenance } from '@/contexts/maintenance'
 
 const REFRESH_MS = 5_000
+const DEFAULT_MESSAGE = 'Platform maintenance is in progress.'
 
 const operationLabels: Record<string, string> = {
   acl_grant: 'Granting VTA access',
@@ -44,7 +45,7 @@ function elapsed(iso: string): string {
 export function MaintenanceCard() {
   const { refresh: refreshPublicState } = useMaintenance()
   const [snapshot, setSnapshot] = useState<MaintenanceSnapshot | null>(null)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState(DEFAULT_MESSAGE)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -69,16 +70,12 @@ export function MaintenanceCard() {
   async function toggle() {
     if (!snapshot) return
     const enabling = !snapshot.enabled
-    const prompt = enabling
-      ? 'Enable maintenance mode? New user workflows will be blocked.'
-      : 'Disable maintenance mode? Users will be able to start workflows again.'
-    if (!window.confirm(prompt)) return
     setBusy(true)
     setError('')
     try {
       const next = await api.setMaintenanceMode(enabling, enabling ? message : '')
       setSnapshot(next)
-      if (!enabling) setMessage('')
+      if (!enabling) setMessage(DEFAULT_MESSAGE)
       await refreshPublicState()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update maintenance mode')
@@ -97,9 +94,6 @@ export function MaintenanceCard() {
         <div className="p-row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h3 className="card-title">Maintenance mode</h3>
-            <p className="card-desc">
-              Blocks user workflows while keeping the portal and administrative maintenance available.
-            </p>
           </div>
           <span className={`p-badge ${snapshot?.enabled ? 'badge-warning' : 'badge-success'}`}>
             {snapshot?.enabled ? 'Enabled' : 'Off'}
@@ -127,14 +121,6 @@ export function MaintenanceCard() {
             </div>
           </div>
         )}
-        {snapshot && operations.length === 0 && (
-          <div className="p-alert alert-success">
-            <div className="grow">
-              <p className="alert-title">No operations are currently running</p>
-              <p className="alert-desc">The maintenance mode state can be changed safely.</p>
-            </div>
-          </div>
-        )}
         {snapshot && !snapshot.enabled && (
           <div>
             <label className="p-label" htmlFor="maintenance-message">Message shown to users</label>
@@ -144,14 +130,12 @@ export function MaintenanceCard() {
               maxLength={500}
               value={message}
               onChange={event => setMessage(event.target.value)}
-              placeholder="Platform maintenance is in progress."
             />
           </div>
         )}
         {error && <p className="text-sm" style={{ color: 'hsl(var(--destructive))', margin: 0 }}>{error}</p>}
       </div>
       <div className="card-footer" style={{ justifyContent: 'flex-end' }}>
-        <button className="btn btn-outline" onClick={() => void load()} disabled={busy}>Refresh</button>
         <button
           className={`btn ${snapshot?.enabled ? 'btn-outline' : 'btn-default'}`}
           onClick={() => void toggle()}

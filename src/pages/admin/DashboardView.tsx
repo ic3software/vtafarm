@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api, type AdminDashboard, type DashboardEstimate } from '@/lib/api'
-import { MaintenanceCard } from './MaintenanceCard'
 
 // Matches metrics-server's own ~15s refresh cadence — polling faster just
 // re-reads identical numbers.
@@ -142,8 +141,6 @@ export function DashboardView() {
       {error && (
         <p style={{ margin: '0 0 16px', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
       )}
-
-      <MaintenanceCard />
 
       {!data ? (
         !error && <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Loading…</p>
