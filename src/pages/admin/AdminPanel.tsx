@@ -4,6 +4,7 @@ import '@/styles/portal.css'
 import { useAdminAuth } from '@/contexts/adminAuth'
 import { useTheme } from '@/lib/useTheme'
 import { initials } from '../portal/portalUtils'
+import { MaintenanceBanner } from '@/components/MaintenanceBanner'
 
 export interface AdminContext {
   uniqueId: string
@@ -47,7 +48,8 @@ export function AdminPanel() {
   if (!admin) return null
 
   const path = location.pathname
-  const crumb = path.includes('/settings') ? 'Settings'
+  const crumb = path.includes('/maintenance') ? 'Maintenance mode'
+    : path.includes('/settings') ? 'Settings'
     : path.includes('/resource-defaults') ? 'Defaults'
     : path.includes('/placement') ? 'Workload placement'
     : path.includes('/users') ? 'Users'
@@ -147,6 +149,13 @@ export function AdminPanel() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
               Invitations
             </div>
+            <div
+              className={`nav-item ${path.includes('/maintenance') ? 'active' : ''}`}
+              onClick={() => goTo('/admin/maintenance')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M14.7 6.3a4 4 0 0 0-5-5L7 4l3 3 2.7-2.7a4 4 0 0 0 2 2Z"/><path d="m5 13-3.5 3.5a2.1 2.1 0 0 0 3 3L8 16"/><path d="m13 10 7.5 7.5a2.1 2.1 0 0 1-3 3L10 13"/></svg>
+              Maintenance mode
+            </div>
           </div>
 
           <div className="sidebar-foot">
@@ -193,6 +202,8 @@ export function AdminPanel() {
               <svg className="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
             </button>
           </header>
+
+          <MaintenanceBanner admin />
 
           <Outlet context={{ uniqueId: admin.unique_id } satisfies AdminContext} />
         </div>

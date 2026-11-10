@@ -8,6 +8,7 @@ import { KEYRING_DOWNLOADS, type KeyringDownload } from '@/lib/keyringDownloads'
 import { keyringSameDeviceLink } from '@/lib/utils'
 import { NavBar } from '@/components/home/NavBar'
 import { KeyringStoreButton } from '@/components/KeyringStoreButton'
+import { useMaintenance } from '@/contexts/maintenance'
 import '@/styles/get-started.css'
 
 const claimStorageKey = 'vtafarm:public-signup-claim'
@@ -56,6 +57,7 @@ function shellQuote(value: string) {
 }
 
 export function GetStarted() {
+  const { state: maintenance } = useMaintenance()
   const [claim, setClaim] = useState<PublicPoolClaim | null>(null)
   const [stored, setStored] = useState<StoredClaim | null>(() => readStoredClaim())
   const [initializing, setInitializing] = useState(() => readStoredClaim() !== null)
@@ -150,6 +152,10 @@ export function GetStarted() {
   }, [claimStatus])
 
   async function startClaim() {
+    if (maintenance?.enabled) {
+      setError('Maintenance mode is active. Trust Agent reservations are temporarily unavailable.')
+      return
+    }
     setBusy(true)
     setError('')
     let current = readStoredClaim()
@@ -272,6 +278,12 @@ export function GetStarted() {
         <h1>From your phone to your first community.</h1>
       </section>
 
+      {maintenance?.enabled && (
+        <p className="signup-error" role="status">
+          {maintenance.message || 'Maintenance mode is active. Trust Agent reservations are temporarily unavailable.'}
+        </p>
+      )}
+
       {!initializing && (
         <ol className="signup-stepper" aria-label="Onboarding progress">
           {['Install Keyring', 'Link your Trust Agent', 'Join the demo community'].map((label, index) => {
@@ -303,7 +315,7 @@ export function GetStarted() {
               </div>
               <div className="signup-reserve">
                 <div><p>Finished installing Keyring?</p><h2>Next, get your Trust Agent.</h2></div>
-                <button type="button" onClick={() => void startClaim()} disabled={busy}>{busy ? 'Reserving…' : 'Get my Trust Agent'}</button>
+                <button type="button" onClick={() => void startClaim()} disabled={maintenance?.enabled || busy}>{maintenance?.enabled ? 'Maintenance mode' : busy ? 'Reserving…' : 'Get my Trust Agent'}</button>
               </div>
             </>
           ) : connection.status === 'open' ? (
@@ -318,7 +330,7 @@ export function GetStarted() {
                   ? <button type="button" className="signup-primary-link signup-same-device-only" disabled><Smartphone aria-hidden="true" />Link in Keyring</button>
                   : <a className="signup-primary-link signup-same-device-only" href={keyringSameDeviceLink(connection.trigger_link)}><Smartphone aria-hidden="true" />Link in Keyring</a>)}
                 <p className="signup-timer">QR expires in <strong>{formatCountdown(remaining ?? 0)}</strong></p>
-                <button type="button" className="signup-text-button" onClick={() => void rejectClaim()} disabled={action !== null}>{action === 'reject' ? 'Cancelling…' : 'Cancel'}</button>
+                <button type="button" className="signup-text-button" onClick={() => void rejectClaim()} disabled={maintenance?.enabled || action !== null}>{action === 'reject' ? 'Cancelling…' : 'Cancel'}</button>
                 {developmentClaimID && (
                   <div className="signup-development-claim">
                     <span>Claim ID · development only</span>
@@ -344,8 +356,8 @@ export function GetStarted() {
               <h2>Compare this code with Keyring</h2>
               <div className="signup-claim-check">{connection.claim_check}</div>
               <div className="signup-confirm-actions">
-                <button type="button" onClick={() => void confirmClaim()} disabled={action !== null}>{action === 'confirm' ? 'Confirming…' : 'Codes match'}</button>
-                <button type="button" className="secondary" onClick={() => void rejectClaim()} disabled={action !== null}>{action === 'reject' ? 'Rejecting…' : 'Not mine'}</button>
+                <button type="button" onClick={() => void confirmClaim()} disabled={maintenance?.enabled || action !== null}>{action === 'confirm' ? 'Confirming…' : 'Codes match'}</button>
+                <button type="button" className="secondary" onClick={() => void rejectClaim()} disabled={maintenance?.enabled || action !== null}>{action === 'reject' ? 'Rejecting…' : 'Not mine'}</button>
               </div>
             </div>
           ) : connection.status === 'confirmed' || connection.status === 'provisioning' ? (

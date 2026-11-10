@@ -15,6 +15,7 @@ import { TrustRegistryImagePicker } from '../TrustRegistryCard'
 import { VtaLimitDialog } from './VtaLimitDialog'
 import { VTA_LIMIT_MESSAGE } from './vtaAccess'
 import { recoveryComponentsForSession } from '../sessionRecovery'
+import { useMaintenance } from '@/contexts/maintenance'
 
 type Stage = 0 | 1 | 2 | 3
 type Mode = 'vta_only' | 'full_stack'
@@ -51,6 +52,7 @@ function devImageFixtures(component: ImageComponent): ImageOption[] | null {
 }
 
 export function CreateVTAView() {
+  const { state: maintenance } = useMaintenance()
   const { loadSessions, sessionsLoading, sessionsError, fullstackAccess, vtaCount, vtaLimit } = useOutletContext<PortalContext>()
   const limitReached = vtaLimit !== null && vtaCount >= vtaLimit
   const [showLimitDialog, setShowLimitDialog] = useState(false)
@@ -335,6 +337,10 @@ export function CreateVTAView() {
     : null
 
   async function handleCreate() {
+    if (maintenance?.enabled) {
+      setCreateError('Maintenance mode is active. Agent creation is temporarily unavailable.')
+      return
+    }
     if (sessionsLoading || sessionsError) return
     if (limitReached) { setShowLimitDialog(true); return }
     if (mode === 'full_stack' && !fullstackAccess) {
@@ -823,8 +829,8 @@ export function CreateVTAView() {
                   : ''}
             </span>
             <button className="btn btn-default" onClick={handleCreate}
-              disabled={creating || sessionsLoading || !!sessionsError || limitReached || (mode === 'full_stack' && !fullstackAccess) || modeUnavailable || (mode === 'vta_only' && connectionChoice === 'custom' && !connectionInspection)}>
-              {creating ? 'Creating…' : limitReached ? 'Limit reached' : modeUnavailable ? 'Unavailable' : <>Create session <span className="arrow">→</span></>}
+              disabled={maintenance?.enabled || creating || sessionsLoading || !!sessionsError || limitReached || (mode === 'full_stack' && !fullstackAccess) || modeUnavailable || (mode === 'vta_only' && connectionChoice === 'custom' && !connectionInspection)}>
+              {maintenance?.enabled ? 'Maintenance mode' : creating ? 'Creating…' : limitReached ? 'Limit reached' : modeUnavailable ? 'Unavailable' : <>Create session <span className="arrow">→</span></>}
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, type MobileConnectionState, type SessionAcl } from '@/lib/api'
 import { isValidAdminDid } from './portalUtils'
 import { ConnectionMethodPicker, KeyringConnectionPanel, PnmAdminDidForm, PnmSetupInstructions, VtaDidCopyField, type ConnectionMethod } from './ConnectionMethodUi'
+import { useMaintenance } from '@/contexts/maintenance'
 
 interface SessionPnmCardProps {
   sessionId: string
@@ -18,6 +19,7 @@ function formatAclCreatedAt(value: string): string {
 }
 
 export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnmCardProps) {
+  const { state: maintenance } = useMaintenance()
   const [method, setMethod] = useState<ConnectionMethod>('automatic')
   const [adminDid, setAdminDid] = useState('')
   const [linking, setLinking] = useState(false)
@@ -296,7 +298,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           name={`additional-connection-${sessionId}`}
           value={method}
           onChange={next => void chooseMethod(next)}
-          disabled={linking || refreshingAcl || mobileBusy || mobileProvisioning}
+          disabled={maintenance?.enabled || linking || refreshingAcl || mobileBusy || mobileProvisioning}
           automaticDisabled={mobileLoading || !mobileState?.enabled}
         />
 
@@ -313,7 +315,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
             expired={mobileExpired}
             remaining={mobileRemaining}
             actionLabel={keyringActionLabel}
-            actionDisabled={mobileBusy || !online}
+            actionDisabled={maintenance?.enabled || mobileBusy || !online}
             onAction={() => void generateMobileQr()}
             claimCheck={mobileRequest?.status === 'claimed' ? mobileRequest.claim_check : undefined}
             candidateDid={mobileRequest?.status === 'claimed' ? mobileRequest.candidate_did : undefined}
@@ -330,8 +332,8 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           onChange={setAdminDid}
           onSubmit={() => void handleLink()}
           busy={linking}
-          inputDisabled={linking || refreshingAcl}
-          submitDisabled={linking || refreshingAcl || !adminDid.trim()}
+          inputDisabled={maintenance?.enabled || linking || refreshingAcl}
+          submitDisabled={maintenance?.enabled || linking || refreshingAcl || !adminDid.trim()}
           submitLabel="Link PNM"
           busyLabel="Linking — VTA restarting…"
         />}
@@ -366,7 +368,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
             <h3 className="card-title">Connected devices</h3>
           </div>
           <button className="btn btn-outline btn-sm" type="button" onClick={handleRefreshAcl}
-            disabled={linking || refreshingAcl}>
+            disabled={maintenance?.enabled || linking || refreshingAcl}>
             {refreshingAcl
               ? <><svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 14, height: 14 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Refreshing…</>
               : 'Refresh ACL'}
