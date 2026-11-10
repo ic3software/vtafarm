@@ -315,7 +315,7 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
             expired={mobileExpired}
             remaining={mobileRemaining}
             actionLabel={keyringActionLabel}
-            actionDisabled={mobileBusy || !online}
+            actionDisabled={maintenance?.enabled || mobileBusy || !online}
             onAction={() => void generateMobileQr()}
             claimCheck={mobileRequest?.status === 'claimed' ? mobileRequest.claim_check : undefined}
             candidateDid={mobileRequest?.status === 'claimed' ? mobileRequest.candidate_did : undefined}
@@ -332,8 +332,8 @@ export function SessionPnmCard({ sessionId, vtaDid, onVtaRestarted }: SessionPnm
           onChange={setAdminDid}
           onSubmit={() => void handleLink()}
           busy={linking}
-          inputDisabled={linking || refreshingAcl}
-          submitDisabled={linking || refreshingAcl || !adminDid.trim()}
+          inputDisabled={maintenance?.enabled || linking || refreshingAcl}
+          submitDisabled={maintenance?.enabled || linking || refreshingAcl || !adminDid.trim()}
           submitLabel="Link PNM"
           busyLabel="Linking — VTA restarting…"
         />}

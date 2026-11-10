@@ -272,7 +272,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
           expired={showKeyringQr && expired}
           remaining={remaining}
           actionLabel={keyringActionLabel}
-          actionDisabled={busy || !online || !ready}
+          actionDisabled={maintenance?.enabled || busy || !online || !ready}
           onAction={() => void generate()}
           claimCheck={request?.status === 'claimed' ? request.claim_check : undefined}
           candidateDid={request?.status === 'claimed' ? request.candidate_did : undefined}
@@ -291,8 +291,8 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
         onChange={setAdminDid}
         onSubmit={() => void submit()}
         busy={busy}
-        inputDisabled={busy || inProgress}
-        submitDisabled={busy || inProgress || !adminDid.trim() || !online}
+        inputDisabled={maintenance?.enabled || busy || inProgress}
+        submitDisabled={maintenance?.enabled || busy || inProgress || !adminDid.trim() || !online}
         submitLabel="Connect to VTA"
         busyLabel="Submitting…"
       />}
