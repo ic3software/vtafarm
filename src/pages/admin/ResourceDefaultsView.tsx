@@ -13,9 +13,12 @@ const components: Array<{ key: UpgradeComponent; label: string }> = [
 ]
 const memoryFields = ['memory_request', 'memory_limit'] as const
 
-// Only the VTA pin is exposed for now; the API stores a pin per component.
 const imageComponents: Array<{ key: UpgradeComponent; label: string }> = [
   { key: 'vta', label: 'VTA' },
+  { key: 'mediator', label: 'Mediator' },
+  { key: 'dids', label: 'DID Hosting' },
+  { key: 'vtc', label: 'VTC' },
+  { key: 'trust-registry', label: 'Trust Registry' },
 ]
 // Radix Select rejects an empty item value, so "no pin" needs a sentinel that
 // can never collide with a registry image reference.
@@ -106,7 +109,8 @@ export function ResourceDefaultsView() {
     try {
       const data = await api.adminSaveImageDefault(component, draftImages[component] ?? '')
       setSavedImages(data.images)
-      setDraftImages(data.images)
+      // Keep unsaved choices in the other rows; only this one is now saved.
+      setDraftImages(prev => ({ ...prev, [component]: data.images[component] ?? '' }))
       setNotice('image-saved')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save image default')
@@ -118,7 +122,7 @@ export function ResourceDefaultsView() {
   const noticeText = {
     'saved': { title: 'Defaults saved', desc: 'New deployments and capacity estimates will use these values.' },
     'restored': { title: 'Factory defaults restored in the form', desc: 'Save to apply them.' },
-    'image-saved': { title: 'Image default saved', desc: 'New agents created by users will preselect this image.' },
+    'image-saved': { title: 'Image default saved', desc: 'Image pickers will preselect this image until the platform stack next deploys this component.' },
   } as const
 
   return (
@@ -141,7 +145,7 @@ export function ResourceDefaultsView() {
       <div className="p-card" style={{ marginBottom: 16 }}>
         <div className="card-header">
           <h3 className="card-title">Image defaults</h3>
-          <p className="card-desc">The image preselected for users on the create form. Without a pin, users get whatever the latest tag points to.</p>
+          <p className="card-desc">The image every picker preselects. Each one follows what the platform stack last deployed successfully; a change saved here lasts until the platform stack next deploys that component. Without a default, pickers use whatever the latest tag points to.</p>
         </div>
         <div className="card-content p-col gap-12">
           {imageError ? (
@@ -187,12 +191,12 @@ export function ResourceDefaultsView() {
                 )}
                 {stale && (
                   <div className="field-hint">
-                    The pinned image is no longer in the registry. Users get the latest image until you choose another.
+                    The default image is no longer in the registry. Pickers use the latest image until you choose another.
                   </div>
                 )}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
                   <button className="btn btn-default" disabled={busy || draftImage === savedImage} onClick={() => void saveImage(key)}>
-                    {busy ? 'Saving…' : 'Save image default'}
+                    {busy ? 'Saving…' : `Save ${label} default`}
                   </button>
                 </div>
               </div>

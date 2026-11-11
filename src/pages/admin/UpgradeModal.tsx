@@ -9,7 +9,7 @@ import {
   type UpgradeTaskStatus,
   type ImageOption,
 } from '@/lib/api'
-import { imageChangeDirection, imageLabel, imageTag } from '@/lib/utils'
+import { imageChangeDirection, imageLabel, imageTag, preferredImage } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { VersionChangeList } from '@/components/VersionChangeList'
 
@@ -72,7 +72,7 @@ export function UpgradeModal({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  // Configure phase: load every component's tag list once, default to latest.
+  // Configure phase: load every component's tag list once, preselect its default.
   useEffect(() => {
     if (batchId !== null) return
     let stopped = false
@@ -87,10 +87,9 @@ export function UpgradeModal({
       if (stopped) return
       const next = {} as Record<UpgradeComponent, ComponentRow>
       for (const r of results) {
-        const latest = r.images.find(i => i.latest) ?? r.images[0]
         next[r.component] = {
           images: r.images,
-          image: latest?.image ?? '',
+          image: preferredImage(r.images)?.image ?? '',
           include: defaultComponents.includes(r.component) && !r.error && r.images.length > 0,
           unavailable: r.error || undefined,
         }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, type KeyboardEvent, type RefObject } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, API_BASE, ALL_COMPONENTS, type ImageOption, type PlatformStack, type SetupSession, type UpgradeComponent } from '@/lib/api'
-import { imageLabel } from '@/lib/utils'
+import { imageLabel, preferredImage } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PhaseStepper } from '../portal/PhaseStepper'
 import { fullStackPhases, phaseIndex, statusBadge, useCopyState, isValidAdminDid, componentHost, useDomainInfo } from '../portal/portalUtils'
@@ -486,8 +486,8 @@ export function PlatformStackView() {
       api.adminListImages(component)
         .then(imgs => {
           setImages(prev => ({ ...prev, [component]: imgs }))
-          const latest = imgs.find(i => i.latest) ?? imgs[0]
-          setSelected(prev => ({ ...prev, [component]: prev[component] || (latest?.image ?? '') }))
+          const preferred = preferredImage(imgs)
+          setSelected(prev => ({ ...prev, [component]: prev[component] || (preferred?.image ?? '') }))
         })
         .catch(() => {})
     }
@@ -665,7 +665,7 @@ export function PlatformStackView() {
             ))}
 
             <label className="p-row gap-8"><input type="checkbox" checked={registryEnabled} onChange={e => setRegistryEnabled(e.target.checked)} /> Enable Trust Registry (optional)</label>
-            {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} admin defaultToLatest />}
+            {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} admin preselectDefault />}
             {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
           </div>
           <div className="card-footer between">
