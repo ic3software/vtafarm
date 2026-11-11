@@ -38,7 +38,7 @@ export function ResourceDefaultsView() {
   const [savedImages, setSavedImages] = useState<Partial<Record<UpgradeComponent, string>> | null>(null)
   const [draftImages, setDraftImages] = useState<Partial<Record<UpgradeComponent, string>>>({})
   const [imageError, setImageError] = useState('')
-  const [imageSaving, setImageSaving] = useState<UpgradeComponent | ''>('')
+  const [imageSaving, setImageSaving] = useState(false)
   const [imageReload, setImageReload] = useState(0)
 
   useEffect(() => {
@@ -102,27 +102,36 @@ export function ResourceDefaultsView() {
     }
   }
 
-  async function saveImage(component: UpgradeComponent) {
+  // Only rows whose draft differs from what is saved; '' clears a pin.
+  const imageChanges = savedImages
+    ? Object.fromEntries(imageComponents
+      .filter(({ key }) => (draftImages[key] ?? '') !== (savedImages[key] ?? ''))
+      .map(({ key }) => [key, draftImages[key] ?? ''])) as Partial<Record<UpgradeComponent, string>>
+    : {}
+  const imagesChanged = Object.keys(imageChanges).length > 0
+
+  async function saveImages() {
+    if (!imagesChanged) return
     setError('')
     setNotice('')
-    setImageSaving(component)
+    setImageSaving(true)
     try {
-      const data = await api.adminSaveImageDefault(component, draftImages[component] ?? '')
+      const data = await api.adminSaveImageDefaults(imageChanges)
       setSavedImages(data.images)
-      // Keep unsaved choices in the other rows; only this one is now saved.
-      setDraftImages(prev => ({ ...prev, [component]: data.images[component] ?? '' }))
+      setDraftImages(data.images)
       setNotice('image-saved')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save image default')
+      // Nothing was saved; the drafts stay so the admin can fix and retry.
+      setError(err instanceof Error ? err.message : 'Failed to save image defaults')
     } finally {
-      setImageSaving('')
+      setImageSaving(false)
     }
   }
 
   const noticeText = {
     'saved': { title: 'Defaults saved', desc: 'New deployments and capacity estimates will use these values.' },
     'restored': { title: 'Factory defaults restored in the form', desc: 'Save to apply them.' },
-    'image-saved': { title: 'Image default saved', desc: 'Image pickers will preselect this image until the platform stack next deploys this component.' },
+    'image-saved': { title: 'Image defaults saved', desc: 'Image pickers will preselect these images until the platform stack next deploys each component.' },
   } as const
 
   return (
@@ -155,19 +164,18 @@ export function ResourceDefaultsView() {
             </div>
           ) : !savedImages ? (
             <p className="p-muted" role="status">Loading image defaults…</p>
-          ) : imageComponents.map(({ key, label }) => {
+          ) : <>{imageComponents.map(({ key, label }) => {
             const options = imageOptions[key] ?? []
             const savedImage = savedImages[key] ?? ''
             const draftImage = draftImages[key] ?? ''
             const stale = !!savedImage && !options.some(option => option.image === savedImage)
             const listed = stale ? [{ tag: imageTag(savedImage), image: savedImage }, ...options] : options
-            const busy = imageSaving === key
             const selectId = `image-default-${key}`
             return (
               <div key={key}>
                 <label className="p-label" htmlFor={selectId}>{label} image</label>
                 {listed.length > 0 ? (
-                  <Select value={draftImage || FOLLOW_LATEST} disabled={busy}
+                  <Select value={draftImage || FOLLOW_LATEST} disabled={imageSaving}
                     onValueChange={value => {
                       setDraftImages(prev => ({ ...prev, [key]: value === FOLLOW_LATEST ? '' : value }))
                       setNotice('')
@@ -194,14 +202,15 @@ export function ResourceDefaultsView() {
                     The default image is no longer in the registry. Pickers use the latest image until you choose another.
                   </div>
                 )}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                  <button className="btn btn-default" disabled={busy || draftImage === savedImage} onClick={() => void saveImage(key)}>
-                    {busy ? 'Saving…' : `Save ${label} default`}
-                  </button>
-                </div>
               </div>
             )
           })}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+              <button className="btn btn-default" disabled={imageSaving || !imagesChanged} onClick={() => void saveImages()}>
+                {imageSaving ? 'Saving…' : 'Save image defaults'}
+              </button>
+            </div>
+          </>}
         </div>
       </div>
 
