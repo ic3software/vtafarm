@@ -1,5 +1,23 @@
 # Changelog
 
+## [v0.20.0] - 2026-11-12
+
+### Added
+
+- Administrators can enable maintenance mode with a custom user-facing
+  message after active operations finish, and inspect any operations that
+  prevent the mode from changing.
+- Users see when maintenance mode is active, and workflows that create or
+  modify VTAs remain unavailable until maintenance ends.
+
+### Changed
+
+- Image pickers preselect the configured default for every Platform Stack
+  component, and administrators can update all five image defaults together.
+- Updated Lucide, Tailwind CSS, shadcn, Vite, and ESLint globals dependencies.
+
+Requires vtafarm-api 0.20.0.
+
 ## [v0.19.1] - 2026-11-09
 
 ### Fixed
