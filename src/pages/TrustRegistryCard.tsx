@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Dialog } from 'radix-ui'
 import { api, type ImageOption, type TrustRegistryState } from '@/lib/api'
-import { imageLabel } from '@/lib/utils'
+import { imageLabel, preferredImage } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TrustRegistryDetails } from './TrustRegistryDetails'
 import { useMaintenance } from '@/contexts/maintenance'
@@ -10,12 +10,13 @@ export function TrustRegistryImagePicker({
   image,
   onChange,
   admin = false,
-  defaultToLatest = false,
+  preselectDefault = false,
 }: {
   image: string
   onChange: (image: string) => void
   admin?: boolean
-  defaultToLatest?: boolean
+  /** Select the default image (see preferredImage) once the list loads, if nothing is chosen yet. */
+  preselectDefault?: boolean
 }) {
   const [images, setImages] = useState<ImageOption[]>([])
   const [error, setError] = useState('')
@@ -31,9 +32,9 @@ export function TrustRegistryImagePicker({
     return () => { active = false }
   }, [admin, attempt])
   useEffect(() => {
-    if (!defaultToLatest || image || images.length === 0) return
-    onChange((images.find(option => option.latest) ?? images[0]).image)
-  }, [defaultToLatest, image, images, onChange])
+    const preferred = preselectDefault && !image ? preferredImage(images) : undefined
+    if (preferred) onChange(preferred.image)
+  }, [preselectDefault, image, images, onChange])
   return <div className="p-col gap-8">
     <label className="p-label" htmlFor="trust-registry-image">Trust Registry image</label>
     <Select value={image} onValueChange={onChange} disabled={!images.length}>
@@ -149,7 +150,7 @@ export function TrustRegistryCard({
       {!registry && !loadError && <p className="p-muted text-sm">Loading Registry status…</p>}
       {registry && registry.state !== 'disabled' && <TrustRegistryDetails registry={registry} />}
       {registry && !active && !enabling && <>
-        <TrustRegistryImagePicker image={image} onChange={setImage} admin={admin} />
+        <TrustRegistryImagePicker image={image} onChange={setImage} admin={admin} preselectDefault />
         <div className="p-row center" style={{ justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-default btn-sm" disabled={maintenanceBlocked || !image || submitting || !!loadError} title={maintenanceBlocked ? 'Maintenance mode is active' : undefined} onClick={() => void enable()}>{submitting ? 'Starting…' : registry.state === 'failed' ? 'Retry enablement' : 'Enable Trust Registry'}</button>
         </div>

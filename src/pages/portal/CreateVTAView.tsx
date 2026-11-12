@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { api, API_BASE, type ApiError, type SetupSession, type SetupAvailability, type ConnectionInspection, type Domain, type ImageOption } from '@/lib/api'
-import { imageLabel } from '@/lib/utils'
+import { imageLabel, preferredImage } from '@/lib/utils'
 import type { PortalContext } from './Portal'
 import {
   statusBadge, componentHost, fullStackPhases, phaseIndex, useDomainInfo, vtaOnlyPhases,
@@ -133,9 +133,7 @@ export function CreateVTAView() {
       .then(imgs => {
         const fixtureImages = devImageFixtures('vta') ?? imgs
         setImages(fixtureImages)
-        // Admin-pinned default first, then whatever `latest` points to.
-        const preselected = fixtureImages.find(i => i.default) ?? fixtureImages.find(i => i.latest) ?? fixtureImages[0]
-        setSelectedImage(preselected?.image ?? '')
+        setSelectedImage(preferredImage(fixtureImages)?.image ?? '')
       })
       .catch(() => {})
   }, [])
@@ -155,16 +153,14 @@ export function CreateVTAView() {
       .then(imgs => {
         const fixtureImages = devImageFixtures('mediator') ?? imgs
         setMediatorImages(fixtureImages)
-        const latestImg = fixtureImages.find(i => i.latest) ?? fixtureImages[0]
-        setSelectedMediatorImage(latestImg?.image ?? '')
+        setSelectedMediatorImage(preferredImage(fixtureImages)?.image ?? '')
       })
       .catch(() => {})
     api.listImages('dids')
       .then(imgs => {
         const fixtureImages = devImageFixtures('dids') ?? imgs
         setDidsImages(fixtureImages)
-        const latestImg = fixtureImages.find(i => i.latest) ?? fixtureImages[0]
-        setSelectedDidsImage(latestImg?.image ?? '')
+        setSelectedDidsImage(preferredImage(fixtureImages)?.image ?? '')
       })
       .catch(() => {})
   }, [mode, mediatorImages.length])
@@ -186,8 +182,7 @@ export function CreateVTAView() {
       .then(imgs => {
         const fixtureImages = devImageFixtures('vtc') ?? imgs
         setVtcImages(fixtureImages)
-        const latestImg = fixtureImages.find(i => i.latest) ?? fixtureImages[0]
-        setSelectedVtcImage(latestImg?.image ?? '')
+        setSelectedVtcImage(preferredImage(fixtureImages)?.image ?? '')
       })
       .catch(() => {})
   }, [mode, vtcImages.length])
@@ -690,7 +685,7 @@ export function CreateVTAView() {
                     className="w-(--radix-select-trigger-width)" style={imageSelectContentStyle}>
                     {images.map(img => (
                       <SelectItem key={img.image} value={img.image} className="p-mono">
-                        {imageLabel(img, { markDefault: true })}
+                        {imageLabel(img)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -814,7 +809,7 @@ export function CreateVTAView() {
                   {registryEnabled ? 'Enabled' : 'Optional'}
                 </span>
               </label>
-              {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} defaultToLatest />}
+              {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} preselectDefault />}
             </div>}
             {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
             {limitReached && <p className="field-hint">{VTA_LIMIT_MESSAGE}</p>}

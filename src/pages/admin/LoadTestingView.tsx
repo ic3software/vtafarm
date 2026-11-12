@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, type ImageOption, type LoadTestRun } from '@/lib/api'
-import { imageLabel, imageTag } from '@/lib/utils'
+import { imageLabel, imageTag, preferredImage } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { LoadTestRunBadge } from './LoadTestRunBadge'
 
@@ -31,7 +31,7 @@ export function LoadTestingView() {
     void loadRuns().catch(() => {})
     void api.adminListImages('vta').then(options => {
       setImages(options)
-      const preferred = options.find(option => option.latest) ?? options[0]
+      const preferred = preferredImage(options)
       if (preferred) setSelectedImage(preferred.image)
     }).catch(() => {})
   }, [loadRuns])

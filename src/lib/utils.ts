@@ -13,19 +13,27 @@ export function imageTag(image: string) {
 }
 
 /**
- * Dropdown label for a registry image: the tag, the channel(s) pointing at
- * it, then the build date, e.g. "0.10.0-cf959b0 [nightly] 2026-10-15".
- * `markDefault` also appends " [default]" to the admin-pinned image; only the
- * user-facing create form opts in, so admin pickers look unchanged.
+ * Dropdown label for a registry image: the tag, then " [default]" on the
+ * component's default image, the channel(s) pointing at it, and the build
+ * date, e.g. "0.10.0-cf959b0 [default] [nightly] 2026-10-15".
  */
-export function imageLabel(img: ImageOption, { markDefault = false } = {}): string {
+export function imageLabel(img: ImageOption): string {
   let s = img.tag
-  if (markDefault && img.default) s += ' [default]'
+  if (img.default) s += ' [default]'
   if (img.latest) s += ' [latest]'
   if (img.nightly) s += ' [nightly]'
   if (img.main) s += ' [main]'
   if (img.created) s += ' ' + img.created.slice(0, 10)
   return s
+}
+
+/**
+ * The image a picker should preselect for a fresh choice: the component's
+ * default (what the platform stack last deployed, or an admin's pin), then
+ * whatever `latest` points to, then the first listed.
+ */
+export function preferredImage(images: ImageOption[]): ImageOption | undefined {
+  return images.find(i => i.default) ?? images.find(i => i.latest) ?? images[0]
 }
 
 export type ImageChangeDirection = 'upgrade' | 'downgrade' | 'change'

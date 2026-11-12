@@ -1074,9 +1074,13 @@ export const api = {
   adminSaveResourceDefaults: (resources: Array<{ component: UpgradeComponent; memory_request: string; memory_limit: string }>) =>
     req<ResourceDefaults>('PUT', '/api/v1/admin/resource-defaults', { resources }),
   adminImageDefaults: () => req<ImageDefaults>('GET', '/api/v1/admin/image-defaults'),
-  /** An empty image clears the pin so users follow `latest` again. */
-  adminSaveImageDefault: (component: UpgradeComponent, image: string) =>
-    req<ImageDefaults>('PUT', '/api/v1/admin/image-defaults', { component, image }),
+  /**
+   * Saves the listed components' defaults together (all or nothing); unlisted
+   * components are untouched. An empty image clears that pin so pickers follow
+   * `latest` again.
+   */
+  adminSaveImageDefaults: (images: Partial<Record<UpgradeComponent, string>>) =>
+    req<ImageDefaults>('PUT', '/api/v1/admin/image-defaults', { images }),
   adminSessionResources: (id: string) =>
     req<AdminSessionResources>('GET', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/resources`),
   adminApplySessionResources: (
