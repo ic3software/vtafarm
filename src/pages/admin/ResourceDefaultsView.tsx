@@ -169,7 +169,11 @@ export function ResourceDefaultsView() {
             const savedImage = savedImages[key] ?? ''
             const draftImage = draftImages[key] ?? ''
             const stale = !!savedImage && !options.some(option => option.image === savedImage)
-            const listed = stale ? [{ tag: imageTag(savedImage), image: savedImage }, ...options] : options
+            // Flag [default] from the saved pins, not the list's own `default`
+            // flag: the list is fetched once, so after a save it still marks
+            // the previous default until the page is reloaded.
+            const listed = (stale ? [{ tag: imageTag(savedImage), image: savedImage }, ...options] : options)
+              .map(option => ({ ...option, default: !!savedImage && option.image === savedImage }))
             const selectId = `image-default-${key}`
             return (
               <div key={key}>
