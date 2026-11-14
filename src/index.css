@@ -39,6 +39,9 @@
   --border: #e3e0d6;
   --input: #e3e0d6;
   --ring: #9d0105;
+  --chart-1: #9d0105;
+  --chart-2: #2563eb;
+  --chart-3: #d97706;
   --radius: 0.625rem;
   --sidebar: #f7f5f0;
   --sidebar-foreground: #0d0d0d;
@@ -90,6 +93,9 @@ html.dark {
   --border: #292929;
   --input: #2e2e2e;
   --ring: #da4346;
+  --chart-1: #f05b5e;
+  --chart-2: #60a5fa;
+  --chart-3: #fbbf24;
   --sidebar: #0a0a0a;
   --sidebar-foreground: #f5f5f2;
   --sidebar-primary: #da4346;
@@ -133,6 +139,9 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);

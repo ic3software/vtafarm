@@ -143,7 +143,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
         setUpgrade(u)
         setShowResult(inFlight(u))
       })
-      .catch(() => {}) // 404 — never upgraded
+      .catch(() => {})
     return () => { stopped = true }
     // Reload the inventory when optional Registry enablement completes.
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type KeyboardEvent } from 'react'
+import { lazy, Suspense, useState, useEffect, useRef, type KeyboardEvent } from 'react'
 import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { api, type SetupSession, API_BASE } from '@/lib/api'
 import { statusBadge, fullStackPhases, phaseIndex, domainTypeBadge, vtaOnlyPhases, modeLabel } from './portalUtils'
@@ -17,7 +17,7 @@ import { recoveryComponentsForSession } from '../sessionRecovery'
 import { useMaintenance } from '@/contexts/maintenance'
 import type { PortalContext } from './Portal'
 
-type SessionTab = 'overview' | 'connections' | 'settings' | 'credentials'
+type SessionTab = 'overview' | 'metrics' | 'connections' | 'settings' | 'credentials'
 
 const SESSION_TABS: Array<{ value: SessionTab; label: string }> = [
   { value: 'overview', label: 'Overview' },
@@ -29,6 +29,13 @@ const CREDENTIALS_TAB: { value: SessionTab; label: string } = {
   value: 'credentials',
   label: 'Credentials',
 }
+
+const METRICS_TAB: { value: SessionTab; label: string } = {
+  value: 'metrics',
+  label: 'Metrics',
+}
+
+const SessionMetricsPanel = lazy(() => import('./SessionMetricsPanel').then(module => ({ default: module.SessionMetricsPanel })))
 
 export function SessionDetailView() {
   const { id } = useParams<{ id: string }>()
@@ -145,9 +152,12 @@ function SessionDetailContent() {
   const setupProgressStatus = setupFailed ? session.failed_stage ?? 'running' : session.status
   const setupPhaseIndex = Math.max(0, phaseIndex(setupPhases, setupProgressStatus))
   const isFullStackCompleted = isFullStack && session.status === 'running'
-  const sessionTabs = isFullStackCompleted
-    ? [...SESSION_TABS.slice(0, 2), CREDENTIALS_TAB, SESSION_TABS[2]]
+  const tabsWithMetrics = session.status === 'running'
+    ? [SESSION_TABS[0], METRICS_TAB, ...SESSION_TABS.slice(1)]
     : SESSION_TABS
+  const sessionTabs = isFullStackCompleted
+    ? [...tabsWithMetrics.slice(0, -1), CREDENTIALS_TAB, tabsWithMetrics.at(-1)!]
+    : tabsWithMetrics
   const requestedTab = searchParams.get('tab')
   const defaultTab: SessionTab = isAwaitingAdmin || session.status === 'awaiting_did_publication'
     ? 'connections'
@@ -377,6 +387,21 @@ function SessionDetailContent() {
           </div>
         )}
       </section>
+
+      {session.status === 'running' && (
+        <section
+          id="session-panel-metrics"
+          role="tabpanel"
+          aria-labelledby="session-tab-metrics"
+          hidden={activeTab !== 'metrics'}
+        >
+          {activeTab === 'metrics' && (
+            <Suspense fallback={<p className="p-muted">Loading metrics…</p>}>
+              <SessionMetricsPanel sessionId={sessionId} />
+            </Suspense>
+          )}
+        </section>
+      )}
 
       <section
         id="session-panel-settings"
