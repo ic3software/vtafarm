@@ -162,6 +162,61 @@ export interface SetupSession {
   updated_at?: string
 }
 
+export type MetricsScope = 'stack' | 'component' | 'pod'
+export type MetricsRange = '1h' | '6h' | '24h' | '7d' | '30d'
+
+export interface MetricsTarget {
+  scope: MetricsScope
+  component?: string
+  pod?: string
+}
+
+export interface MetricsPod {
+  name: string
+  component: string
+  ready: boolean
+  started_at?: string
+  last_termination_reason?: string
+}
+
+export interface MetricsMeta {
+  plan: 'free' | 'premium'
+  retention_days: 7 | 30
+  live_enabled: boolean
+  live_interval_seconds?: number
+  live_window_seconds?: number
+  mode: SetupMode
+  components: string[]
+  pods: MetricsPod[]
+}
+
+export interface MetricsPoint {
+  timestamp: number
+  value: number
+}
+
+export interface MetricsSeries {
+  metric: string
+  labels?: Record<string, string>
+  points: MetricsPoint[]
+}
+
+export interface MetricsResponse {
+  target: MetricsTarget
+  start: number
+  end: number
+  step_seconds: number
+  series: MetricsSeries[]
+  summary: Record<string, number>
+  warnings?: string[]
+}
+
+export interface MetricsLiveSample {
+  observed_at: number
+  series: MetricsSeries[]
+  warnings?: string[]
+}
+
 /**
  * Why a mode can't be created right now.
  *
@@ -1245,11 +1300,25 @@ export const api = {
     req<{ id: number; name: string }>('POST', `/api/v1/user/passkeys/register/complete?name=${encodeURIComponent(name)}`, credential),
   listPasskeys: () => req<PasskeyRecord[]>('GET', '/api/v1/user/passkeys'),
   deletePasskey: (id: number) => req<null>('DELETE', `/api/v1/user/passkeys/${id}`),
-  getMe: () => req<{ id: string; email: string | null; fullstack_access: boolean; vta_count: number; vta_limit: number | null; created_at: string }>('GET', '/api/v1/user/me'),
+  getMe: () => req<{ id: string; email: string | null; fullstack_access: boolean; plan: 'free' | 'premium'; metrics_retention_days: 7 | 30; vta_count: number; vta_limit: number | null; created_at: string }>('GET', '/api/v1/user/me'),
 
   // ── Setup sessions ───────────────────────────────────────────────────────────
   listImages: (component: UpgradeComponent = 'vta') =>
     req<ImageOption[]>('GET', `/api/v1/setup/images?component=${component}`),
+  sessionMetricsMeta: (id: string) =>
+    req<MetricsMeta>('GET', `/api/v1/setup/${encodeURIComponent(id)}/metrics/meta`),
+  sessionMetricsRange: (id: string, range: MetricsRange, target: MetricsTarget) => {
+    const params = new URLSearchParams({ range, scope: target.scope })
+    if (target.component) params.set('component', target.component)
+    if (target.pod) params.set('pod', target.pod)
+    return req<MetricsResponse>('GET', `/api/v1/setup/${encodeURIComponent(id)}/metrics/range?${params}`)
+  },
+  sessionMetricsLiveURL: (id: string, target: MetricsTarget) => {
+    const params = new URLSearchParams({ scope: target.scope })
+    if (target.component) params.set('component', target.component)
+    if (target.pod) params.set('pod', target.pod)
+    return `${API_BASE}/api/v1/setup/${encodeURIComponent(id)}/metrics/live?${params}`
+  },
   // Remaining per-mode cluster capacity — the create screen uses this to show
   // "Unavailable" and disable the button before submitting.
   setupAvailability: () => req<SetupAvailability>('GET', '/api/v1/setup/availability'),
@@ -1346,7 +1415,7 @@ export const api = {
   // only ever matches sessions owned by the authenticated user.
   createSessionUpgrade: (id: string, components: Array<{ component: UpgradeComponent; image: string }>) =>
     req<SessionUpgrade>('POST', `/api/v1/setup/${id}/upgrade`, { components }),
-  getSessionUpgrade: (id: string) => req<SessionUpgrade>('GET', `/api/v1/setup/${id}/upgrade`),
+  getSessionUpgrade: (id: string) => req<SessionUpgrade | null>('GET', `/api/v1/setup/${id}/upgrade`),
   reissueDidsEnroll: (id: string) =>
     req<{ dids_admin_enroll_url: string; dids_admin_enroll_claim_code: string }>('POST', `/api/v1/setup/${id}/dids/reissue-enroll`),
   ackDidsEnroll: (id: string) =>
