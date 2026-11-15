@@ -142,6 +142,11 @@ export function DashboardView() {
             Auto-refreshes every {REFRESH_MS / 1000}s
             {updatedAt && ` · updated ${updatedAt.toLocaleTimeString()}`}
             {data?.metrics_available && ` · using ${usageSourceLabel}`}
+            <span className="metrics-source-note">
+              <strong className="metrics-source-title">Prometheus vs Kubernetes</strong>
+              <span><strong>Prometheus</strong> — CPU: latest ~15s average · Memory: current active use</span>
+              <span><strong>Kubernetes</strong> — CPU: latest ~10s average · Memory: current active use</span>
+            </span>
           </p>
         </div>
         <div className="metrics-root">
