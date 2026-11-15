@@ -663,9 +663,13 @@ export interface AdminDashboard {
   nodes: DashboardNode[]
   storage_nodes: DashboardStorageNode[] | null
   metrics_available: boolean
+  metrics_source: 'prometheus' | 'kubernetes' | 'unavailable'
+  metrics_warning?: string
   storage_available: boolean
   estimates: { vta_only: DashboardEstimate; full_stack: DashboardEstimate }
 }
+
+export type DashboardMetricsSource = 'auto' | 'prometheus' | 'kubernetes'
 
 export type PlacementMode = 'disabled' | 'canary' | 'enabled'
 export type PlacementPlanKind = 'reconcile' | 'relocate'
@@ -1065,7 +1069,8 @@ export const api = {
     req<{ id: string; fullstack_access: boolean }>('PUT', `/api/v1/admin/users/${id}/fullstack-access`, { fullstack_access: fullstackAccess }),
 
   // ── Admin — dashboard ────────────────────────────────────────────────────────
-  adminDashboard: () => req<AdminDashboard>('GET', '/api/v1/admin/dashboard'),
+  adminDashboard: (source: DashboardMetricsSource = 'auto') =>
+    req<AdminDashboard>('GET', `/api/v1/admin/dashboard?source=${source}`),
   adminMaintenanceStatus: () => req<MaintenanceSnapshot>('GET', '/api/v1/admin/maintenance'),
   setMaintenanceMode: (enabled: boolean, message: string) =>
     req<MaintenanceSnapshot>('PUT', '/api/v1/admin/maintenance', { enabled, message }),
@@ -1318,6 +1323,20 @@ export const api = {
     if (target.component) params.set('component', target.component)
     if (target.pod) params.set('pod', target.pod)
     return `${API_BASE}/api/v1/setup/${encodeURIComponent(id)}/metrics/live?${params}`
+  },
+  adminSessionMetricsMeta: (id: string) =>
+    req<MetricsMeta>('GET', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/metrics/meta`),
+  adminSessionMetricsRange: (id: string, range: MetricsRange, target: MetricsTarget) => {
+    const params = new URLSearchParams({ range, scope: target.scope })
+    if (target.component) params.set('component', target.component)
+    if (target.pod) params.set('pod', target.pod)
+    return req<MetricsResponse>('GET', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/metrics/range?${params}`)
+  },
+  adminSessionMetricsLiveURL: (id: string, target: MetricsTarget) => {
+    const params = new URLSearchParams({ scope: target.scope })
+    if (target.component) params.set('component', target.component)
+    if (target.pod) params.set('pod', target.pod)
+    return `${API_BASE}/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/metrics/live?${params}`
   },
   // Remaining per-mode cluster capacity — the create screen uses this to show
   // "Unavailable" and disable the button before submitting.
