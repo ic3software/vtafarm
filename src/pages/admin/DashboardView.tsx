@@ -206,7 +206,7 @@ export function DashboardView() {
                     detail={`${fmtCores(cpu.requested_millis)} / ${fmtCores(cpu.allocatable_millis)} cores`}
                   />
                   <Meter
-                    label={`Used (${usageSourceLabel})`}
+                    label="Used"
                     num={cpu.used_millis}
                     den={cpu.allocatable_millis}
                     detail={`${fmtCores(cpu.used_millis)} / ${fmtCores(cpu.allocatable_millis)} cores`}
@@ -239,7 +239,7 @@ export function DashboardView() {
                     detail={`${fmtBytes(mem.requested_bytes)} / ${fmtBytes(mem.allocatable_bytes)}`}
                   />
                   <Meter
-                    label={`Used (${usageSourceLabel})`}
+                    label="Used"
                     num={mem.used_bytes}
                     den={mem.allocatable_bytes}
                     detail={`${fmtBytes(mem.used_bytes)} / ${fmtBytes(mem.allocatable_bytes)}`}
@@ -326,7 +326,7 @@ export function DashboardView() {
                       />
                       <Meter
                         small
-                        label={usageSourceLabel}
+                        label="Used"
                         num={n.cpu_used_millis}
                         den={n.cpu_allocatable_millis}
                         detail={`${n.cpu_used_millis}m / ${n.cpu_allocatable_millis}m`}
@@ -343,7 +343,7 @@ export function DashboardView() {
                       />
                       <Meter
                         small
-                        label={usageSourceLabel}
+                        label="Used"
                         num={n.mem_used_bytes}
                         den={n.mem_allocatable_bytes}
                         detail={`${fmtBytes(n.mem_used_bytes)} / ${fmtBytes(n.mem_allocatable_bytes)}`}
