@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, Database, Gauge, MemoryStick, Network } from 'lucide-react'
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
+import { Activity, AlertTriangle, Gauge, MemoryStick, Network } from 'lucide-react'
+import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts'
 
 import { api, type MetricsLiveSample, type MetricsMeta, type MetricsRange, type MetricsResponse, type MetricsScope, type MetricsSeries, type MetricsTarget } from '@/lib/api'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -90,7 +90,13 @@ function mergeLive(current: MetricsResponse, sample: MetricsLiveSample, windowSe
     }
     existing.points = existing.points.filter(point => point.timestamp >= sample.observed_at - windowSeconds)
   }
-  return { ...current, end: sample.observed_at, series: [...current.series], summary: latestSummary(current.series), warnings: sample.warnings }
+  return {
+    ...current,
+    end: sample.observed_at,
+    series: [...current.series],
+    summary: { ...current.summary, ...latestSummary(sample.series) },
+    warnings: sample.warnings,
+  }
 }
 
 function metricRows(series: MetricsSeries[], metrics: string[]) {
@@ -105,23 +111,70 @@ function metricRows(series: MetricsSeries[], metrics: string[]) {
   return [...rows.values()].sort((a, b) => a.timestamp - b.timestamp)
 }
 
-function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, timeDomain }: {
+const tickIntervals: Record<TimeChoice, number> = {
+  live: 75,
+  '1h': 10 * 60,
+  '6h': 30 * 60,
+  '24h': 2 * 60 * 60,
+  '7d': 12 * 60 * 60,
+  '30d': 3 * 24 * 60 * 60,
+}
+
+function timeTicks([start, end]: [number, number], range: TimeChoice): number[] {
+  const interval = tickIntervals[range]
+  const timezoneOffset = new Date(start * 1000).getTimezoneOffset() * 60
+  const first = Math.ceil((start - timezoneOffset) / interval) * interval + timezoneOffset
+  const ticks: number[] = []
+  for (let tick = first; tick <= end; tick += interval) ticks.push(tick)
+  return ticks
+}
+
+function formatTimeTick(timestamp: number, range: TimeChoice): string {
+  const date = new Date(timestamp * 1000)
+  if (range === 'live') return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  if (range === '1h' || range === '6h') return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  if (range === '30d') return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  if (date.getHours() === 0) return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  if (range === '7d') return date.toLocaleTimeString([], { hour: 'numeric' })
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function MetricsSkeleton() {
+  return (
+    <>
+      <div data-metrics-grid="summary" className="grid sm:grid-cols-2 lg:grid-cols-5">
+        {Array.from({ length: 5 }, (_, index) => (
+          <Card data-metrics-card="summary" key={index}>
+            <CardHeader><Skeleton className="h-3 w-20" /></CardHeader>
+            <CardContent><Skeleton className="h-8 w-24" /></CardContent>
+          </Card>
+        ))}
+      </div>
+      <div data-metrics-grid="charts" className="grid">
+        {Array.from({ length: 3 }, (_, index) => (
+          <Card data-metrics-card="chart" key={index}>
+            <CardHeader><Skeleton className="h-5 w-24" /></CardHeader>
+            <CardContent><Skeleton className="h-64 w-full" /></CardContent>
+          </Card>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, timeDomain, timeRange }: {
   title: string
   icon: typeof Gauge
   series: MetricsSeries[]
   metrics: string[]
   valueFormatter: (value: number) => string
-  timeDomain?: [number, number]
+  timeDomain: [number, number]
+  timeRange: TimeChoice
 }) {
   const data = useMemo(() => metricRows(series, metrics), [series, metrics])
-  const timeTicks = useMemo(() => {
-    if (!timeDomain) return undefined
-    const [start, end] = timeDomain
-    const span = end - start
-    return [0, 0.25, 0.5, 0.75, 1].map(position => start + span * position)
-  }, [timeDomain])
+  const ticks = useMemo(() => timeTicks(timeDomain, timeRange), [timeDomain, timeRange])
   const dataMax = Math.max(0, ...data.flatMap(row => metrics.map(metric => row[metric] ?? 0)))
-  const currentYMax = dataMax > 0 ? dataMax : 1
+  const currentYMax = dataMax > 0 ? dataMax * 1.08 : 1
   const [yDomainMax, setYDomainMax] = useState(currentYMax)
   if (currentYMax > yDomainMax) setYDomainMax(currentYMax)
   const config = Object.fromEntries(metrics.map(metric => [metric, { label: metricLabels[metric], color: metricColors[metric] }])) as ChartConfig
@@ -133,23 +186,21 @@ function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, timeD
       <CardContent>
         {data.length === 0 ? <p className="py-14 text-center text-sm text-muted-foreground">No samples in this range.</p> : (
           <ChartContainer config={config} className="h-64 w-full aspect-auto">
-            <LineChart data={data} accessibilityLayer margin={{ left: 8, right: 16 }}>
+            <ComposedChart data={data} accessibilityLayer margin={{ left: 8, right: 16 }}>
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="timestamp"
-                type={timeDomain ? 'number' : 'category'}
+                type="number"
                 domain={timeDomain}
-                allowDataOverflow={Boolean(timeDomain)}
-                ticks={timeTicks}
-                interval={timeDomain ? 0 : 'preserveEnd'}
+                allowDataOverflow
+                ticks={ticks}
+                interval="preserveStartEnd"
                 padding={{ left: 24, right: 24 }}
                 tickLine={false}
                 axisLine={false}
                 tickMargin={10}
                 minTickGap={32}
-                tickFormatter={value => new Date(Number(value) * 1000).toLocaleTimeString([], {
-                  hour: '2-digit', minute: '2-digit', ...(timeDomain ? { second: '2-digit' } : {}),
-                })}
+                tickFormatter={value => formatTimeTick(Number(value), timeRange)}
               />
               <YAxis domain={[0, yDomainMax]} allowDataOverflow tickLine={false} axisLine={false} tickMargin={10} width={72} tickFormatter={value => valueFormatter(Number(value))} />
               <ChartTooltip content={<ChartTooltipContent
@@ -167,19 +218,12 @@ function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, timeD
                   </div>
                 )}
               />} />
-              {metrics.map(metric => <Line
-                key={metric}
-                type="monotone"
-                dataKey={metric}
-                name={metricLabels[metric]}
-                stroke={metricColors[metric]}
-                strokeDasharray={referenceMetrics.has(metric) ? '6 4' : undefined}
-                strokeWidth={2}
-                dot={false}
-                connectNulls
-                isAnimationActive={false}
-              />)}
-            </LineChart>
+              {metrics.map(metric => referenceMetrics.has(metric) ? (
+                <Line key={metric} type="monotone" dataKey={metric} name={metricLabels[metric]} stroke={metricColors[metric]} strokeDasharray="6 4" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+              ) : (
+                <Area key={metric} type="monotone" dataKey={metric} name={metricLabels[metric]} stroke={metricColors[metric]} fill={metricColors[metric]} fillOpacity={0.08} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+              ))}
+            </ComposedChart>
           </ChartContainer>
         )}
       </CardContent>
@@ -257,12 +301,14 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
     return () => window.clearInterval(interval)
   }, [timeChoice])
 
-  if (!meta && loading) return <div className="grid gap-4 md:grid-cols-2"><Skeleton className="h-40" /><Skeleton className="h-40" /><Skeleton className="h-72 md:col-span-2" /></div>
+  if (!meta && loading) return <div className="metrics-root flex flex-col gap-5"><MetricsSkeleton /></div>
   if (!meta) return <Alert variant="destructive"><AlertTriangle /><AlertTitle>Metrics unavailable</AlertTitle><AlertDescription>{error || 'The metrics service could not be reached.'}</AlertDescription></Alert>
 
   const summary = response?.summary ?? {}
   const ready = summary.pod_ready ?? 0
   const restarts = summary.container_restarts_total ?? 0
+  const storageUsed = summary.persistent_volume_used_bytes ?? 0
+  const storageCapacity = summary.persistent_volume_capacity_bytes ?? 0
   const selectedPodCount = scope === 'pod'
     ? 1
     : scope === 'component'
@@ -273,10 +319,10 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
     ? [...standardRanges, thirtyDayRange]
     : standardRanges
   const observedPodCount = new Set(response?.series.map(item => item.labels?.pod).filter(Boolean)).size
-  const readyPodCount = selectedPodCount || observedPodCount
-  const liveTimeDomain: [number, number] | undefined = timeChoice === 'live'
+  const readyPodCount = summary.pod_total ?? (selectedPodCount || observedPodCount)
+  const chartTimeDomain: [number, number] = timeChoice === 'live'
     ? [liveNow - (meta.live_window_seconds ?? defaultLiveWindowSeconds), liveNow]
-    : undefined
+    : [response?.start ?? 0, response?.end ?? 0]
   const chartScaleKey = `${timeChoice}:${scope}:${component}:${pod}:${response?.start ?? 0}`
 
   return (
@@ -315,21 +361,21 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
       {selectedPod?.last_termination_reason && <Alert><AlertTriangle /><AlertTitle>Previous container termination</AlertTitle><AlertDescription>{selectedPod.last_termination_reason}{selectedPod.started_at ? ` · current pod started ${new Date(selectedPod.started_at).toLocaleString()}` : ''}</AlertDescription></Alert>}
       {response?.warnings?.map(warning => <Alert key={warning}><AlertTriangle /><AlertTitle>Partial data</AlertTitle><AlertDescription>{warning}</AlertDescription></Alert>)}
 
-      {loading && !response ? <div className="grid gap-4 md:grid-cols-2"><Skeleton className="h-72" /><Skeleton className="h-72" /></div> : !response?.series.length ? (
+      {loading && !response ? <MetricsSkeleton /> : !response?.series.length ? (
         <Empty className="min-h-64 border"><EmptyHeader><EmptyMedia variant="icon"><Activity /></EmptyMedia><EmptyTitle>No metrics yet</EmptyTitle><EmptyDescription>The selected workload may still be starting, or Prometheus has not scraped its first sample.</EmptyDescription></EmptyHeader></Empty>
       ) : (
         <>
-          <div data-metrics-grid="summary" className="grid sm:grid-cols-2 md:grid-cols-4">
+          <div data-metrics-grid="summary" className="grid sm:grid-cols-2 lg:grid-cols-5">
             <Card data-metrics-card="summary"><CardHeader><CardDescription>CPU now</CardDescription></CardHeader><CardContent><p>{formatCores(summary.cpu_usage_cores ?? 0)}</p></CardContent></Card>
             <Card data-metrics-card="summary"><CardHeader><CardDescription>Memory now</CardDescription></CardHeader><CardContent><p>{formatBytes(summary.memory_working_set_bytes ?? 0)}</p></CardContent></Card>
+            <Card data-metrics-card="summary"><CardHeader><CardDescription>Storage used</CardDescription></CardHeader><CardContent><p>{formatBytes(storageUsed)}</p><span className="mt-1 block text-xs text-muted-foreground">of {formatBytes(storageCapacity)} total</span></CardContent></Card>
             <Card data-metrics-card="summary"><CardHeader><CardDescription>Ready pods</CardDescription></CardHeader><CardContent><p>{Math.round(ready)} / {readyPodCount}</p></CardContent></Card>
             <Card data-metrics-card="summary"><CardHeader><CardDescription>Container restarts</CardDescription></CardHeader><CardContent><p>{Math.round(restarts)}</p></CardContent></Card>
           </div>
           <div data-metrics-grid="charts" className="grid">
-            <MetricChart key={`cpu:${chartScaleKey}`} title="CPU" icon={Gauge} series={response.series} metrics={['cpu_usage_cores', 'cpu_limit_cores']} valueFormatter={formatCores} timeDomain={liveTimeDomain} />
-            <MetricChart key={`memory:${chartScaleKey}`} title="Memory" icon={MemoryStick} series={response.series} metrics={['memory_working_set_bytes', 'memory_limit_bytes']} valueFormatter={formatBytes} timeDomain={liveTimeDomain} />
-            <MetricChart key={`network:${chartScaleKey}`} title="Network" icon={Network} series={response.series} metrics={['network_receive_bytes_per_second', 'network_transmit_bytes_per_second']} valueFormatter={value => `${formatBytes(value)}/s`} timeDomain={liveTimeDomain} />
-            <MetricChart key={`storage:${chartScaleKey}`} title="Persistent storage" icon={Database} series={response.series} metrics={['persistent_volume_used_bytes', 'persistent_volume_capacity_bytes']} valueFormatter={formatBytes} timeDomain={liveTimeDomain} />
+            <MetricChart key={`cpu:${chartScaleKey}`} title="CPU" icon={Gauge} series={response.series} metrics={['cpu_usage_cores', 'cpu_limit_cores']} valueFormatter={formatCores} timeDomain={chartTimeDomain} timeRange={timeChoice} />
+            <MetricChart key={`memory:${chartScaleKey}`} title="Memory" icon={MemoryStick} series={response.series} metrics={['memory_working_set_bytes', 'memory_limit_bytes']} valueFormatter={formatBytes} timeDomain={chartTimeDomain} timeRange={timeChoice} />
+            <MetricChart key={`network:${chartScaleKey}`} title="Network" icon={Network} series={response.series} metrics={['network_receive_bytes_per_second', 'network_transmit_bytes_per_second']} valueFormatter={value => `${formatBytes(value)}/s`} timeDomain={chartTimeDomain} timeRange={timeChoice} />
           </div>
         </>
       )}
