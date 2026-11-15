@@ -371,6 +371,26 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
   }, [timeChoice])
 
   if (!meta && loading) return <div className="metrics-root flex flex-col gap-5"><MetricsSkeleton /></div>
+  if (!meta && error.trim().toLowerCase() === 'metrics are not configured') {
+    return (
+      <div className="metrics-root flex flex-col gap-5">
+        <div data-metrics-toolbar><h2>Agent metrics</h2></div>
+        <Card data-metrics-state="disabled">
+          <CardContent>
+            <Empty className="min-h-72">
+              <EmptyHeader>
+                <EmptyMedia variant="icon"><Activity /></EmptyMedia>
+                <EmptyTitle>Monitoring is not enabled</EmptyTitle>
+                <EmptyDescription>
+                  Monitoring has not been enabled by your administrator. Please contact your administrator for assistance.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
   if (!meta) return <Alert variant="destructive"><AlertTriangle /><AlertTitle>Metrics unavailable</AlertTitle><AlertDescription>{error || 'The metrics service could not be reached.'}</AlertDescription></Alert>
 
   const summary = response?.summary ?? {}

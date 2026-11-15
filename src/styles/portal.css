@@ -141,6 +141,15 @@
 }
 .portal-root .metrics-root [data-metrics-card="chart"] [data-slot="card-content"] { padding: 12px 12px 14px; }
 .portal-root .metrics-root [data-metrics-card="chart"] [data-slot="card-title"] { font-weight: 600; }
+.portal-root .metrics-root [data-metrics-state="disabled"] [data-slot="empty-title"] {
+  font-size: 18px;
+  line-height: 1.4;
+}
+.portal-root .metrics-root [data-metrics-state="disabled"] [data-slot="empty-description"] {
+  max-width: 520px;
+  font-size: 15px;
+  line-height: 1.6;
+}
 .portal-root .metrics-root [data-metrics-grid] { gap: 16px; }
 .portal-root .metrics-root [data-metrics-toolbar] h2 {
   margin: 0;
