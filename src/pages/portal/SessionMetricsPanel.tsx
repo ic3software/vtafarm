@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
@@ -25,6 +24,14 @@ const standardRanges: Array<{ value: TimeChoice; label: string }> = [
 ]
 
 const thirtyDayRange: { value: TimeChoice; label: string } = { value: '30d', label: '30d' }
+
+const componentLabels: Record<string, string> = {
+  vta: 'VTA',
+  mediator: 'Mediator',
+  dids: 'DID Hosting',
+  vtc: 'VTC',
+  'trust-registry': 'Trust Registry',
+}
 
 const metricLabels: Record<string, string> = {
   cpu_usage_cores: 'Usage', cpu_requested_cores: 'Request', cpu_limit_cores: 'Limit',
@@ -59,11 +66,26 @@ function formatBytes(value: number): string {
   return `${value < 0 ? '-' : ''}${scaled.toFixed(index > 1 ? 1 : 0)} ${units[index]}`
 }
 
+function formatAxisBytes(value: number): string {
+  if (!Number.isFinite(value)) return '—'
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
+  let scaled = Math.abs(value)
+  let index = 0
+  while (scaled >= 1024 && index < units.length - 1) { scaled /= 1024; index += 1 }
+  return `${value < 0 ? '-' : ''}${Math.round(scaled)} ${units[index]}`
+}
+
 function formatCores(value: number): string {
   if (Math.abs(value) >= 1) return `${Number(value.toFixed(2))} cores`
   const millicores = value * 1000
   const fractionDigits = Math.abs(millicores) < 1 ? 2 : Math.abs(millicores) < 10 ? 1 : 0
   return `${Number(millicores.toFixed(fractionDigits))}m`
+}
+
+function formatAxisCores(value: number): string {
+  if (!Number.isFinite(value)) return '—'
+  if (Math.abs(value) >= 1) return `${Math.round(value)} cores`
+  return `${Math.round(value * 1000)}m`
 }
 
 function latestSummary(series: MetricsSeries[]): Record<string, number> {
@@ -162,12 +184,13 @@ function MetricsSkeleton() {
   )
 }
 
-function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, timeDomain, timeRange }: {
+function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, axisValueFormatter = valueFormatter, timeDomain, timeRange }: {
   title: string
   icon: typeof Gauge
   series: MetricsSeries[]
   metrics: string[]
   valueFormatter: (value: number) => string
+  axisValueFormatter?: (value: number) => string
   timeDomain: [number, number]
   timeRange: TimeChoice
 }) {
@@ -202,7 +225,7 @@ function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, timeD
                 minTickGap={32}
                 tickFormatter={value => formatTimeTick(Number(value), timeRange)}
               />
-              <YAxis domain={[0, yDomainMax]} allowDataOverflow tickLine={false} axisLine={false} tickMargin={10} width={72} tickFormatter={value => valueFormatter(Number(value))} />
+              <YAxis domain={[0, yDomainMax]} allowDataOverflow tickLine={false} axisLine={false} tickMargin={10} width={88} tickFormatter={value => axisValueFormatter(Number(value))} />
               <ChartTooltip content={<ChartTooltipContent
                 labelFormatter={(_value, payload) => {
                   const timestamp = payload?.[0]?.payload?.timestamp
@@ -233,9 +256,8 @@ function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, timeD
 
 export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
   const [meta, setMeta] = useState<MetricsMeta | null>(null)
-  const [scope, setScope] = useState<MetricsScope>('component')
+  const [scope, setScope] = useState<Exclude<MetricsScope, 'pod'>>('component')
   const [component, setComponent] = useState('vta')
-  const [pod, setPod] = useState('')
   const [timeChoice, setTimeChoice] = useState<TimeChoice>('1h')
   const [response, setResponse] = useState<MetricsResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -248,7 +270,8 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
     api.sessionMetricsMeta(sessionId).then(value => {
       if (!active) return
       setMeta(value)
-      if (value.mode === 'full_stack') setScope('stack')
+      setComponent(value.components.includes('vta') ? 'vta' : (value.components[0] ?? 'vta'))
+      setScope(value.mode === 'full_stack' ? 'stack' : 'component')
     }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load metrics') }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [sessionId])
@@ -256,11 +279,10 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
   const target = useMemo<MetricsTarget>(() => ({
     scope,
     ...(scope === 'component' ? { component } : {}),
-    ...(scope === 'pod' ? { pod } : {}),
-  }), [scope, component, pod])
+  }), [scope, component])
 
   useEffect(() => {
-    if (!meta || (scope === 'pod' && !pod)) return
+    if (!meta) return
     if (timeChoice !== 'live') {
       let active = true
       api.sessionMetricsRange(sessionId, timeChoice, target).then(value => { if (active) setResponse(value) }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load metrics') }).finally(() => { if (active) setLoading(false) })
@@ -283,7 +305,7 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
     source.addEventListener('reconnect', () => setLiveState('connecting'))
     source.onerror = () => { setLiveState('degraded'); setLoading(false) }
     return () => source.close()
-  }, [sessionId, meta, scope, component, pod, timeChoice, target])
+  }, [sessionId, meta, scope, component, timeChoice, target])
 
   useEffect(() => {
     const onVisibility = () => {
@@ -309,12 +331,9 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
   const restarts = summary.container_restarts_total ?? 0
   const storageUsed = summary.persistent_volume_used_bytes ?? 0
   const storageCapacity = summary.persistent_volume_capacity_bytes ?? 0
-  const selectedPodCount = scope === 'pod'
-    ? 1
-    : scope === 'component'
-      ? meta.pods.filter(item => item.component === component).length
-      : meta.pods.length
-  const selectedPod = scope === 'pod' ? meta.pods.find(item => item.name === pod) : undefined
+  const selectedPodCount = scope === 'component'
+    ? meta.pods.filter(item => item.component === component).length
+    : meta.pods.length
   const availableRanges = meta.retention_days >= 30
     ? [...standardRanges, thirtyDayRange]
     : standardRanges
@@ -323,7 +342,8 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
   const chartTimeDomain: [number, number] = timeChoice === 'live'
     ? [liveNow - (meta.live_window_seconds ?? defaultLiveWindowSeconds), liveNow]
     : [response?.start ?? 0, response?.end ?? 0]
-  const chartScaleKey = `${timeChoice}:${scope}:${component}:${pod}:${response?.start ?? 0}`
+  const chartScaleKey = `${timeChoice}:${scope}:${component}:${response?.start ?? 0}`
+  const targetChoice = scope === 'stack' ? 'stack' : component
 
   return (
     <div className="metrics-root flex flex-col gap-5">
@@ -336,20 +356,27 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
         </div>
       </div>
       {meta.mode === 'full_stack' && (
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">Scope
-            <Select value={scope} onValueChange={value => { setLoading(true); setError(''); setScope(value as MetricsScope); if (value === 'pod' && !pod) setPod(meta.pods[0]?.name ?? '') }}>
-              <SelectTrigger className="min-w-40"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectGroup><SelectLabel>Target</SelectLabel><SelectItem value="stack">Entire stack</SelectItem><SelectItem value="component">Component</SelectItem><SelectItem value="pod">Pod</SelectItem></SelectGroup></SelectContent>
-            </Select>
-          </label>
-          {scope === 'component' && <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">Component
-            <Select value={component} onValueChange={value => { setLoading(true); setError(''); setComponent(value) }}><SelectTrigger className="min-w-44"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectLabel>Components</SelectLabel>{meta.components.map(item => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectGroup></SelectContent></Select>
-          </label>}
-          {scope === 'pod' && <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">Pod
-            <Select value={pod} onValueChange={value => { setLoading(true); setError(''); setPod(value) }}><SelectTrigger className="min-w-64"><SelectValue placeholder="Select a pod" /></SelectTrigger><SelectContent><SelectGroup><SelectLabel>Current pods</SelectLabel>{meta.pods.map(item => <SelectItem key={item.name} value={item.name}>{item.name} · {item.component}</SelectItem>)}</SelectGroup></SelectContent></Select>
-          </label>}
-        </div>
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
+          spacing={2}
+          value={targetChoice}
+          onValueChange={value => {
+            if (!value) return
+            setLoading(true)
+            setResponse(null)
+            setError('')
+            setLiveState('connecting')
+            if (value === 'stack') setScope('stack')
+            else { setScope('component'); setComponent(value) }
+          }}
+          aria-label="Metrics target"
+          className="max-w-full flex-wrap justify-start"
+        >
+          <ToggleGroupItem value="stack">All</ToggleGroupItem>
+          {meta.components.map(item => <ToggleGroupItem key={item} value={item}>{componentLabels[item] ?? item}</ToggleGroupItem>)}
+        </ToggleGroup>
       )}
       {timeChoice === 'live' && liveState !== 'connected' && (
         <div>
@@ -358,7 +385,6 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
       )}
 
       {error && <Alert variant="destructive"><AlertTriangle /><AlertTitle>Metrics query problem</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
-      {selectedPod?.last_termination_reason && <Alert><AlertTriangle /><AlertTitle>Previous container termination</AlertTitle><AlertDescription>{selectedPod.last_termination_reason}{selectedPod.started_at ? ` · current pod started ${new Date(selectedPod.started_at).toLocaleString()}` : ''}</AlertDescription></Alert>}
       {response?.warnings?.map(warning => <Alert key={warning}><AlertTriangle /><AlertTitle>Partial data</AlertTitle><AlertDescription>{warning}</AlertDescription></Alert>)}
 
       {loading && !response ? <MetricsSkeleton /> : !response?.series.length ? (
@@ -373,9 +399,9 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
             <Card data-metrics-card="summary"><CardHeader><CardDescription>Container restarts</CardDescription></CardHeader><CardContent><p>{Math.round(restarts)}</p></CardContent></Card>
           </div>
           <div data-metrics-grid="charts" className="grid">
-            <MetricChart key={`cpu:${chartScaleKey}`} title="CPU" icon={Gauge} series={response.series} metrics={['cpu_usage_cores', 'cpu_limit_cores']} valueFormatter={formatCores} timeDomain={chartTimeDomain} timeRange={timeChoice} />
-            <MetricChart key={`memory:${chartScaleKey}`} title="Memory" icon={MemoryStick} series={response.series} metrics={['memory_working_set_bytes', 'memory_limit_bytes']} valueFormatter={formatBytes} timeDomain={chartTimeDomain} timeRange={timeChoice} />
-            <MetricChart key={`network:${chartScaleKey}`} title="Network" icon={Network} series={response.series} metrics={['network_receive_bytes_per_second', 'network_transmit_bytes_per_second']} valueFormatter={value => `${formatBytes(value)}/s`} timeDomain={chartTimeDomain} timeRange={timeChoice} />
+            <MetricChart key={`cpu:${chartScaleKey}`} title="CPU" icon={Gauge} series={response.series} metrics={['cpu_usage_cores', 'cpu_limit_cores']} valueFormatter={formatCores} axisValueFormatter={formatAxisCores} timeDomain={chartTimeDomain} timeRange={timeChoice} />
+            <MetricChart key={`memory:${chartScaleKey}`} title="Memory" icon={MemoryStick} series={response.series} metrics={['memory_working_set_bytes', 'memory_limit_bytes']} valueFormatter={formatBytes} axisValueFormatter={formatAxisBytes} timeDomain={chartTimeDomain} timeRange={timeChoice} />
+            <MetricChart key={`network:${chartScaleKey}`} title="Network" icon={Network} series={response.series} metrics={['network_receive_bytes_per_second', 'network_transmit_bytes_per_second']} valueFormatter={value => `${formatBytes(value)}/s`} axisValueFormatter={value => `${formatAxisBytes(value)}/s`} timeDomain={chartTimeDomain} timeRange={timeChoice} />
           </div>
         </>
       )}
