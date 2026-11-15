@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, Gauge, MemoryStick, Network } from 'lucide-react'
+import { Activity, AlertTriangle, RefreshCw } from 'lucide-react'
 import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts'
 
 import { api, type MetricsLiveSample, type MetricsMeta, type MetricsRange, type MetricsResponse, type MetricsScope, type MetricsSeries, type MetricsTarget } from '@/lib/api'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -184,9 +185,8 @@ function MetricsSkeleton() {
   )
 }
 
-function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, axisValueFormatter = valueFormatter, timeDomain, timeRange }: {
+function MetricChart({ title, series, metrics, valueFormatter, axisValueFormatter = valueFormatter, timeDomain, timeRange }: {
   title: string
-  icon: typeof Gauge
   series: MetricsSeries[]
   metrics: string[]
   valueFormatter: (value: number) => string
@@ -204,12 +204,12 @@ function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, axisV
   return (
     <Card data-metrics-card="chart">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Icon className="size-4" />{title}</CardTitle>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? <p className="py-14 text-center text-sm text-muted-foreground">No samples in this range.</p> : (
           <ChartContainer config={config} className="h-64 w-full aspect-auto">
-            <ComposedChart data={data} accessibilityLayer margin={{ left: 8, right: 16 }}>
+            <ComposedChart data={data} accessibilityLayer margin={{ left: 0, right: 16 }}>
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="timestamp"
@@ -218,14 +218,13 @@ function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, axisV
                 allowDataOverflow
                 ticks={ticks}
                 interval="preserveStartEnd"
-                padding={{ left: 24, right: 24 }}
                 tickLine={false}
                 axisLine={false}
                 tickMargin={10}
                 minTickGap={32}
                 tickFormatter={value => formatTimeTick(Number(value), timeRange)}
               />
-              <YAxis domain={[0, yDomainMax]} allowDataOverflow tickLine={false} axisLine={false} tickMargin={10} width={88} tickFormatter={value => axisValueFormatter(Number(value))} />
+              <YAxis domain={[0, yDomainMax]} allowDataOverflow tickLine={false} axisLine={false} tickMargin={10} width={56} tickFormatter={value => axisValueFormatter(Number(value))} />
               <ChartTooltip content={<ChartTooltipContent
                 labelFormatter={(_value, payload) => {
                   const timestamp = payload?.[0]?.payload?.timestamp
@@ -264,6 +263,7 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
   const [error, setError] = useState('')
   const [liveState, setLiveState] = useState<'connecting' | 'connected' | 'degraded'>('connecting')
   const [liveNow, setLiveNow] = useState(() => Math.floor(Date.now() / 1000))
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -305,7 +305,7 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
     source.addEventListener('reconnect', () => setLiveState('connecting'))
     source.onerror = () => { setLiveState('degraded'); setLoading(false) }
     return () => source.close()
-  }, [sessionId, meta, scope, component, timeChoice, target])
+  }, [sessionId, meta, scope, component, timeChoice, target, refreshKey])
 
   useEffect(() => {
     const onVisibility = () => {
@@ -349,10 +349,25 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
     <div className="metrics-root flex flex-col gap-5">
       <div data-metrics-toolbar className="flex flex-wrap items-center justify-between gap-4">
         <h2>Agent metrics</h2>
-        <div className="ml-auto max-w-full overflow-x-auto">
+        <div className="ml-auto flex max-w-full items-center gap-2 overflow-x-auto">
           <ToggleGroup type="single" spacing={2} value={timeChoice} onValueChange={value => { if (!value) return; setLoading(true); setResponse(null); setError(''); setLiveState('connecting'); setTimeChoice(value as TimeChoice) }} aria-label="Metrics time range">
             {availableRanges.map(item => <ToggleGroupItem key={item.value} value={item.value}>{item.label}</ToggleGroupItem>)}
           </ToggleGroup>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label="Refresh metrics"
+            disabled={loading}
+            onClick={() => {
+              setLoading(true)
+              setError('')
+              setLiveState('connecting')
+              setRefreshKey(value => value + 1)
+            }}
+          >
+            <RefreshCw data-icon />
+          </Button>
         </div>
       </div>
       {meta.mode === 'full_stack' && (
@@ -399,9 +414,9 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
             <Card data-metrics-card="summary"><CardHeader><CardDescription>Container restarts</CardDescription></CardHeader><CardContent><p>{Math.round(restarts)}</p></CardContent></Card>
           </div>
           <div data-metrics-grid="charts" className="grid">
-            <MetricChart key={`cpu:${chartScaleKey}`} title="CPU" icon={Gauge} series={response.series} metrics={['cpu_usage_cores', 'cpu_limit_cores']} valueFormatter={formatCores} axisValueFormatter={formatAxisCores} timeDomain={chartTimeDomain} timeRange={timeChoice} />
-            <MetricChart key={`memory:${chartScaleKey}`} title="Memory" icon={MemoryStick} series={response.series} metrics={['memory_working_set_bytes', 'memory_limit_bytes']} valueFormatter={formatBytes} axisValueFormatter={formatAxisBytes} timeDomain={chartTimeDomain} timeRange={timeChoice} />
-            <MetricChart key={`network:${chartScaleKey}`} title="Network" icon={Network} series={response.series} metrics={['network_receive_bytes_per_second', 'network_transmit_bytes_per_second']} valueFormatter={value => `${formatBytes(value)}/s`} axisValueFormatter={value => `${formatAxisBytes(value)}/s`} timeDomain={chartTimeDomain} timeRange={timeChoice} />
+            <MetricChart key={`cpu:${chartScaleKey}`} title="CPU" series={response.series} metrics={['cpu_usage_cores', 'cpu_limit_cores']} valueFormatter={formatCores} axisValueFormatter={formatAxisCores} timeDomain={chartTimeDomain} timeRange={timeChoice} />
+            <MetricChart key={`memory:${chartScaleKey}`} title="Memory" series={response.series} metrics={['memory_working_set_bytes', 'memory_limit_bytes']} valueFormatter={formatBytes} axisValueFormatter={formatAxisBytes} timeDomain={chartTimeDomain} timeRange={timeChoice} />
+            <MetricChart key={`network:${chartScaleKey}`} title="Network" series={response.series} metrics={['network_receive_bytes_per_second', 'network_transmit_bytes_per_second']} valueFormatter={value => `${formatBytes(value)}/s`} axisValueFormatter={value => `${formatAxisBytes(value)}/s`} timeDomain={chartTimeDomain} timeRange={timeChoice} />
           </div>
         </>
       )}
