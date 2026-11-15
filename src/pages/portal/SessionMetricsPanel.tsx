@@ -85,8 +85,31 @@ function formatCores(value: number): string {
 
 function formatAxisCores(value: number): string {
   if (!Number.isFinite(value)) return '—'
-  if (Math.abs(value) >= 1) return `${Math.round(value)} cores`
-  return `${Math.round(value * 1000)}m`
+  if (Math.abs(value) >= 1) {
+    const cores = Number(value.toFixed(Math.abs(value) < 10 ? 1 : 0))
+    return `${cores} ${cores === 1 ? 'core' : 'cores'}`
+  }
+  const millicores = value * 1000
+  return `${Number(millicores.toFixed(Math.abs(millicores) < 10 ? 1 : 0))}m`
+}
+
+function niceAxisStep(value: number): number {
+  const magnitude = 10 ** Math.floor(Math.log10(value))
+  const fraction = value / magnitude
+  const niceFraction = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10
+  return niceFraction * magnitude
+}
+
+function cpuAxisScale(maxCores: number): { max: number; ticks: number[] } {
+  const maxMillicores = Math.max(1, maxCores * 1000)
+  if (maxMillicores <= 1) return { max: 0.001, ticks: [0, 0.001] }
+  const step = niceAxisStep(maxMillicores / 4)
+  const axisMaxMillicores = Math.ceil(maxMillicores / step) * step
+  const intervalCount = Math.round(axisMaxMillicores / step)
+  return {
+    max: axisMaxMillicores / 1000,
+    ticks: Array.from({ length: intervalCount + 1 }, (_, index) => (index * step) / 1000),
+  }
 }
 
 function latestSummary(series: MetricsSeries[]): Record<string, number> {
@@ -96,6 +119,12 @@ function latestSummary(series: MetricsSeries[]): Record<string, number> {
     if (point) result[item.metric] = (result[item.metric] ?? 0) + point.value
   }
   return result
+}
+
+function trimLivePoints(points: MetricsSeries['points'], cutoff: number): MetricsSeries['points'] {
+  const firstVisible = points.findIndex(point => point.timestamp >= cutoff)
+  if (firstVisible < 0) return []
+  return points.slice(Math.max(0, firstVisible - 1))
 }
 
 function mergeLive(current: MetricsResponse, sample: MetricsLiveSample, windowSeconds: number): MetricsResponse {
@@ -111,8 +140,9 @@ function mergeLive(current: MetricsResponse, sample: MetricsLiveSample, windowSe
     for (const point of next.points) {
       if (existing.points.at(-1)?.timestamp !== point.timestamp) existing.points.push(point)
     }
-    existing.points = existing.points.filter(point => point.timestamp >= sample.observed_at - windowSeconds)
   }
+  const cutoff = sample.observed_at - windowSeconds
+  for (const item of current.series) item.points = trimLivePoints(item.points, cutoff)
   return {
     ...current,
     end: sample.observed_at,
@@ -195,12 +225,28 @@ function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, axisV
   timeDomain: [number, number]
   timeRange: TimeChoice
 }) {
-  const data = useMemo(() => metricRows(series, metrics), [series, metrics])
+  const data = useMemo(() => {
+    const rows = metricRows(series, metrics)
+    if (timeRange !== 'live' || rows.length === 0) return rows
+    const displayRows = [...rows]
+    if (displayRows[0].timestamp > timeDomain[0]) {
+      displayRows.unshift({ ...displayRows[0], timestamp: timeDomain[0], sampleTimestamp: displayRows[0].timestamp })
+    }
+    const lastRow = displayRows.at(-1)
+    if (lastRow && lastRow.timestamp < timeDomain[1]) {
+      displayRows.push({ ...lastRow, timestamp: timeDomain[1], sampleTimestamp: lastRow.sampleTimestamp ?? lastRow.timestamp })
+    }
+    return displayRows
+  }, [series, metrics, timeDomain, timeRange])
   const ticks = useMemo(() => timeTicks(timeDomain, timeRange), [timeDomain, timeRange])
   const dataMax = Math.max(0, ...data.flatMap(row => metrics.map(metric => row[metric] ?? 0)))
-  const currentYMax = dataMax > 0 ? dataMax * 1.08 : 1
+  const isCpuChart = metrics.includes('cpu_usage_cores')
+  const currentYMax = isCpuChart ? Math.max(0.001, dataMax * 1.08) : (dataMax > 0 ? dataMax * 1.08 : 1)
   const [yDomainMax, setYDomainMax] = useState(currentYMax)
   if (currentYMax > yDomainMax) setYDomainMax(currentYMax)
+  const cpuScale = isCpuChart ? cpuAxisScale(yDomainMax) : null
+  const axisDomainMax = cpuScale?.max ?? yDomainMax
+  const yTicks = cpuScale?.ticks
   const config = Object.fromEntries(metrics.map(metric => [metric, { label: metricLabels[metric], color: metricColors[metric] }])) as ChartConfig
   return (
     <Card data-metrics-card="chart">
@@ -225,10 +271,10 @@ function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, axisV
                 minTickGap={32}
                 tickFormatter={value => formatTimeTick(Number(value), timeRange)}
               />
-              <YAxis domain={[0, yDomainMax]} allowDataOverflow tickLine={false} axisLine={false} tickMargin={10} width={64} tickFormatter={value => axisValueFormatter(Number(value))} />
+              <YAxis domain={[0, axisDomainMax]} ticks={yTicks} allowDataOverflow tickLine={false} axisLine={false} tickMargin={10} width={64} tickFormatter={value => axisValueFormatter(Number(value))} />
               <ChartTooltip content={<ChartTooltipContent
                 labelFormatter={(_value, payload) => {
-                  const timestamp = payload?.[0]?.payload?.timestamp
+                  const timestamp = payload?.[0]?.payload?.sampleTimestamp ?? payload?.[0]?.payload?.timestamp
                   return typeof timestamp === 'number' ? new Date(timestamp * 1000).toLocaleString() : ''
                 }}
                 formatter={(value, name, item) => (
