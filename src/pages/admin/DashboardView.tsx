@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { api, type AdminDashboard, type DashboardEstimate } from '@/lib/api'
+import { AlertTriangle } from 'lucide-react'
+import { api, type AdminDashboard, type DashboardEstimate, type DashboardMetricsSource } from '@/lib/api'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
-// Matches metrics-server's own ~15s refresh cadence — polling faster just
-// re-reads identical numbers.
+// Matches the Kubernetes Metrics API and default Prometheus scrape cadence —
+// polling faster just re-reads identical numbers.
 const REFRESH_MS = 15_000
 
 function fmtCores(millis: number): string {
@@ -102,17 +105,18 @@ export function DashboardView() {
   const [data, setData] = useState<AdminDashboard | null>(null)
   const [error, setError] = useState('')
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
+  const [source, setSource] = useState<DashboardMetricsSource>('auto')
 
   const load = useCallback(() => {
     api
-      .adminDashboard()
+      .adminDashboard(source)
       .then(d => {
         setData(d)
         setError('')
         setUpdatedAt(new Date())
       })
       .catch(err => setError(err instanceof Error ? err.message : 'Failed to load cluster stats'))
-  }, [])
+  }, [source])
 
   useEffect(() => {
     load()
@@ -125,6 +129,9 @@ export function DashboardView() {
   const sto = data?.cluster.storage
   // Longhorn's capacity for new replicas = already scheduled + still schedulable.
   const stoCapacity = sto ? sto.scheduled_bytes + sto.schedulable_bytes : 0
+  const usageSourceLabel = data?.metrics_source === 'prometheus'
+    ? 'Prometheus'
+    : data?.metrics_source === 'kubernetes' ? 'Kubernetes' : 'live'
 
   return (
     <section className="p-content">
@@ -134,12 +141,46 @@ export function DashboardView() {
           <p className="sub">
             Auto-refreshes every {REFRESH_MS / 1000}s
             {updatedAt && ` · updated ${updatedAt.toLocaleTimeString()}`}
+            {data?.metrics_available && ` · using ${usageSourceLabel}`}
+            <span className="metrics-source-note">
+              <strong className="metrics-source-title">Prometheus vs Kubernetes</strong>
+              <span><strong>Prometheus</strong> — CPU: latest ~15s average · Memory: current active use</span>
+              <span><strong>Kubernetes</strong> — CPU: latest ~10s average · Memory: current active use</span>
+            </span>
           </p>
+        </div>
+        <div className="metrics-root">
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={source}
+            onValueChange={value => {
+              if (!value) return
+              setData(null)
+              setError('')
+              setSource(value as DashboardMetricsSource)
+            }}
+            aria-label="Dashboard metrics source"
+          >
+            <ToggleGroupItem value="auto">Auto</ToggleGroupItem>
+            <ToggleGroupItem value="prometheus">Prometheus</ToggleGroupItem>
+            <ToggleGroupItem value="kubernetes">Kubernetes</ToggleGroupItem>
+          </ToggleGroup>
         </div>
       </div>
 
       {error && (
         <p style={{ margin: '0 0 16px', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
+      )}
+      {data?.metrics_warning && (
+        <div className="metrics-root mb-4">
+          <Alert>
+            <AlertTriangle />
+            <AlertTitle>Metrics source fallback</AlertTitle>
+            <AlertDescription>{data.metrics_warning}</AlertDescription>
+          </Alert>
+        </div>
       )}
 
       {!data ? (
@@ -170,7 +211,7 @@ export function DashboardView() {
                     detail={`${fmtCores(cpu.requested_millis)} / ${fmtCores(cpu.allocatable_millis)} cores`}
                   />
                   <Meter
-                    label="Used (live)"
+                    label="Used"
                     num={cpu.used_millis}
                     den={cpu.allocatable_millis}
                     detail={`${fmtCores(cpu.used_millis)} / ${fmtCores(cpu.allocatable_millis)} cores`}
@@ -203,7 +244,7 @@ export function DashboardView() {
                     detail={`${fmtBytes(mem.requested_bytes)} / ${fmtBytes(mem.allocatable_bytes)}`}
                   />
                   <Meter
-                    label="Used (live)"
+                    label="Used"
                     num={mem.used_bytes}
                     den={mem.allocatable_bytes}
                     detail={`${fmtBytes(mem.used_bytes)} / ${fmtBytes(mem.allocatable_bytes)}`}
@@ -290,7 +331,7 @@ export function DashboardView() {
                       />
                       <Meter
                         small
-                        label="Live"
+                        label="Used"
                         num={n.cpu_used_millis}
                         den={n.cpu_allocatable_millis}
                         detail={`${n.cpu_used_millis}m / ${n.cpu_allocatable_millis}m`}
@@ -307,7 +348,7 @@ export function DashboardView() {
                       />
                       <Meter
                         small
-                        label="Live"
+                        label="Used"
                         num={n.mem_used_bytes}
                         den={n.mem_allocatable_bytes}
                         detail={`${fmtBytes(n.mem_used_bytes)} / ${fmtBytes(n.mem_allocatable_bytes)}`}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, type KeyboardEvent, type RefObject } from 'react'
+import { lazy, Suspense, useState, useEffect, useCallback, useRef, type KeyboardEvent, type RefObject } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, API_BASE, ALL_COMPONENTS, type ImageOption, type PlatformStack, type SetupSession, type UpgradeComponent } from '@/lib/api'
 import { imageLabel, preferredImage } from '@/lib/utils'
@@ -28,11 +28,13 @@ import { SessionVersionsCard } from '../portal/SessionVersionsCard'
 // custom-domain UI exists.
 
 const BASE_COMPONENTS = ALL_COMPONENTS.filter(component => component !== 'trust-registry')
+const SessionMetricsPanel = lazy(() => import('../portal/SessionMetricsPanel').then(module => ({ default: module.SessionMetricsPanel })))
 
-type PlatformStackTab = 'overview' | 'administrators' | 'credentials' | 'settings'
+type PlatformStackTab = 'overview' | 'metrics' | 'administrators' | 'credentials' | 'settings'
 
 const PLATFORM_STACK_TABS: Array<{ value: PlatformStackTab; label: string }> = [
   { value: 'overview', label: 'Overview' },
+  { value: 'metrics', label: 'Metrics' },
   { value: 'administrators', label: 'Administrators' },
   { value: 'credentials', label: 'Credentials' },
   { value: 'settings', label: 'Settings' },
@@ -259,6 +261,19 @@ function PlatformStackTabs({
             {configurationCard}
           </div>
         </div>
+      </section>
+
+      <section
+        id="platform-stack-panel-metrics"
+        role="tabpanel"
+        aria-labelledby="platform-stack-tab-metrics"
+        hidden={activeTab !== 'metrics'}
+      >
+        {activeTab === 'metrics' && (
+          <Suspense fallback={<p className="p-muted text-sm">Loading metrics…</p>}>
+            <SessionMetricsPanel sessionId={session.id} admin />
+          </Suspense>
+        )}
       </section>
 
       <section

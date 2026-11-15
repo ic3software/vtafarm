@@ -300,7 +300,7 @@ function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, axisV
   )
 }
 
-export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
+export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: string; admin?: boolean }) {
   const [meta, setMeta] = useState<MetricsMeta | null>(null)
   const [scope, setScope] = useState<Exclude<MetricsScope, 'pod'>>('component')
   const [component, setComponent] = useState('vta')
@@ -314,14 +314,15 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     let active = true
-    api.sessionMetricsMeta(sessionId).then(value => {
+    const request = admin ? api.adminSessionMetricsMeta(sessionId) : api.sessionMetricsMeta(sessionId)
+    request.then(value => {
       if (!active) return
       setMeta(value)
       setComponent(value.components.includes('vta') ? 'vta' : (value.components[0] ?? 'vta'))
       setScope(value.mode === 'full_stack' ? 'stack' : 'component')
     }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load metrics') }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [sessionId])
+  }, [admin, sessionId])
 
   const target = useMemo<MetricsTarget>(() => ({
     scope,
@@ -332,11 +333,15 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
     if (!meta) return
     if (timeChoice !== 'live') {
       let active = true
-      api.sessionMetricsRange(sessionId, timeChoice, target).then(value => { if (active) setResponse(value) }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load metrics') }).finally(() => { if (active) setLoading(false) })
+      const request = admin
+        ? api.adminSessionMetricsRange(sessionId, timeChoice, target)
+        : api.sessionMetricsRange(sessionId, timeChoice, target)
+      request.then(value => { if (active) setResponse(value) }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load metrics') }).finally(() => { if (active) setLoading(false) })
       return () => { active = false }
     }
 
-    const source = new EventSource(api.sessionMetricsLiveURL(sessionId, target), { withCredentials: true })
+    const liveURL = admin ? api.adminSessionMetricsLiveURL(sessionId, target) : api.sessionMetricsLiveURL(sessionId, target)
+    const source = new EventSource(liveURL, { withCredentials: true })
     source.addEventListener('status', () => { setLiveState('connected'); setLoading(false) })
     source.addEventListener('snapshot', event => { setResponse(JSON.parse((event as MessageEvent).data) as MetricsResponse); setLiveState('connected'); setLoading(false) })
     source.addEventListener('sample', event => {
@@ -352,7 +357,7 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
     source.addEventListener('reconnect', () => setLiveState('connecting'))
     source.onerror = () => { setLiveState('degraded'); setLoading(false) }
     return () => source.close()
-  }, [sessionId, meta, scope, component, timeChoice, target, refreshKey])
+  }, [admin, sessionId, meta, scope, component, timeChoice, target, refreshKey])
 
   useEffect(() => {
     const onVisibility = () => {
@@ -382,7 +387,9 @@ export function SessionMetricsPanel({ sessionId }: { sessionId: string }) {
                 <EmptyMedia variant="icon"><Activity /></EmptyMedia>
                 <EmptyTitle>Monitoring is not enabled</EmptyTitle>
                 <EmptyDescription>
-                  Monitoring has not been enabled by your administrator. Please contact your administrator for assistance.
+                  {admin
+                    ? 'Monitoring is not configured for this farm. Configure the metrics backend to view platform metrics.'
+                    : 'Monitoring has not been enabled by your administrator. Please contact your administrator for assistance.'}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
