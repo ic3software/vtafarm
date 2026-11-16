@@ -1,5 +1,23 @@
 # Changelog
 
+## [v0.21.0] - 2026-11-16
+
+### Added
+
+- Session owners can inspect live and historical CPU, memory, network, and
+  persistent-storage metrics for an entire stack, component, or pod, with
+  seven-day or 30-day history according to their access level.
+- Administrators can inspect Platform Stack metrics and choose Prometheus or
+  Kubernetes usage data on the cluster dashboard, including visible fallback
+  status when the preferred source is unavailable.
+
+### Fixed
+
+- The metrics view reports when monitoring is not enabled instead of showing a
+  generic service error.
+
+Requires vtafarm-api 0.21.0.
+
 ## [v0.20.0] - 2026-11-12
 
 ### Added
