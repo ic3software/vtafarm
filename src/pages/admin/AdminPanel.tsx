@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import '@/styles/portal.css'
 import { useAdminAuth } from '@/contexts/adminAuth'
-import { useTheme } from '@/lib/useTheme'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { initials } from '../portal/portalUtils'
 import { MaintenanceBanner } from '@/components/MaintenanceBanner'
 import { BrandMark } from '@/components/BrandMark'
@@ -13,7 +13,6 @@ export interface AdminContext {
 
 export function AdminPanel() {
   const { admin, logout, loading } = useAdminAuth()
-  const { toggle: toggleTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -173,7 +172,7 @@ export function AdminPanel() {
                 </div>
               </div>
               <div className="user-chip" onClick={e => { e.stopPropagation(); setUserMenuOpen(v => !v) }}>
-                <span className="p-avatar" style={{ background: 'var(--primary)', color: '#fff' }}>{initials(admin.unique_id)}</span>
+                <span className="p-avatar" style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>{initials(admin.unique_id)}</span>
                 <div className="meta grow">
                   <div className="n" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{admin.unique_id}</div>
                   <div className="e">Admin account</div>
@@ -198,10 +197,7 @@ export function AdminPanel() {
               <span className="cur">{crumb}</span>
             </div>
             <div className="spacer"/>
-            <button className="btn btn-ghost btn-icon btn-sm theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
-              <svg className="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-              <svg className="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-            </button>
+            <ThemeToggle />
           </header>
 
           <MaintenanceBanner admin />

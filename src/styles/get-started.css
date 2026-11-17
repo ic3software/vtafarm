@@ -1,13 +1,13 @@
 .signup-page { min-height: 100dvh; background: var(--vtafarm-bg); color: var(--vtafarm-ink); }
 .signup-hero { max-width: 880px; margin: 0 auto; padding: clamp(54px, 8vw, 92px) 22px 38px; text-align: center; }
-.signup-eyebrow { margin: 0 0 12px; color: var(--vtafarm-accent); font: 600 11px/1.3 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.signup-eyebrow { margin: 0 0 12px; color: var(--vtafarm-accent); font: 400 13px/1.3 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
 .signup-hero h1 { margin: 0; font: 400 clamp(44px, 7vw, 82px)/1.02 var(--font-serif); letter-spacing: -.025em; }
 .signup-stepper { max-width: 900px; margin: 0 auto 22px; padding: 0 22px; list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); }
 .signup-stepper li { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 11px 8px; border-bottom: 2px solid var(--vtafarm-line); color: var(--vtafarm-ink-3); font-size: 12px; }
 .signup-stepper li span { width: 23px; height: 23px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--vtafarm-line-2); font: 600 10px var(--font-mono); }
 .signup-stepper li span svg { width: 13px; height: 13px; }
 .signup-stepper li.is-complete { border-color: var(--vtafarm-accent); color: var(--vtafarm-ink-2); }
-.signup-stepper li.is-complete span { background: color-mix(in srgb, #22a06b 15%, transparent); color: #158052; }
+.signup-stepper li.is-complete span { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
 .signup-stepper li.is-active { border-color: var(--vtafarm-accent); color: var(--vtafarm-ink); font-weight: 600; }
 .signup-stepper li.is-active span { background: var(--vtafarm-accent); color: #fff; }
 .signup-layout { max-width: 900px; margin: 0 auto; padding: 0 22px 80px; }
@@ -21,7 +21,8 @@
 .signup-reserve { padding: 22px; display: flex; justify-content: space-between; align-items: center; gap: 24px; border-radius: 15px; background: var(--vtafarm-bg); border: 1px solid var(--vtafarm-line); }
 .signup-reserve p { margin: 0 0 3px; color: var(--vtafarm-ink-3); font-size: 13px; }
 .signup-reserve h2 { color: var(--vtafarm-accent); }
-.signup-reserve button, .signup-confirm button, .signup-progress button, .signup-discord a, .signup-discord button, .signup-finish-actions button, .signup-finished a { min-height: 44px; padding: 0 18px; border: 0; border-radius: var(--radius-pill); background: var(--vtafarm-btn); color: #fff; font: 600 14px var(--font-sans); white-space: nowrap; }
+.signup-reserve button, .signup-confirm button, .signup-progress button, .signup-discord a, .signup-discord button, .signup-finish-actions button, .signup-finished a { min-height: 44px; padding: 0 18px; border: 0; border-radius: var(--radius-control); background: var(--vtafarm-btn); color: #fff; font: 500 15px var(--font-sans); white-space: nowrap; transition: background var(--ease), color var(--ease), border-color var(--ease); }
+.signup-reserve button:not(:disabled):hover, .signup-confirm button:not(.secondary):not(:disabled):hover, .signup-progress button:not(:disabled):hover, .signup-discord a:hover, .signup-discord button:not(:disabled):hover { background: var(--vtafarm-btn-hover); }
 .signup-reserve button:disabled, .signup-confirm button:disabled { opacity: .55; }
 .signup-claim-grid { min-height: 420px; display: grid; grid-template-columns: 320px 1fr; gap: 42px; align-items: center; }
 .signup-qr { padding: 18px; position: relative; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--vtafarm-line); border-radius: 17px; background: #fff; }
@@ -40,7 +41,8 @@
 .signup-development-claim .signup-development-command-label { margin: 13px 0 6px; }
 .signup-development-command { display: block; padding: 9px; border-radius: 7px; background: var(--vtafarm-surface); overflow-wrap: anywhere; color: var(--vtafarm-ink-2); font-size: 10px !important; line-height: 1.55; }
 .signup-development-claim .signup-development-command-copy { width: 100%; margin-top: 8px; justify-content: center; }
-.signup-primary-link { min-height: 46px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: var(--radius-pill); background: var(--vtafarm-ink); color: var(--vtafarm-bg); font: 600 14px var(--font-sans); }
+.signup-primary-link { min-height: 52px; padding: 0 26px; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: var(--radius-control); background: var(--vtafarm-btn); color: #fff; font: 500 16px var(--font-sans); transition: background var(--ease); }
+.signup-primary-link:not(:disabled):hover { background: var(--vtafarm-btn-hover); }
 .signup-primary-link:disabled { opacity: .4; cursor: not-allowed; }
 .signup-primary-link svg { width: 17px; }
 .signup-text-button { display: block; margin-top: 4px; padding: 6px 0; border: 0; background: transparent; color: var(--vtafarm-ink-3); text-decoration: underline; }
@@ -52,16 +54,17 @@
 .signup-claim-check { margin: 22px 0 14px; font: 700 clamp(48px, 9vw, 82px)/1 var(--font-mono); letter-spacing: .16em; }
 .signup-confirm p:not(.signup-eyebrow) { max-width: 50ch; }
 .signup-confirm-actions { display: flex; gap: 10px; margin-top: 14px; }
-.signup-confirm button.secondary { border: 1px solid var(--vtafarm-line); background: transparent; color: var(--vtafarm-ink); }
+.signup-confirm button.secondary { border: 1px solid var(--vtafarm-ink); background: transparent; color: var(--vtafarm-ink); }
+.signup-confirm button.secondary:not(:disabled):hover { background: var(--vtafarm-ink); color: var(--vtafarm-bg); }
 .signup-spinner { width: 44px; height: 44px; margin-bottom: 20px; border: 3px solid var(--vtafarm-line); border-top-color: var(--vtafarm-accent); border-radius: 50%; animation: signup-spin .9s linear infinite; }
 @keyframes signup-spin { to { transform: rotate(360deg); } }
 .signup-success { display: flex; align-items: center; gap: 14px; padding-bottom: 24px; border-bottom: 1px solid var(--vtafarm-line); }
-.signup-success > svg { width: 36px; height: 36px; flex: 0 0 36px; padding: 8px; border-radius: 50%; background: color-mix(in srgb, #22a06b 15%, transparent); color: #158052; }
+.signup-success > svg { width: 36px; height: 36px; flex: 0 0 36px; padding: 8px; border-radius: 50%; background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
 .signup-success > div { min-width: 0; }
 .signup-success code { display: block; margin-top: 5px; overflow-wrap: anywhere; color: var(--vtafarm-ink-2); }
 .signup-community-grid { display: flex; align-items: center; justify-content: space-between; gap: 22px; }
 .signup-community-grid p { max-width: 55ch; }
-.signup-community-grid a { flex: none; min-height: 44px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-pill); background: var(--vtafarm-btn); color: #fff; font: 600 14px var(--font-sans); white-space: nowrap; }
+.signup-community-grid a { flex: none; min-height: 44px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-control); background: var(--vtafarm-btn); color: #fff; font: 500 15px var(--font-sans); white-space: nowrap; transition: background var(--ease); }
 .signup-community-grid a:hover { background: var(--vtafarm-btn-hover); }
 .signup-community-grid a svg { width: 15px; }
 .signup-community-unavailable { margin-top: 28px; padding: 20px; border: 1px solid var(--vtafarm-line); border-radius: var(--radius-card); background: var(--vtafarm-bg); }
@@ -75,11 +78,11 @@
 .signup-discord a svg, .signup-discord button svg { width: 17px; height: 17px; }
 .signup-discord button:disabled { opacity: .5; cursor: not-allowed; }
 .signup-finish-actions { padding-top: 22px; display: flex; justify-content: center; gap: 10px; border-top: 1px solid var(--vtafarm-line); }
-.signup-finish-actions button { border: 1px solid var(--vtafarm-ink-4); background: var(--vtafarm-surface); color: var(--vtafarm-ink); }
-.signup-finish-actions button:hover { border-color: var(--vtafarm-ink-3); }
+.signup-finish-actions button { border: 1px solid var(--vtafarm-ink); background: transparent; color: var(--vtafarm-ink); }
+.signup-finish-actions button:not(:disabled):hover { background: var(--vtafarm-ink); color: var(--vtafarm-bg); }
 .signup-finish-actions button:disabled { opacity: .55; }
 .signup-finished { min-height: 330px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-.signup-finished > svg { width: 46px; height: 46px; margin-bottom: 16px; padding: 11px; border-radius: 50%; background: color-mix(in srgb, #22a06b 15%, transparent); color: #158052; }
+.signup-finished > svg { width: 46px; height: 46px; margin-bottom: 16px; padding: 11px; border-radius: 50%; background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
 .signup-finished a { display: inline-flex; align-items: center; }
 .signup-finished a:hover { background: var(--vtafarm-btn-hover); }
 .signup-finished h2 { font-size: 28px; }
@@ -93,7 +96,7 @@
 .signup-download-body { padding: 0 24px 20px; display: grid; place-items: center; }
 .signup-download-qr { display: block; width: 240px; max-width: 100%; height: auto; background: #fff; }
 .signup-download-footer { padding: 16px 24px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--vtafarm-line); background: color-mix(in srgb, var(--vtafarm-bg) 40%, transparent); }
-.signup-download-footer button, .signup-download-footer a { box-sizing: border-box; min-height: 36px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font: 500 13.5px/1 var(--font-sans); }
+.signup-download-footer button, .signup-download-footer a { box-sizing: border-box; min-height: 36px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-control); font: 500 13.5px/1 var(--font-sans); }
 .signup-download-footer button { border: 1px solid var(--vtafarm-line); background: var(--vtafarm-surface); color: var(--vtafarm-ink); }
 .signup-download-footer a { border: 1px solid transparent; background: var(--vtafarm-btn); color: #fff; }
 @media (max-width: 880px) { .signup-claim-grid { grid-template-columns: 1fr; } .signup-qr { width: min(100%, 320px); margin: auto; } }

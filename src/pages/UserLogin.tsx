@@ -191,7 +191,7 @@ export function UserLogin() {
               <BrandMark size={28} />
               <span>VTA Farm</span>
             </a>
-            <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 6px' }}>
+            <h1 className="auth-title">
               Welcome back
             </h1>
             <p className="p-muted" style={{ margin: '0 0 32px', fontSize: 14 }}>
@@ -291,24 +291,23 @@ export function UserLogin() {
           <div className="grid-bg" />
           <div style={{ position: 'relative', zIndex: 1 }}>
             <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              Create and manage your <em style={{ fontStyle: 'italic', color: '#f4c7c8' }}>Trust Agent.</em>
+              Create and manage your <em>Trust Agent.</em>
             </p>
-            <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
+            <p className="aside-lede">
               Provision a Trust Agent in a couple of minutes and link it to your Keyring wallet or personal network manager.
             </p>
             {/* Sets expectations before anyone invests in an agent here: the
                 hostnames and DIDs an agent mints are permanent, so "this may
                 go away" has to be said before sign-up, not after. */}
-            <div style={{ marginTop: 28, maxWidth: '42ch', padding: '14px 16px', borderRadius: 'var(--radius)', border: '1px solid hsl(359 67% 65% / .28)', background: 'hsl(359 67% 56% / .12)' }}>
-              <p style={{ color: 'hsl(0 0% 100% / .9)', fontSize: 19, fontWeight: 600, margin: '0 0 8px' }}>
+            <div className="aside-note">
+              <p className="aside-note-title">
                 This is a demo site
               </p>
-              <p style={{ color: 'hsl(0 0% 100% / .6)', fontSize: 13, lineHeight: 1.55, margin: 0 }}>
+              <p className="aside-note-body">
                 It may be torn down at a future date, and it may stop accepting
                 new agents once it runs out of space. To run your own instance,
                 the deployment code lives in{' '}
-                <a href="https://github.com/ic3software/vtafarm-k8s" target="_blank" rel="noreferrer noopener"
-                  style={{ color: '#f4c7c8', textDecoration: 'underline' }}>
+                <a href="https://github.com/ic3software/vtafarm-k8s" target="_blank" rel="noreferrer noopener">
                   vtafarm-k8s
                 </a>.
               </p>

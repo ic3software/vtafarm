@@ -925,7 +925,7 @@ export function CreateVTAView() {
                     <div className="dots"><span/><span/><span/></div>
                     <span className="p-mono">{terminalLabel}</span>
                     <span className="grow"/>
-                    <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
+                    <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'color-mix(in srgb, var(--warning) 16%, transparent)' }}>
                       <span className="dot pulse-dot"/>streaming
                     </span>
                   </div>
@@ -961,7 +961,7 @@ export function CreateVTAView() {
                     <div className="dots"><span/><span/><span/></div>
                     <span className="p-mono">{terminalLabel}</span>
                     <span className="grow"/>
-                    <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
+                    <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'color-mix(in srgb, var(--warning) 16%, transparent)' }}>
                       <span className="dot pulse-dot"/>polling
                     </span>
                   </div>
@@ -998,7 +998,7 @@ export function CreateVTAView() {
                 <div className="dots"><span/><span/><span/></div>
                 <span className="p-mono">{terminalLabel}</span>
                 <span className="grow"/>
-                <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
+                <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'color-mix(in srgb, var(--warning) 16%, transparent)' }}>
                   <span className="dot pulse-dot"/>{provStreamStarted ? 'streaming' : 'polling'}
                 </span>
               </div>

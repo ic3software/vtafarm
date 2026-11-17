@@ -46,9 +46,9 @@ export function AdminLogin() {
           <div className="grid-bg" />
           <div style={{ position: 'relative', zIndex: 1 }}>
             <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              Create and manage your <em style={{ fontStyle: 'italic', color: '#f4c7c8' }}>Verifiable Trust Community</em>
+              Create and manage your <em>Verifiable Trust Community</em>
             </p>
-            <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
+            <p className="aside-lede">
               Provision your VTC and manage your community members&rsquo; Trust Agents
             </p>
           </div>
@@ -62,7 +62,7 @@ export function AdminLogin() {
               <span>VTA Farm</span>
               <span className="admin-pill">Admin</span>
             </a>
-            <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 6px' }}>
+            <h1 className="auth-title">
               Operator sign-in
             </h1>
             <p className="p-muted" style={{ margin: '0 0 32px', fontSize: 14 }}>

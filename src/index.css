@@ -26,9 +26,6 @@
   --vtafarm-accent-soft: #f4c7c8;
   --vtafarm-accent-soft-ink: #7f0104;
 
-  /* Not on the site: a fainter ink for quiet borders. */
-  --vtafarm-ink-4: #a09e96;
-
   /* Not on the site: status colors the app needs. */
   --success: hsl(158 64% 40%);
   --warning: hsl(35 92% 50%);
@@ -97,8 +94,6 @@ html.dark {
   --vtafarm-accent-soft: #3a1a1b;
   --vtafarm-accent-soft-ink: #f4c7c8;
 
-  --vtafarm-ink-4: #524f4a;
-
   --success: hsl(158 60% 48%);
   --warning: hsl(35 92% 58%);
   --destructive: hsl(0 62% 52%);
@@ -123,12 +118,13 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
   --color-vtafarm-ink: var(--vtafarm-ink);
   --color-vtafarm-ink-2: var(--vtafarm-ink-2);
   --color-vtafarm-ink-3: var(--vtafarm-ink-3);
-  --color-vtafarm-ink-4: var(--vtafarm-ink-4);
   --color-vtafarm-line: var(--vtafarm-line);
   --color-vtafarm-line-2: var(--vtafarm-line-2);
   --color-vtafarm-accent: var(--vtafarm-accent);
   --color-vtafarm-accent-soft: var(--vtafarm-accent-soft);
   --color-vtafarm-link: var(--vtafarm-link);
+  --color-vtafarm-btn: var(--vtafarm-btn);
+  --color-vtafarm-btn-hover: var(--vtafarm-btn-hover);
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -203,25 +199,50 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
 
 /* ── Component classes ── */
 @layer components {
+  /* The small uppercase label above a heading, as on the site. */
   .eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
     font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.16em;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--vtafarm-ink-3);
+    color: var(--vtafarm-accent);
   }
-  .eyebrow .dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: var(--radius-pill);
-    background: var(--vtafarm-accent);
-    flex-shrink: 0;
-  }
+}
+
+/* ── Controls shared by every screen ── */
+
+/* Keyboard focus looks the same on every link and button. Inputs keep their
+   own ring. Tailwind's ring is switched off here so the two never stack. */
+:where(a, button, summary, [role="button"], [role="tab"], [role="menuitem"]):focus-visible {
+  outline: 2px solid var(--vtafarm-accent);
+  outline-offset: 3px;
+  --tw-ring-shadow: 0 0 #0000;
+}
+
+/* Lucide icons are drawn at the weight of the site's header icons. */
+.lucide { stroke-width: 1.8; }
+
+/* The square icon button from the site's header (theme switch, menu). */
+.icon-btn {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--vtafarm-line-2);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--vtafarm-ink-2);
+  transition: color var(--ease), border-color var(--ease);
+}
+.icon-btn:hover {
+  color: var(--vtafarm-ink);
+  border-color: var(--vtafarm-ink-3);
+}
+.icon-btn svg {
+  width: 17px;
+  height: 17px;
 }
 
 /* ── Home landing page ── */
@@ -272,30 +293,6 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
   margin-left: auto;
 }
 
-.home-theme-toggle {
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--vtafarm-line);
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--vtafarm-ink-2);
-  transition: color var(--ease), border-color var(--ease), transform var(--ease);
-}
-
-.home-theme-toggle:hover {
-  color: var(--vtafarm-ink);
-  border-color: var(--vtafarm-ink-3);
-  transform: translateY(-1px);
-}
-
-.home-theme-toggle svg {
-  width: 17px;
-  height: 17px;
-}
-
 .home-simple-main {
   display: flex;
   min-height: calc(100svh - 71px);
@@ -326,25 +323,25 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
   margin-top: 42px;
 }
 
+/* The three ways in. The first is the site's primary button, the others its
+   secondary button, all at the page-level height. */
 .home-start-option {
   position: relative;
   display: flex;
-  min-height: 84px;
+  min-height: 52px;
   align-items: center;
   justify-content: center;
-  padding: 18px 52px;
-  border: 1px solid var(--vtafarm-line);
-  border-radius: var(--radius-panel);
-  background: var(--vtafarm-surface);
+  padding: 0 52px;
+  border: 1px solid var(--vtafarm-ink);
+  border-radius: var(--radius-control);
+  background: transparent;
   color: var(--vtafarm-ink);
-  box-shadow: 0 14px 38px -30px rgba(0, 0, 0, .45);
-  transition: border-color var(--ease), box-shadow var(--ease), transform var(--ease);
+  transition: background var(--ease), color var(--ease), border-color var(--ease);
 }
 
 .home-start-option:hover {
-  border-color: var(--vtafarm-ink-3);
-  box-shadow: 0 18px 44px -28px rgba(0, 0, 0, .5);
-  transform: translateY(-2px);
+  background: var(--vtafarm-ink);
+  color: var(--vtafarm-bg);
 }
 
 .home-start-option > span {
@@ -353,63 +350,30 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
 
 .home-start-option strong {
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .home-start-option > svg {
   position: absolute;
   top: 0;
-  right: 22px;
+  right: 20px;
   bottom: 0;
-  width: 19px;
-  height: 19px;
+  width: 18px;
+  height: 18px;
   margin: auto 0;
 }
 
 .home-start-option-primary {
   grid-column: 1 / -1;
-  margin-bottom: 18px;
   border-color: var(--vtafarm-btn);
   background: var(--vtafarm-btn);
   color: #fff;
-  box-shadow: 0 16px 38px -24px color-mix(in srgb, var(--vtafarm-btn) 80%, transparent);
-}
-
-.home-start-option-primary strong {
-  font-size: 21px;
 }
 
 .home-start-option-primary:hover {
   border-color: var(--vtafarm-btn-hover);
   background: var(--vtafarm-btn-hover);
-}
-
-.home-start-option-secondary {
-  min-height: 60px;
-  padding: 12px 40px;
-  border-color: var(--vtafarm-ink-4);
-  border-radius: var(--radius-card);
-  box-shadow: 0 10px 26px -18px rgba(0, 0, 0, .45);
-}
-
-html.dark .home-start-option-secondary {
-  border-color: #6a665f;
-  background: #1f1e1c;
-}
-
-html.dark .home-start-option-secondary:hover {
-  border-color: var(--vtafarm-ink-3);
-  background: #272522;
-}
-
-.home-start-option-secondary strong {
-  font-size: 15px;
-}
-
-.home-start-option-secondary > svg {
-  right: 18px;
-  width: 16px;
-  height: 16px;
+  color: #fff;
 }
 
 @media (max-width: 860px) {
@@ -419,7 +383,6 @@ html.dark .home-start-option-secondary:hover {
 }
 
 @media (max-width: 620px) {
-
   .home-simple-main {
     align-items: flex-start;
     padding-top: 72px;
@@ -428,15 +391,10 @@ html.dark .home-start-option-secondary:hover {
   .home-start-options {
     grid-template-columns: 1fr;
   }
-
-  .home-start-option-primary strong {
-    font-size: 19px;
-  }
-
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-theme-toggle,
+  .icon-btn,
   .home-start-option,
   .home-start-option svg {
     transition: none;

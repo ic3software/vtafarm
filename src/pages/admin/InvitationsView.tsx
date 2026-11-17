@@ -18,7 +18,7 @@ function statusBadge(inv: Invitation) {
   if (new Date(inv.expires_at) < new Date()) {
     return <span className="p-badge" style={{ background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)', borderColor: 'color-mix(in srgb, var(--destructive) 25%, transparent)', fontSize: 11 }}>Expired</span>
   }
-  return <span className="p-badge badge-default" style={{ background: 'hsl(142 72% 50% / .15)', color: 'hsl(142 72% 38%)', borderColor: 'hsl(142 72% 50% / .3)', fontSize: 11 }}>Active</span>
+  return <span className="p-badge badge-success" style={{ fontSize: 11 }}>Active</span>
 }
 
 export function InvitationsView() {

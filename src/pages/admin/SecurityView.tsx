@@ -76,7 +76,7 @@ export function SecurityView() {
       <div className="p-card" style={{ marginBottom: 20 }}>
         <div className="card-header"><h3 className="card-title">Profile</h3></div>
         <div className="card-content p-row gap-16 center">
-          <span className="p-avatar" style={{ width: 52, height: 52, fontSize: 18, background: 'var(--primary)', color: '#fff' }}>
+          <span className="p-avatar" style={{ width: 52, height: 52, fontSize: 18, background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
             {initials(uniqueId)}
           </span>
           <div className="p-col">

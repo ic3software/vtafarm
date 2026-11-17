@@ -107,7 +107,7 @@ function LogConsole({
         <span className="p-mono">vtafarm · logs --follow {label}</span>
         <span className="grow"/>
         {streaming && (
-          <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'hsl(35 92% 50% /.16)' }}>
+          <span className="p-badge badge-warning" style={{ height: 18, fontSize: 10, background: 'color-mix(in srgb, var(--warning) 16%, transparent)' }}>
             <span className="dot pulse-dot"/>streaming
           </span>
         )}

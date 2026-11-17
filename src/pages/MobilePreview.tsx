@@ -101,7 +101,7 @@ export function MobilePreview() {
               textTransform: 'uppercase',
               color: '#9d0105',
               background: '#f4c7c8',
-              border: '1px solid #d9d0ff',
+              border: '1px solid #e6c4c4',
               padding: '2px 7px',
               borderRadius: 999,
             }}
