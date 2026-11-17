@@ -462,7 +462,7 @@ export function SessionsView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Sessions</h1>
+          <h1 className="sr-only">Sessions</h1>
           <p className="sub">All users' VTA setup sessions, newest first. Select running sessions to upgrade their images.</p>
         </div>
       </div>

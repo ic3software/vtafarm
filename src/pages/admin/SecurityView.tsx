@@ -70,7 +70,7 @@ export function SecurityView() {
 
   return (
     <section className="p-content">
-      <div className="page-head"><div><h1>Security</h1><p className="sub">Manage your operator credentials.</p></div></div>
+      <div className="page-head"><div><h1 className="sr-only">Security</h1><p className="sub">Manage your operator credentials.</p></div></div>
 
       {/* Profile */}
       <div className="p-card" style={{ marginBottom: 20 }}>

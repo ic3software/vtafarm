@@ -55,7 +55,7 @@ export function AdminsView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Administrators</h1>
+          <h1 className="sr-only">Administrators</h1>
           <p className="sub">Accounts with admin access to the control plane.</p>
         </div>
         <button className="btn btn-default" onClick={handleGenerateToken} disabled={generating}>

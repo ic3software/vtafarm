@@ -34,7 +34,7 @@ export function AgentsView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Your Trust Agents</h1>
+          <h1 className="sr-only">Your Trust Agents</h1>
         </div>
         <div className="p-row gap-8">
           <button className="btn btn-outline" onClick={loadSessions}>

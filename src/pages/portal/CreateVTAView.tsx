@@ -464,7 +464,7 @@ export function CreateVTAView() {
 
   if (stage === 0 && !limitRejected && (sessionsLoading || sessionsError || limitReached)) return (
     <section className="p-content">
-      <div className="page-head"><h1>Create a Trust Agent</h1></div>
+      <div className="page-head"><h1 className="sr-only">Create a Trust Agent</h1></div>
       {sessionsLoading ? <p>Loading VTA usage…</p> : (
         <div className="p-card">
           <div className="card-header">
@@ -485,7 +485,7 @@ export function CreateVTAView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Create a Trust Agent</h1>
+          <h1 className="sr-only">Create a Trust Agent</h1>
           {stage === 0 && sessionsError && <p className="vta-usage">
             {sessionsError}
           </p>}

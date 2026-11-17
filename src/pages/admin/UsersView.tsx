@@ -62,7 +62,7 @@ export function UsersView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Users</h1>
+          <h1 className="sr-only">Users</h1>
           <p className="sub">People with access to the VTA Farm portal. Invite new users via the Invitations panel.</p>
         </div>
       </div>

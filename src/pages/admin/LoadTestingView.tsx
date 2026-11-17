@@ -89,7 +89,7 @@ export function LoadTestingView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Load testing</h1>
+          <h1 className="sr-only">Load testing</h1>
           <p className="sub">Provision VTA-only sessions in parallel, verify readiness, then tear down the complete run.</p>
         </div>
       </div>

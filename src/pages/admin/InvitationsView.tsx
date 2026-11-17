@@ -61,7 +61,7 @@ export function InvitationsView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Invitations</h1>
+          <h1 className="sr-only">Invitations</h1>
           <p className="sub">Single-use links that let new users register. Each link expires in 24 hours.</p>
         </div>
         <button className="btn btn-default" onClick={handleCreate} disabled={creating}>

@@ -2,7 +2,7 @@ export function AuditView() {
   return (
     <section className="p-content">
       <div className="page-head">
-        <div><h1>Audit log</h1><p className="sub">Every administrative action, signed and hash-chained.</p></div>
+        <div><h1 className="sr-only">Audit log</h1><p className="sub">Every administrative action, signed and hash-chained.</p></div>
       </div>
       <div className="p-alert" style={{ background: 'color-mix(in srgb, var(--muted) 40%, transparent)' }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ color: 'var(--muted-foreground)' }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>

@@ -209,7 +209,7 @@ export function DomainsView() {
   const head = (
     <div className="page-head">
       <div>
-        <h1>Domains</h1>
+        <h1 className="sr-only">Domains</h1>
       </div>
     </div>
   )

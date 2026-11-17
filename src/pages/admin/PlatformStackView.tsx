@@ -568,7 +568,7 @@ export function PlatformStackView() {
           </div>
         ) : (
           <>
-            <h1>Platform stack</h1>
+            <h1 className="sr-only">Platform stack</h1>
             <p className="sub">
               The farm's own full stack, on our zone's fixed hostnames — and the mediator and
               DID host every VTA-only session points at.
@@ -582,7 +582,8 @@ export function PlatformStackView() {
   if (loading) {
     return (
       <section className="p-content">
-        {head}
+        {/* No header while loading: which one applies is not known yet, and
+            showing the "not created" one first makes it flash on every visit. */}
         <div className="p-card"><div className="card-content"><p className="p-muted text-sm" style={{ margin: 0 }}>Loading…</p></div></div>
       </section>
     )

@@ -137,7 +137,7 @@ export function DashboardView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Dashboard</h1>
+          <h1 className="sr-only">Dashboard</h1>
           <p className="sub">
             Auto-refreshes every {REFRESH_MS / 1000}s
             {updatedAt && ` · updated ${updatedAt.toLocaleTimeString()}`}

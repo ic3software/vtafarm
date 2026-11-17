@@ -273,7 +273,7 @@ export function PlacementView() {
       <section className="p-content placement-page">
         <div className="page-head">
           <div>
-            <h1>Workload placement</h1>
+            <h1 className="sr-only">Workload placement</h1>
             <p className="sub">Review cluster headroom and safely move VTA-only workloads to an exact node.</p>
           </div>
         </div>
@@ -314,7 +314,7 @@ export function PlacementView() {
   return (
     <section className="p-content placement-page">
       <div className="page-head">
-        <h1>Workload placement</h1>
+        <h1 className="sr-only">Workload placement</h1>
       </div>
 
       {mode !== 'enabled' && (

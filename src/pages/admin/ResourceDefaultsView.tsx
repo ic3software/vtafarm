@@ -138,7 +138,7 @@ export function ResourceDefaultsView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Defaults</h1>
+          <h1 className="sr-only">Defaults</h1>
         </div>
       </div>
       {error && <div className="p-alert alert-destructive" role="alert" style={{ marginBottom: 16 }}>{error}</div>}

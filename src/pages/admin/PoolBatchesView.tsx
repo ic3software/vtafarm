@@ -144,7 +144,7 @@ export function PoolBatchesView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>VTA pools</h1>
+          <h1 className="sr-only">VTA pools</h1>
         </div>
       </div>
 

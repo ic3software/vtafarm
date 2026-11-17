@@ -84,7 +84,7 @@ export function SettingsView() {
   return (
     <section className="p-content" style={{ maxWidth: 680 }}>
       <div className="page-head">
-        <div><h1>Settings</h1><p className="sub">Manage your account and security.</p></div>
+        <div><h1 className="sr-only">Settings</h1><p className="sub">Manage your account and security.</p></div>
       </div>
 
       {/* Profile */}
