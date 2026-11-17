@@ -146,7 +146,7 @@ export function TrustRegistryCard({
     </div></div>
     <div className="card-content p-col gap-16" aria-live="polite">
       {loadError && <div role="alert"><p className="p-muted text-sm">{loadError}</p><button className="btn btn-outline btn-sm" onClick={() => setRefresh(n => n + 1)}>Reload status</button></div>}
-      {error && <p role="alert" style={{ color: 'hsl(var(--destructive))' }}>{error}</p>}
+      {error && <p role="alert" style={{ color: 'var(--destructive)' }}>{error}</p>}
       {!registry && !loadError && <p className="p-muted text-sm">Loading Registry status…</p>}
       {registry && registry.state !== 'disabled' && <TrustRegistryDetails registry={registry} />}
       {registry && !active && !enabling && <>

@@ -6,6 +6,7 @@ import '@/styles/portal.css'
 import { api } from '@/lib/api'
 import { useUserAuth } from '@/contexts/userAuth'
 import { keyringSameDeviceLink } from '@/lib/utils'
+import { BrandMark } from '@/components/BrandMark'
 import {
   cancelKeyringRequest,
   fetchKeyringSignInConfig,
@@ -187,7 +188,7 @@ export function UserLogin() {
         <div className="auth-panel">
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <span className="sidebar-mark" />
+              <BrandMark size={28} />
               <span>VTA Farm</span>
             </a>
             <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 6px' }}>
@@ -199,18 +200,18 @@ export function UserLogin() {
 
             {keyringRequest ? (
               <div style={{ display: 'grid', gap: 14, marginBottom: 18 }}>
-                <div style={{ display: 'grid', placeItems: 'center', minHeight: 220, padding: 14, border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', background: '#fff' }}>
+                <div style={{ display: 'grid', placeItems: 'center', minHeight: 220, padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#fff' }}>
                   {tabVisible ? (
                     <a href={keyringSameDeviceLink(keyringRequest.triggerLink)} aria-label="Open sign-in request in Keyring">
                       <QRCodeSVG value={keyringRequest.triggerLink} size={190} level="M" />
                     </a>
                   ) : (
-                    <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Sign-in code hidden while this tab is inactive.</span>
+                    <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Sign-in code hidden while this tab is inactive.</span>
                   )}
                 </div>
                 {developmentSignInCommand && (
-                  <div style={{ display: 'grid', gap: 8, padding: 12, border: '1px dashed hsl(var(--border))', borderRadius: 'var(--radius)', background: 'hsl(var(--muted) / .45)' }}>
-                    <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>Development wallet command</span>
+                  <div style={{ display: 'grid', gap: 8, padding: 12, border: '1px dashed var(--border)', borderRadius: 'var(--radius)', background: 'color-mix(in srgb, var(--muted) 45%, transparent)' }}>
+                    <span style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>Development wallet command</span>
                     <code className="p-mono" style={{ overflowWrap: 'anywhere', fontSize: 11, lineHeight: 1.5 }}>{developmentSignInCommand}</code>
                     <button className="btn btn-outline btn-sm" type="button" onClick={() => void copyDevelopmentSignInCommand()}>
                       {copiedDevelopmentCommand ? 'Copied command' : 'Copy command'}
@@ -218,8 +219,8 @@ export function UserLogin() {
                   </div>
                 )}
                 {matchNumber && (
-                  <div style={{ textAlign: 'center', padding: '12px 16px', borderRadius: 'var(--radius)', background: 'hsl(var(--muted))' }}>
-                    <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginBottom: 4 }}>Number shown to Keyring</div>
+                  <div style={{ textAlign: 'center', padding: '12px 16px', borderRadius: 'var(--radius)', background: 'var(--muted)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--muted-foreground)', marginBottom: 4 }}>Number shown to Keyring</div>
                     <div className="p-mono" style={{ fontSize: 34, fontWeight: 700, letterSpacing: '.18em' }}>{matchNumber}</div>
                   </div>
                 )}
@@ -240,7 +241,7 @@ export function UserLogin() {
                     ))}
                   </div>
                 )}
-                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'hsl(var(--muted-foreground))' }}>{keyringStatus}</p>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{keyringStatus}</p>
                 <a className="btn btn-default btn-lg btn-block" href={keyringSameDeviceLink(keyringRequest.triggerLink)}>
                   Open in Keyring <span className="arrow">→</span>
                 </a>
@@ -277,7 +278,7 @@ export function UserLogin() {
             </button>
 
             {error && (
-              <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
+              <p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--destructive)' }}>{error}</p>
             )}
 
           </div>

@@ -83,31 +83,31 @@ export function UsersView() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted-foreground)', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted-foreground)', fontSize: 13 }}>
                   No users yet.
                 </td>
               </tr>
             ) : users.map(u => (
               <tr key={u.id}>
-                <td><span className="p-mono" style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{u.id}</span></td>
+                <td><span className="p-mono" style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>{u.id}</span></td>
                 <td><span className="p-mono" style={{ fontSize: 12 }}>{u.unique_id}</span></td>
                 <td style={{ fontSize: 13 }}>
                   {u.system
                     ? <span className="p-badge badge-warning">System account</span>
-                    : u.email ?? <span style={{ color: 'hsl(var(--muted-foreground))' }}>—</span>}
+                    : u.email ?? <span style={{ color: 'var(--muted-foreground)' }}>—</span>}
                 </td>
                 <td>
                   {/* The platform stack's owner is not a person: no passkey, no
                       email, and Fullstack Access is meaningless on it — so none of
                       the per-user controls apply. */}
                   {u.system ? (
-                    <span style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>n/a</span>
+                    <span style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>n/a</span>
                   ) : (
                     <div className="p-row gap-8" style={{ alignItems: 'center' }}>
                       <span className={`p-badge ${u.fullstack_access ? 'badge-success' : 'badge-secondary'}`}>
@@ -123,8 +123,8 @@ export function UsersView() {
                     </div>
                   )}
                 </td>
-                <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(u.created_at)}</td>
-                <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(u.updated_at)}</td>
+                <td style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>{fmt(u.created_at)}</td>
+                <td style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>{fmt(u.updated_at)}</td>
                 <td className="col-actions">
                   {!u.system && (
                     <button

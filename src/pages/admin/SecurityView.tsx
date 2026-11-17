@@ -76,7 +76,7 @@ export function SecurityView() {
       <div className="p-card" style={{ marginBottom: 20 }}>
         <div className="card-header"><h3 className="card-title">Profile</h3></div>
         <div className="card-content p-row gap-16 center">
-          <span className="p-avatar" style={{ width: 52, height: 52, fontSize: 18, background: 'hsl(var(--primary))', color: '#fff' }}>
+          <span className="p-avatar" style={{ width: 52, height: 52, fontSize: 18, background: 'var(--primary)', color: '#fff' }}>
             {initials(uniqueId)}
           </span>
           <div className="p-col">
@@ -100,29 +100,29 @@ export function SecurityView() {
         </div>
         <div className="card-content" style={{ padding: 0 }}>
           {loadingPasskeys ? (
-            <p style={{ padding: '16px 20px', margin: 0, fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Loading…</p>
+            <p style={{ padding: '16px 20px', margin: 0, fontSize: 13, color: 'var(--muted-foreground)' }}>Loading…</p>
           ) : passkeys.length === 0 ? (
-            <p style={{ padding: '16px 20px', margin: 0, fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>No passkeys registered yet.</p>
+            <p style={{ padding: '16px 20px', margin: 0, fontSize: 13, color: 'var(--muted-foreground)' }}>No passkeys registered yet.</p>
           ) : passkeys.map((pk, i) => (
             <div key={pk.id} style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px',
-              borderTop: i > 0 ? '1px solid hsl(var(--border))' : undefined,
+              borderTop: i > 0 ? '1px solid var(--border)' : undefined,
             }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'hsl(var(--muted))', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 16, height: 16, color: 'hsl(var(--muted-foreground))' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--muted)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 16, height: 16, color: 'var(--muted-foreground)' }}>
                   <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
                 </svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 500, fontSize: 14 }}>{pk.name}</div>
-                <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>
+                <div style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
                   Added {fmt(pk.created_at)}
                   {pk.last_used_at ? ` · Last used ${fmt(pk.last_used_at)}` : ' · Never used'}
                 </div>
               </div>
               <button
                 className="btn btn-ghost btn-sm"
-                style={{ color: 'hsl(var(--destructive))', flexShrink: 0 }}
+                style={{ color: 'var(--destructive)', flexShrink: 0 }}
                 onClick={() => handleDelete(pk.id)}
                 disabled={deletingId === pk.id || passkeys.length === 1}
                 title={passkeys.length === 1 ? 'Cannot remove your only passkey' : undefined}
@@ -155,7 +155,7 @@ export function SecurityView() {
                     autoFocus
                   />
                 </div>
-                {addError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{addError}</p>}
+                {addError && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{addError}</p>}
               </div>
               <div className="dialog-footer">
                 <button className="btn btn-ghost" type="button" onClick={() => { setShowAdd(false); setAddError('') }}>Cancel</button>

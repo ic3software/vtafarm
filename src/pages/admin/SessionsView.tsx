@@ -124,7 +124,7 @@ const tagStyle = { fontSize: 11.5, lineHeight: 1.7, whiteSpace: 'nowrap' } as co
 function imageLine([component, image]: [string, string]) {
   return (
     <div key={component} className="p-mono" title={image} style={tagStyle}>
-      <span style={{ color: 'hsl(var(--muted-foreground))' }}>{component} </span>
+      <span style={{ color: 'var(--muted-foreground)' }}>{component} </span>
       {imageTag(image)}
     </div>
   )
@@ -154,9 +154,9 @@ function ImagesCell({ session }: { session: AdminSetupSession }) {
             a labelled list, and a bare tag there reads as a missing name. The
             full tag stays, sha and all: two builds of the same version must not
             look identical in a table whose purpose is deciding what to upgrade. */}
-        <span style={{ color: 'hsl(var(--muted-foreground))' }}>{rows[0][0]} </span>
+        <span style={{ color: 'var(--muted-foreground)' }}>{rows[0][0]} </span>
         {imageTag(rows[0][1])}
-        <span style={{ color: 'hsl(var(--muted-foreground))' }}> {open ? '−' : `+${rows.length - 1}`}</span>
+        <span style={{ color: 'var(--muted-foreground)' }}> {open ? '−' : `+${rows.length - 1}`}</span>
       </button>
       {open && rows.slice(1).map(imageLine)}
     </>
@@ -167,7 +167,7 @@ function ResourceLine({ resource }: { resource: AdminSessionResourceSummary }) {
   return (
     <span className="p-row gap-8" style={{ ...tagStyle, display: 'inline-flex' }}>
       <span>
-        <span style={{ color: 'hsl(var(--muted-foreground))' }}>{resource.component} </span>
+        <span style={{ color: 'var(--muted-foreground)' }}>{resource.component} </span>
         {resource.memory_request} / {resource.memory_limit}
       </span>
       <span className={`p-badge ${resource.customized ? 'badge-warning' : 'badge-success'}`}>
@@ -193,7 +193,7 @@ function ResourcesCell({ session }: { session: AdminSetupSession }) {
         style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
       >
         <ResourceLine resource={rows[0]} />
-        <span className="p-mono" style={{ ...tagStyle, marginLeft: 8, color: 'hsl(var(--muted-foreground))' }}>
+        <span className="p-mono" style={{ ...tagStyle, marginLeft: 8, color: 'var(--muted-foreground)' }}>
           {open ? '−' : `+${rows.length - 1}`}
         </span>
       </button>
@@ -235,7 +235,7 @@ function ExportCell({ session }: { session: AdminSetupSession }) {
         {busy === 'logs' ? '…' : 'Logs'}
       </button>
       {failed && (
-        <span title={failed} style={{ fontSize: 12, color: 'hsl(var(--destructive))' }}>failed</span>
+        <span title={failed} style={{ fontSize: 12, color: 'var(--destructive)' }}>failed</span>
       )}
     </div>
   )
@@ -519,7 +519,7 @@ export function SessionsView() {
       </div>
 
       {loadError && (
-        <div className="p-row" role="alert" style={{ alignItems: 'center', gap: 10, marginBottom: 14, color: 'hsl(var(--destructive))' }}>
+        <div className="p-row" role="alert" style={{ alignItems: 'center', gap: 10, marginBottom: 14, color: 'var(--destructive)' }}>
           <span>{loadError}</span>
           <button className="btn btn-outline btn-sm" onClick={() => loadPage(page)}>Retry</button>
         </div>
@@ -528,7 +528,7 @@ export function SessionsView() {
       {activeBatch && (
         <div className="p-row" style={{
           alignItems: 'center', gap: 10, padding: '10px 14px', marginBottom: 14, fontSize: 13,
-          border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', background: 'hsl(var(--muted) / 0.4)',
+          border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'color-mix(in srgb, var(--muted) 40%, transparent)',
         }}>
           <span className={`p-badge ${activeBatch.status === 'paused' ? 'badge-warning' : 'badge-default'}`}>
             {activeBatch.status}
@@ -593,13 +593,13 @@ export function SessionsView() {
           <tbody>
             {loading && sessions.length === 0 ? (
               <tr>
-                <td colSpan={13} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={13} style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted-foreground)', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : sessions.length === 0 ? (
               <tr>
-                <td colSpan={13} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={13} style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted-foreground)', fontSize: 13 }}>
                   {searchQuery || modeFilter || statusFilter ? 'No sessions match these filters.' : 'No sessions yet.'}
                 </td>
               </tr>
@@ -618,18 +618,18 @@ export function SessionsView() {
                     vtc name lines up under the vta name it belongs to. */}
                 <td title={s.fqdn}>
                   <div className="p-row gap-8">
-                    <span className="p-mono" style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>#{s.id}</span>
+                    <span className="p-mono" style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>#{s.id}</span>
                     <div>
                       <div className="p-mono" style={{ fontSize: 12 }}>{s.vta_name}</div>
                       {s.vtc_name && (
-                        <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>vtc: {s.vtc_name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>vtc: {s.vtc_name}</div>
                       )}
                     </div>
                   </div>
                 </td>
                 <td>
                   <div style={{ fontSize: 12 }}>{s.user_email ?? s.user_unique_id}</div>
-                  <div className="p-mono" style={{ fontSize: 11.5, color: 'hsl(var(--muted-foreground))' }}>
+                  <div className="p-mono" style={{ fontSize: 11.5, color: 'var(--muted-foreground)' }}>
                     #{s.user_id} · {s.user_unique_id}
                   </div>
                 </td>
@@ -646,7 +646,7 @@ export function SessionsView() {
                       —
                     </span>
                   ) : s.provider_gone ? (
-                    <span style={{ color: 'hsl(var(--destructive))' }}>stack deleted</span>
+                    <span style={{ color: 'var(--destructive)' }}>stack deleted</span>
                   ) : s.connection_source === 'external' ? (
                     <span className="p-muted">external DID hosting</span>
                   ) : s.provider ? (
@@ -670,7 +670,7 @@ export function SessionsView() {
                   </div>
                 </td>
                 <td><ImagesCell session={s} /></td>
-                <td title={fmt(s.created_at)} style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', whiteSpace: 'nowrap' }}>
+                <td title={fmt(s.created_at)} style={{ fontSize: 13, color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>
                   {relTime(s.created_at)}
                 </td>
                 <td style={{ minWidth: 190 }}>
@@ -691,7 +691,7 @@ export function SessionsView() {
                 <td className="col-actions" style={{ textAlign: 'left' }}>
                   <button
                     className="btn btn-ghost btn-sm"
-                    style={{ color: 'hsl(var(--destructive))' }}
+                    style={{ color: 'var(--destructive)' }}
                     onClick={() => askDelete(s)}
                     aria-label={`Delete session ${s.vta_name}`}
                   >
@@ -705,7 +705,7 @@ export function SessionsView() {
       </div>
 
       <div className="p-row" style={{ alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
-        <span style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>
+        <span style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>
           Total {total} session{total === 1 ? '' : 's'}
         </span>
         <div className="p-row gap-8" style={{ alignItems: 'center' }}>
@@ -717,7 +717,7 @@ export function SessionsView() {
             Previous
           </button>
           {pageNumbers(page, totalPages).map((p, i) => p === '…' ? (
-            <span key={`gap-${i}`} style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>…</span>
+            <span key={`gap-${i}`} style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>…</span>
           ) : (
             <button
               key={p}
@@ -802,7 +802,7 @@ export function SessionsView() {
                 />
               </div>
               {deleteError && (
-                <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{deleteError}</p>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{deleteError}</p>
               )}
             </div>
             <div className="dialog-footer">

@@ -4,6 +4,7 @@ import { startAuthentication } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
 import { useAdminAuth } from '@/contexts/adminAuth'
+import { BrandMark } from '@/components/BrandMark'
 
 export function AdminLogin() {
   const { admin, setAdminSession } = useAdminAuth()
@@ -57,7 +58,7 @@ export function AdminLogin() {
         <div className="auth-panel">
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <span className="sidebar-mark" />
+              <BrandMark size={28} />
               <span>VTA Farm</span>
               <span className="admin-pill">Admin</span>
             </a>
@@ -83,7 +84,7 @@ export function AdminLogin() {
             </button>
 
             {error && (
-              <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
+              <p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--destructive)' }}>{error}</p>
             )}
 
           </div>

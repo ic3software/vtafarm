@@ -4,6 +4,7 @@ import { startRegistration } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
 import { useUserAuth } from '@/contexts/userAuth'
+import { BrandMark } from '@/components/BrandMark'
 
 export function Recover() {
   const { token } = useParams<{ token: string }>()
@@ -78,7 +79,7 @@ export function Recover() {
         <div className="auth-panel">
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <span className="sidebar-mark" />
+              <BrandMark size={28} />
               <span>VTA Farm</span>
             </a>
 
@@ -94,7 +95,7 @@ export function Recover() {
                 <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 8px' }}>
                   Invalid recovery link
                 </h1>
-                <p style={{ margin: '0 0 24px', fontSize: 14, color: 'hsl(var(--destructive))' }}>{tokenError}</p>
+                <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--destructive)' }}>{tokenError}</p>
                 <p className="p-muted" style={{ margin: '0 0 24px', fontSize: 13 }}>
                   Contact your administrator to get a new one.
                 </p>
@@ -129,7 +130,7 @@ export function Recover() {
                 </button>
 
                 {error && (
-                  <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
+                  <p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--destructive)' }}>{error}</p>
                 )}
               </>
             )}
@@ -151,7 +152,7 @@ export function Recover() {
               Provision a Verifiable Trust Agent, mint a DID, and issue credentials — all from one quiet console.
             </p>
           </div>
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
             <span>256-bit keys</span><span>W3C DID</span><span>Zero leakage</span>
           </div>
         </div>

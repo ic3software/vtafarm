@@ -229,7 +229,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
               </div>
             ))}
             {rollingBack && (
-              <p style={{ margin: 0, fontSize: 12, color: 'hsl(var(--destructive))' }}>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--destructive)' }}>
                 Update failed. Restoring the previous version…
               </p>
             )}
@@ -243,7 +243,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
               </p>
             ))}
             {upgrade.status === 'completed' && (
-              <p style={{ margin: 0, fontSize: 12, color: 'hsl(var(--success))' }}>All components updated.</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--success)' }}>All components updated.</p>
             )}
             {!running && (
               <div>
@@ -307,7 +307,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
                 </div>
               )
             })}
-            {error && <p style={{ margin: 0, fontSize: 12, color: 'hsl(var(--destructive))' }}>{error}</p>}
+            {error && <p style={{ margin: 0, fontSize: 12, color: 'var(--destructive)' }}>{error}</p>}
             <div className="p-row center" style={{ justifyContent: 'flex-end' }}>
               <button className="btn btn-default btn-sm" disabled={maintenanceBlocked || changes.length === 0} onClick={() => setConfirming(true)} title={maintenanceBlocked ? 'Maintenance mode is active' : undefined}>
                 Update
@@ -342,7 +342,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
                   next: imageTag(to),
                 }
               })} />
-              {error && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
+              {error && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{error}</p>}
             </div>
             <div className="dialog-footer">
               <button className="btn btn-ghost" disabled={busy} onClick={() => { setConfirming(false); setError('') }}>Cancel</button>

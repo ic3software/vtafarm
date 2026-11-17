@@ -245,9 +245,9 @@ function SessionDetailContent() {
   )
 
   const dangerZone = (
-    <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
+    <div className="p-card" style={{ borderColor: 'color-mix(in srgb, var(--destructive) 30%, transparent)' }}>
       <div className="card-header">
-        <h3 className="card-title" style={{ color: 'hsl(var(--destructive))' }}>Danger Zone</h3>
+        <h3 className="card-title" style={{ color: 'var(--destructive)' }}>Danger Zone</h3>
       </div>
       <div className="card-content">
         <hr className="p-sep" style={{ marginBottom: 14 }} />
@@ -280,7 +280,7 @@ function SessionDetailContent() {
             </button>
           </div>
           <div className="p-row gap-12 center wrap-flex">
-            <h1 className="p-mono" style={{ fontFamily: 'var(--mono)', fontSize: 22, whiteSpace: 'nowrap', marginBottom: 0 }}>{name}</h1>
+            <h1 className="p-mono" style={{ fontFamily: 'var(--font-mono)', fontSize: 22, whiteSpace: 'nowrap', marginBottom: 0 }}>{name}</h1>
             {statusBadge(session.status)}
           </div>
         </div>
@@ -477,7 +477,7 @@ function SessionDetailContent() {
                 <input className="p-input p-mono" placeholder={name} value={deleteInput} onChange={e => setDeleteInput(e.target.value)} />
               </div>
               {deleteError && (
-                <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{deleteError}</p>
+                <p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--destructive)' }}>{deleteError}</p>
               )}
             </div>
             <div className="dialog-footer">

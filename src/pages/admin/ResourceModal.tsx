@@ -215,7 +215,7 @@ export function ResourceModal({ sessions, onClose }: Props) {
               <p className="alert-desc">Changes are validated first, then rolled out one at a time and checked for readiness.</p>
             </div>
           </div>
-          {error && <p style={{ whiteSpace: 'pre-wrap', margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
+          {error && <p style={{ whiteSpace: 'pre-wrap', margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{error}</p>}
         </div>
         <div className="dialog-footer">
           <button type="button" className="btn btn-ghost" onClick={() => onClose(false)} disabled={applying}>Cancel</button>

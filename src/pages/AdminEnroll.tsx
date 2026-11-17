@@ -4,6 +4,7 @@ import { startRegistration } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
 import { useAdminAuth } from '@/contexts/adminAuth'
+import { BrandMark } from '@/components/BrandMark'
 
 export function AdminEnroll() {
   const { token } = useParams<{ token: string }>()
@@ -89,7 +90,7 @@ export function AdminEnroll() {
               Set up your admin passkey to gain access to the VTA Farm control plane.
             </p>
           </div>
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
             <span>Role-scoped</span><span>Audit-logged</span><span>MFA enforced</span>
           </div>
         </div>
@@ -98,7 +99,7 @@ export function AdminEnroll() {
         <div className="auth-panel">
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <span className="sidebar-mark" />
+              <BrandMark size={28} />
               <span>VTA Farm</span>
               <span className="admin-pill">Admin</span>
             </a>
@@ -115,7 +116,7 @@ export function AdminEnroll() {
                 <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 8px' }}>
                   Invalid enrollment link
                 </h1>
-                <p style={{ margin: '0 0 24px', fontSize: 14, color: 'hsl(var(--destructive))' }}>{tokenError}</p>
+                <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--destructive)' }}>{tokenError}</p>
                 <a href="/" className="btn btn-default btn-block" style={{ textDecoration: 'none', textAlign: 'center' }}>
                   Back to home
                 </a>
@@ -146,7 +147,7 @@ export function AdminEnroll() {
                 </button>
 
                 {error && (
-                  <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
+                  <p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--destructive)' }}>{error}</p>
                 )}
 
                 <p className="p-muted text-xs mt-24" style={{ textAlign: 'center' }}>

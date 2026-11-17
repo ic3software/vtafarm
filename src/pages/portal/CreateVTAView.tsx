@@ -567,7 +567,7 @@ export function CreateVTAView() {
                         {inspecting ? 'Checking…' : 'Validate connection'}
                       </button>
                     </div>
-                    {inspectionError && <p className="text-sm" style={{ color: 'hsl(var(--destructive))', margin: 0 }}>{inspectionError}</p>}
+                    {inspectionError && <p className="text-sm" style={{ color: 'var(--destructive)', margin: 0 }}>{inspectionError}</p>}
                     {connectionInspection && (
                       <div className="p-alert alert-success">
                         <div className="grow">
@@ -792,9 +792,9 @@ export function CreateVTAView() {
                 className="p-row gap-12 center"
                 style={{
                   padding: '12px 14px',
-                  border: `1px solid hsl(var(${registryEnabled ? '--primary' : '--border'}))`,
+                  border: `1px solid var(${registryEnabled ? '--primary' : '--border'})`,
                   borderRadius: 8,
-                  background: registryEnabled ? 'hsl(var(--primary) / .08)' : 'hsl(var(--muted) / .35)',
+                  background: registryEnabled ? 'color-mix(in srgb, var(--primary) 8%, transparent)' : 'color-mix(in srgb, var(--muted) 35%, transparent)',
                   cursor: 'pointer',
                 }}
               >
@@ -802,7 +802,7 @@ export function CreateVTAView() {
                   type="checkbox"
                   checked={registryEnabled}
                   onChange={e => setRegistryEnabled(e.target.checked)}
-                  style={{ width: 18, height: 18, accentColor: 'hsl(var(--primary))' }}
+                  style={{ width: 18, height: 18, accentColor: 'var(--primary)' }}
                 />
                 <span className="grow fw-600">Enable Trust Registry</span>
                 <span className={`p-badge ${registryEnabled ? 'badge-success' : 'badge-secondary'}`}>
@@ -811,7 +811,7 @@ export function CreateVTAView() {
               </label>
               {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} preselectDefault />}
             </div>}
-            {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
+            {createError && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{createError}</p>}
             {limitReached && <p className="field-hint">{VTA_LIMIT_MESSAGE}</p>}
             {!fullstackAccess && <p className="field-hint">All undeleted agents count toward your limit, including those being set up or in a failed state. Delete a failed agent to free up a slot.</p>}
           </div>

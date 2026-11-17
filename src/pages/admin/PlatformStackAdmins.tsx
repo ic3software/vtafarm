@@ -96,8 +96,8 @@ export function PlatformStackAdmins({ onVtaRestarted }: { onVtaRestarted?: () =>
               maxLength={64} value={label} onChange={event => setLabel(event.target.value)} disabled={busy || refreshing} />
           </div>
 
-          {error && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
-          {notice?.area === 'grant' && <p role="status" style={{ margin: 0, fontSize: 13, color: 'hsl(var(--foreground))' }}>{notice.message}</p>}
+          {error && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{error}</p>}
+          {notice?.area === 'grant' && <p role="status" style={{ margin: 0, fontSize: 13, color: 'var(--foreground)' }}>{notice.message}</p>}
           {warning && (
             <div className="p-alert alert-warning" role="alert">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
@@ -140,7 +140,7 @@ export function PlatformStackAdmins({ onVtaRestarted }: { onVtaRestarted?: () =>
           {acl && acl.entries.length > 0 && (
             <div className="p-col gap-8">
               {acl.entries.map(entry => (
-                <div key={entry.did} style={{ border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
+                <div key={entry.did} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '10px 12px' }}>
                   <div className="p-row between center gap-8">
                     <span className="text-sm fw-600">{entry.label || 'Unlabeled'}</span>
                     <span className="p-badge badge-secondary">{entry.role}</span>

@@ -24,7 +24,7 @@ export function ExternalDIDPublicationCard({ session, onValidated }: {
   }
 
   return (
-    <div className="p-card" style={{ marginBottom: 20, borderColor: 'hsl(var(--primary)/.35)' }}>
+    <div className="p-card" style={{ marginBottom: 20, borderColor: 'color-mix(in srgb, var(--primary) 35%, transparent)' }}>
       <div className="card-header">
         <h3 className="card-title">Publish your VTA DID log</h3>
         <p className="card-desc">Your DID hosting is outside this farm. Upload the generated <span className="p-mono">did.jsonl</span> to your hosting service, then validate it here.</p>
@@ -44,7 +44,7 @@ export function ExternalDIDPublicationCard({ session, onValidated }: {
           <div className="field-hint">Validation fetches the public log and verifies it matches this VTA DID before provisioning can continue.</div>
           {session.vta_did && <p className="p-mono text-xs" style={{ wordBreak: 'break-all' }}>{session.vta_did}</p>}
         </div>
-        {error && <p className="text-sm" style={{ color: 'hsl(var(--destructive))', margin: 0 }}>{error}</p>}
+        {error && <p className="text-sm" style={{ color: 'var(--destructive)', margin: 0 }}>{error}</p>}
       </div>
       <div className="card-footer between">
         <span className="field-hint" style={{ marginTop: 0 }}>You can leave this page and validate later from the session page.</span>

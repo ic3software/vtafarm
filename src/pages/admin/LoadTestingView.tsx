@@ -135,7 +135,7 @@ export function LoadTestingView() {
               <div className="grow"><p className="alert-title">Finish or delete the active run before starting another.</p></div>
             </div>
           )}
-          {error && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
+          {error && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{error}</p>}
           <div>
             <button className="btn btn-default" type="submit"
               disabled={creating || hasActiveRun || !countIsValid || !selectedImage}>

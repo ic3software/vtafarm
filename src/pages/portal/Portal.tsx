@@ -6,6 +6,7 @@ import { useTheme } from '@/lib/useTheme'
 import { api, type SetupSession } from '@/lib/api'
 import { initials } from './portalUtils'
 import { MaintenanceBanner } from '@/components/MaintenanceBanner'
+import { BrandMark } from '@/components/BrandMark'
 
 export interface PortalContext {
   sessions: SetupSession[]
@@ -132,7 +133,7 @@ export function Portal() {
         <aside className="p-sidebar">
           <div className="sidebar-head">
             <a className="sidebar-brand" href="/portal">
-              <span className="sidebar-mark"/>
+              <BrandMark size={24} />
               <span>VTA Farm</span>
             </a>
           </div>
@@ -178,10 +179,10 @@ export function Portal() {
                 <div className="meta grow">
                   {email
                     ? <div className="n">{email}</div>
-                    : <div className="n" style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{user.unique_id}</div>}
+                    : <div className="n" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{user.unique_id}</div>}
                   <div className="e">User account</div>
                 </div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 15, height: 15, color: 'hsl(var(--muted-foreground))' }}><path d="m18 15-6-6-6 6"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 15, height: 15, color: 'var(--muted-foreground)' }}><path d="m18 15-6-6-6 6"/></svg>
               </div>
             </div>
           </div>

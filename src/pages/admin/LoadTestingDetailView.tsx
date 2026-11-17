@@ -131,13 +131,13 @@ export function LoadTestingDetailView() {
             </div>
           )}
           {(error || run.error_msg) && (
-            <p style={{ margin: '0 24px 20px', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error || run.error_msg}</p>
+            <p style={{ margin: '0 24px 20px', fontSize: 13, color: 'var(--destructive)' }}>{error || run.error_msg}</p>
           )}
 
           {run.sessions.length === 0 ? (
             <div className="p-muted" style={{ padding: '0 24px 24px' }}>No VTA sessions have been created yet.</div>
           ) : (
-            <div className="table-wrap" style={{ border: 0, borderTop: '1px solid hsl(var(--border))', borderRadius: 0 }}>
+            <div className="table-wrap" style={{ border: 0, borderTop: '1px solid var(--border)', borderRadius: 0 }}>
               <table className="p-table load-test-table">
                 <thead><tr><th>VTA</th><th>Session ID</th><th>Provisioning</th><th>Readiness</th><th>Endpoint</th><th>Error</th></tr></thead>
                 <tbody>

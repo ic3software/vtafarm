@@ -69,14 +69,14 @@ function CopyRow({
   const copied = copiedKey === copyKey
   const empty = !value
   return (
-    <div className="p-card" style={{ background: 'hsl(var(--muted)/.4)', border: 'none' }}>
+    <div className="p-card" style={{ background: 'color-mix(in srgb, var(--muted) 40%, transparent)', border: 'none' }}>
       <div className="card-content" style={{ padding: '12px 16px' }}>
         <div className="p-row between center" style={{ gap: 12 }}>
           <div className="p-col" style={{ minWidth: 0 }}>
-            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
               {label}
             </span>
-            <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: empty ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))' }}>
+            <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: empty ? 'var(--muted-foreground)' : 'var(--foreground)' }}>
               {empty ? 'not minted yet' : value}
             </p>
             {hint && <span className="field-hint" style={{ marginTop: 4 }}>{hint}</span>}
@@ -310,9 +310,9 @@ function PlatformStackTabs({
         </div>
         <div className="session-danger-zone">
           <hr className="p-sep" />
-          <div className="p-card" style={{ borderColor: 'hsl(var(--destructive)/.3)' }}>
+          <div className="p-card" style={{ borderColor: 'color-mix(in srgb, var(--destructive) 30%, transparent)' }}>
             <div className="card-header">
-              <h3 className="card-title" style={{ color: 'hsl(var(--destructive))' }}>Danger Zone</h3>
+              <h3 className="card-title" style={{ color: 'var(--destructive)' }}>Danger Zone</h3>
             </div>
             <div className="card-content">
               <hr className="p-sep" style={{ marginBottom: 14 }} />
@@ -362,7 +362,7 @@ function PlatformStackTabs({
                 />
               </div>
               {deleteError && (
-                <p role="alert" style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{deleteError}</p>
+                <p role="alert" style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--destructive)' }}>{deleteError}</p>
               )}
             </div>
             <div className="dialog-footer">
@@ -561,7 +561,7 @@ export function PlatformStackView() {
       <div>
         {running ? (
           <div className="p-row gap-12 center wrap-flex">
-            <h1 className="p-mono" style={{ fontFamily: 'var(--mono)', fontSize: 22, whiteSpace: 'nowrap', marginBottom: 0 }}>
+            <h1 className="p-mono" style={{ fontFamily: 'var(--font-mono)', fontSize: 22, whiteSpace: 'nowrap', marginBottom: 0 }}>
               {stack?.label}
             </h1>
             {statusBadge('running')}
@@ -681,7 +681,7 @@ export function PlatformStackView() {
 
             <label className="p-row gap-8"><input type="checkbox" checked={registryEnabled} onChange={e => setRegistryEnabled(e.target.checked)} /> Enable Trust Registry (optional)</label>
             {registryEnabled && <TrustRegistryImagePicker image={registryImage} onChange={setRegistryImage} admin preselectDefault />}
-            {createError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>}
+            {createError && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{createError}</p>}
           </div>
           <div className="card-footer between">
             <span className="field-hint" style={{ marginTop: 0 }}>
@@ -774,7 +774,7 @@ export function PlatformStackView() {
                 identity tool.
               </div>
             </div>
-            {provisionError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{provisionError}</p>}
+            {provisionError && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{provisionError}</p>}
           </div>
           <div className="card-footer" style={{ justifyContent: 'flex-end' }}>
             <button className="btn btn-default" onClick={handleProvision}

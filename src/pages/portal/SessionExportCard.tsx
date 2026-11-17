@@ -60,7 +60,7 @@ export function SessionExportCard({
           </button>
         </div>
         {error && (
-          <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{error}</p>
         )}
       </div>
     </div>

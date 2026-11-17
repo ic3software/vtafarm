@@ -65,7 +65,7 @@ export function AdminsView() {
       </div>
 
       {genError && (
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'hsl(var(--destructive))' }}>{genError}</p>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--destructive)' }}>{genError}</p>
       )}
 
       <div className="table-wrap">
@@ -81,25 +81,25 @@ export function AdminsView() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={4} style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted-foreground)', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : admins.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={4} style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted-foreground)', fontSize: 13 }}>
                   No administrators yet.
                 </td>
               </tr>
             ) : admins.map(a => (
               <tr key={a.id}>
-                <td><span className="p-mono" style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{a.id}</span></td>
+                <td><span className="p-mono" style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>{a.id}</span></td>
                 <td>
                   <span className="p-mono" style={{ fontSize: 12 }}>{a.unique_id}</span>
                   {a.unique_id === selfUniqueId && <span className="admin-pill" style={{ marginLeft: 6 }}>you</span>}
                 </td>
-                <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(a.created_at)}</td>
-                <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(a.updated_at)}</td>
+                <td style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>{fmt(a.created_at)}</td>
+                <td style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>{fmt(a.updated_at)}</td>
               </tr>
             ))}
           </tbody>
