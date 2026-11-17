@@ -171,12 +171,12 @@ export function StackConfigEditor({ sessionId, admin = false, vtaOnly = false }:
                 </div>
               )}
               {componentError && (
-                <p className="p-mono" style={{ margin: 0, fontSize: 12, color: 'hsl(var(--destructive))', whiteSpace: 'pre-wrap' }}>
+                <p className="p-mono" style={{ margin: 0, fontSize: 12, color: 'var(--destructive)', whiteSpace: 'pre-wrap' }}>
                   {componentError}
                 </p>
               )}
               {Object.entries(validationErrors).filter(([name]) => name !== active).map(([name, message]) => (
-                <p key={name} className="p-mono" style={{ margin: 0, fontSize: 12, color: 'hsl(var(--destructive))', whiteSpace: 'pre-wrap' }}>
+                <p key={name} className="p-mono" style={{ margin: 0, fontSize: 12, color: 'var(--destructive)', whiteSpace: 'pre-wrap' }}>
                   {LABELS[name as UpgradeComponent] ?? name}: {message}
                 </p>
               ))}

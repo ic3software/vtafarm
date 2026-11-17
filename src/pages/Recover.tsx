@@ -4,6 +4,7 @@ import { startRegistration } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
 import { useUserAuth } from '@/contexts/userAuth'
+import { BrandMark } from '@/components/BrandMark'
 
 export function Recover() {
   const { token } = useParams<{ token: string }>()
@@ -78,23 +79,23 @@ export function Recover() {
         <div className="auth-panel">
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <span className="sidebar-mark" />
+              <BrandMark size={28} />
               <span>VTA Farm</span>
             </a>
 
             {validating ? (
               <>
-                <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 8px' }}>
+                <h1 className="auth-title">
                   Verifying recovery link…
                 </h1>
                 <p className="p-muted" style={{ margin: 0, fontSize: 14 }}>Please wait.</p>
               </>
             ) : tokenError ? (
               <>
-                <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 8px' }}>
+                <h1 className="auth-title">
                   Invalid recovery link
                 </h1>
-                <p style={{ margin: '0 0 24px', fontSize: 14, color: 'hsl(var(--destructive))' }}>{tokenError}</p>
+                <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--destructive)' }}>{tokenError}</p>
                 <p className="p-muted" style={{ margin: '0 0 24px', fontSize: 13 }}>
                   Contact your administrator to get a new one.
                 </p>
@@ -104,7 +105,7 @@ export function Recover() {
               </>
             ) : (
               <>
-                <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 6px' }}>
+                <h1 className="auth-title">
                   Recover your account
                 </h1>
                 <p className="p-muted" style={{ margin: '0 0 28px', fontSize: 14 }}>
@@ -129,7 +130,7 @@ export function Recover() {
                 </button>
 
                 {error && (
-                  <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
+                  <p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--destructive)' }}>{error}</p>
                 )}
               </>
             )}
@@ -139,19 +140,19 @@ export function Recover() {
         <div className="auth-aside">
           <div className="grid-bg" />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <span className="p-badge badge-default" style={{ background: 'hsl(359 67% 56% / .2)', color: '#f4c7c8', borderColor: 'hsl(359 67% 65% / .3)' }}>
+            <span className="p-badge aside-badge">
               <span className="dot pulse-dot" />Portal v1.0
             </span>
           </div>
           <div style={{ position: 'relative', zIndex: 1 }}>
             <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              Identity that <em style={{ fontStyle: 'italic', color: '#f4c7c8' }}>proves itself.</em>
+              Identity that <em>proves itself.</em>
             </p>
-            <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
+            <p className="aside-lede">
               Provision a Verifiable Trust Agent, mint a DID, and issue credentials — all from one quiet console.
             </p>
           </div>
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+          <div className="aside-meta">
             <span>256-bit keys</span><span>W3C DID</span><span>Zero leakage</span>
           </div>
         </div>

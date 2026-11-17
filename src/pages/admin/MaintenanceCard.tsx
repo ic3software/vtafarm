@@ -133,7 +133,7 @@ export function MaintenanceCard() {
             />
           </div>
         )}
-        {error && <p className="text-sm" style={{ color: 'hsl(var(--destructive))', margin: 0 }}>{error}</p>}
+        {error && <p className="text-sm" style={{ color: 'var(--destructive)', margin: 0 }}>{error}</p>}
       </div>
       <div className="card-footer" style={{ justifyContent: 'flex-end' }}>
         <button

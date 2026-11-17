@@ -34,7 +34,7 @@ export function AgentsView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Your Trust Agents</h1>
+          <h1 className="sr-only">Your Trust Agents</h1>
         </div>
         <div className="p-row gap-8">
           <button className="btn btn-outline" onClick={loadSessions}>
@@ -140,7 +140,7 @@ export function AgentsView() {
                               marker here nothing on this row would give away
                               that it can no longer deliver a message. */}
                           {s.provider_gone && (
-                            <span style={{ color: 'hsl(var(--destructive))' }}> · stack deleted</span>
+                            <span style={{ color: 'var(--destructive)' }}> · stack deleted</span>
                           )}
                         </span>
                       </div>
@@ -180,7 +180,7 @@ export function AgentsView() {
                         {modeLabel(s.mode)}
                         {s.domain_type && s.domain_type !== 'managed' && s.domain && <> · <span className="p-mono">{s.domain}</span></>}
                         {s.provider_gone && (
-                          <span style={{ color: 'hsl(var(--destructive))' }}> · stack deleted</span>
+                          <span style={{ color: 'var(--destructive)' }}> · stack deleted</span>
                         )}
                       </span>
                     </span>

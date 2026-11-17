@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { BrandMark } from '@/components/BrandMark'
 
 const APPS = [
   { label: 'Homepage', src: '/' },
@@ -11,33 +12,6 @@ const SIZES = [
   { label: 'Android 360', w: 360, h: 800 },
   { label: 'Max 414', w: 414, h: 896 },
 ]
-
-function BrandMark() {
-  return (
-    <span
-      style={{
-        display: 'inline-block',
-        width: 22,
-        height: 22,
-        borderRadius: 6,
-        background: '#16150f',
-        position: 'relative',
-        overflow: 'hidden',
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          position: 'absolute',
-          inset: 5,
-          borderRadius: 2,
-          background: '#9d0105',
-          transform: 'rotate(45deg)',
-        }}
-      />
-    </span>
-  )
-}
 
 export function MobilePreview() {
   const [appIdx, setAppIdx] = useState(0)
@@ -117,7 +91,7 @@ export function MobilePreview() {
       >
         {/* Brand */}
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontWeight: 600, fontSize: 15 }}>
-          <BrandMark />
+          <BrandMark size={22} />
           VTA Farm
           <span
             style={{
@@ -127,7 +101,7 @@ export function MobilePreview() {
               textTransform: 'uppercase',
               color: '#9d0105',
               background: '#f4c7c8',
-              border: '1px solid #d9d0ff',
+              border: '1px solid #e6c4c4',
               padding: '2px 7px',
               borderRadius: 999,
             }}

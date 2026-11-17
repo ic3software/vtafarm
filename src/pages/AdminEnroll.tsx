@@ -4,6 +4,7 @@ import { startRegistration } from '@simplewebauthn/browser'
 import '@/styles/portal.css'
 import { api } from '@/lib/api'
 import { useAdminAuth } from '@/contexts/adminAuth'
+import { BrandMark } from '@/components/BrandMark'
 
 export function AdminEnroll() {
   const { token } = useParams<{ token: string }>()
@@ -74,7 +75,7 @@ export function AdminEnroll() {
         <div className="auth-aside">
           <div className="grid-bg" />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <span className="p-badge badge-default" style={{ background: 'hsl(359 67% 56% / .2)', color: '#f4c7c8', borderColor: 'hsl(359 67% 65% / .3)' }}>
+            <span className="p-badge aside-badge">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 13, height: 13 }}>
                 <path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z" />
               </svg>
@@ -83,13 +84,13 @@ export function AdminEnroll() {
           </div>
           <div style={{ position: 'relative', zIndex: 1 }}>
             <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              The keys to the <em style={{ fontStyle: 'italic', color: '#f4c7c8' }}>trust layer.</em>
+              The keys to the <em>trust layer.</em>
             </p>
-            <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
+            <p className="aside-lede">
               Set up your admin passkey to gain access to the VTA Farm control plane.
             </p>
           </div>
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 28, color: 'hsl(0 0% 100% / .5)', fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+          <div className="aside-meta">
             <span>Role-scoped</span><span>Audit-logged</span><span>MFA enforced</span>
           </div>
         </div>
@@ -98,31 +99,31 @@ export function AdminEnroll() {
         <div className="auth-panel">
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <span className="sidebar-mark" />
+              <BrandMark size={28} />
               <span>VTA Farm</span>
               <span className="admin-pill">Admin</span>
             </a>
 
             {validating ? (
               <>
-                <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 8px' }}>
+                <h1 className="auth-title">
                   Verifying link…
                 </h1>
                 <p className="p-muted" style={{ margin: 0, fontSize: 14 }}>Please wait.</p>
               </>
             ) : tokenError ? (
               <>
-                <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 8px' }}>
+                <h1 className="auth-title">
                   Invalid enrollment link
                 </h1>
-                <p style={{ margin: '0 0 24px', fontSize: 14, color: 'hsl(var(--destructive))' }}>{tokenError}</p>
+                <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--destructive)' }}>{tokenError}</p>
                 <a href="/" className="btn btn-default btn-block" style={{ textDecoration: 'none', textAlign: 'center' }}>
                   Back to home
                 </a>
               </>
             ) : (
               <>
-                <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 6px' }}>
+                <h1 className="auth-title">
                   Set up your admin account
                 </h1>
                 <p className="p-muted" style={{ margin: '0 0 28px', fontSize: 14 }}>
@@ -146,7 +147,7 @@ export function AdminEnroll() {
                 </button>
 
                 {error && (
-                  <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
+                  <p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--destructive)' }}>{error}</p>
                 )}
 
                 <p className="p-muted text-xs mt-24" style={{ textAlign: 'center' }}>

@@ -181,7 +181,7 @@ export function SessionRecoveryModal({ session, admin = false, onClose }: Props)
               </div>
             )
           })}
-          {error && <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
+          {error && <p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--destructive)' }}>{error}</p>}
         </div>
         <div className="dialog-footer">
           <button className="btn btn-ghost" disabled={busy} onClick={() => onClose(false)}>Cancel</button>

@@ -24,7 +24,7 @@ export function VersionChangeList({ items, labelWidth = 80, maxHeight }: Version
           columnGap: 8,
           alignItems: 'stretch',
           padding: '9px 0',
-          borderTop: index === 0 ? 'none' : '1px solid hsl(var(--border))',
+          borderTop: index === 0 ? 'none' : '1px solid var(--border)',
         }}>
           <div className="p-row center" style={{ minWidth: 0, alignSelf: 'stretch', flexWrap: 'wrap' }}>
             <span style={{ minWidth: 0, fontSize: 13, fontWeight: 500, overflowWrap: 'anywhere' }}>{item.title}</span>

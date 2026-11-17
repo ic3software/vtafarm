@@ -55,8 +55,8 @@ function CopyButton({ value, copyKey, copiedKey, onCopy }: {
 function StatusGlyph({ ok, checked }: { ok: boolean; checked: boolean }) {
   if (!checked) return null
   return ok
-    ? <svg viewBox="0 0 24 24" fill="none" stroke="hsl(var(--success))" strokeWidth={3} style={{ width: 15, height: 15, flexShrink: 0 }}><title>Resolving correctly</title><path d="M20 6 9 17l-5-5"/></svg>
-    : <svg viewBox="0 0 24 24" fill="none" stroke="hsl(var(--destructive))" strokeWidth={2.5} style={{ width: 15, height: 15, flexShrink: 0 }}><title>Not resolving yet</title><path d="M18 6 6 18M6 6l12 12"/></svg>
+    ? <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={3} style={{ width: 15, height: 15, flexShrink: 0 }}><title>Resolving correctly</title><path d="M20 6 9 17l-5-5"/></svg>
+    : <svg viewBox="0 0 24 24" fill="none" stroke="var(--destructive)" strokeWidth={2.5} style={{ width: 15, height: 15, flexShrink: 0 }}><title>Not resolving yet</title><path d="M18 6 6 18M6 6l12 12"/></svg>
 }
 
 function RecordRow({ type, name, value, ok, checked, detail, copyKey, copiedKey, onCopy }: {
@@ -71,10 +71,10 @@ function RecordRow({ type, name, value, ok, checked, detail, copyKey, copiedKey,
   onCopy: (key: string, value: string) => void
 }) {
   return (
-    <div className="p-card" style={{ background: 'hsl(var(--muted)/.4)', border: 'none' }}>
+    <div className="p-card" style={{ background: 'color-mix(in srgb, var(--muted) 40%, transparent)', border: 'none' }}>
       <div className="card-content" style={{ padding: '10px 14px' }}>
         <div className="p-row" style={{ gap: 10, alignItems: 'center' }}>
-          <span className="p-badge badge-secondary" style={{ flexShrink: 0, fontFamily: 'var(--mono)' }}>{type}</span>
+          <span className="p-badge badge-secondary" style={{ flexShrink: 0, fontFamily: 'var(--font-mono)' }}>{type}</span>
           <div className="p-col grow" style={{ minWidth: 0, gap: 4 }}>
             <div className="p-row" style={{ gap: 8, alignItems: 'center' }}>
               <span className="p-mono grow" style={{ fontSize: 12, wordBreak: 'break-all', minWidth: 0 }}>{name}</span>
@@ -90,7 +90,7 @@ function RecordRow({ type, name, value, ok, checked, detail, copyKey, copiedKey,
         {/* Straight from the API. The UI never composes DNS advice of its own —
             one source of truth, and it improves as the checker does. */}
         {checked && !ok && detail && (
-          <p style={{ margin: '8px 0 0', fontSize: 12.5, color: 'hsl(var(--destructive))' }}>{detail}</p>
+          <p style={{ margin: '8px 0 0', fontSize: 12.5, color: 'var(--destructive)' }}>{detail}</p>
         )}
       </div>
     </div>
@@ -209,7 +209,7 @@ export function DomainsView() {
   const head = (
     <div className="page-head">
       <div>
-        <h1>Domains</h1>
+        <h1 className="sr-only">Domains</h1>
       </div>
     </div>
   )
@@ -389,8 +389,8 @@ export function DomainsView() {
                   </div>
                 </div>
 
-                {verifyError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{verifyError}</p>}
-                {removeError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{removeError}</p>}
+                {verifyError && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{verifyError}</p>}
+                {removeError && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{removeError}</p>}
               </>
             )}
           </div>
@@ -409,7 +409,7 @@ export function DomainsView() {
             <div className="p-row gap-12">
               {/* DELETE /domains/:id answers 409 while a session runs on it, so
                   offering this would only ever be a dead end. */}
-              <button className="btn btn-ghost" style={{ color: 'hsl(var(--destructive))' }}
+              <button className="btn btn-ghost" style={{ color: 'var(--destructive)' }}
                 disabled={!!domain.in_use_by}
                 onClick={() => { setConfirmRemove(true); setRemoveError('') }}>
                 Remove domain
@@ -449,7 +449,7 @@ export function DomainsView() {
                   You'll need to be able to create DNS records for it.
                 </div>
               </div>
-              {attachError && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{attachError}</p>}
+              {attachError && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{attachError}</p>}
             </div>
             <div className="dialog-footer">
               <button className="btn btn-ghost" onClick={() => setAttachOpen(false)} disabled={attaching}>Cancel</button>
@@ -474,7 +474,7 @@ export function DomainsView() {
             </div>
             {removeError && (
               <div className="dialog-body">
-                <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{removeError}</p>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{removeError}</p>
               </div>
             )}
             <div className="dialog-footer">

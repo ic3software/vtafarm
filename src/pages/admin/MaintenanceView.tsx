@@ -5,7 +5,7 @@ export function MaintenanceView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Maintenance mode</h1>
+          <h1 className="sr-only">Maintenance mode</h1>
           <p className="sub">Control user workflow access during platform maintenance.</p>
         </div>
       </div>

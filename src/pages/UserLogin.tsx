@@ -6,6 +6,7 @@ import '@/styles/portal.css'
 import { api } from '@/lib/api'
 import { useUserAuth } from '@/contexts/userAuth'
 import { keyringSameDeviceLink } from '@/lib/utils'
+import { BrandMark } from '@/components/BrandMark'
 import {
   cancelKeyringRequest,
   fetchKeyringSignInConfig,
@@ -187,10 +188,10 @@ export function UserLogin() {
         <div className="auth-panel">
           <div className="auth-card">
             <a href="/" className="auth-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <span className="sidebar-mark" />
+              <BrandMark size={28} />
               <span>VTA Farm</span>
             </a>
-            <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', margin: '0 0 6px' }}>
+            <h1 className="auth-title">
               Welcome back
             </h1>
             <p className="p-muted" style={{ margin: '0 0 32px', fontSize: 14 }}>
@@ -199,18 +200,18 @@ export function UserLogin() {
 
             {keyringRequest ? (
               <div style={{ display: 'grid', gap: 14, marginBottom: 18 }}>
-                <div style={{ display: 'grid', placeItems: 'center', minHeight: 220, padding: 14, border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', background: '#fff' }}>
+                <div style={{ display: 'grid', placeItems: 'center', minHeight: 220, padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#fff' }}>
                   {tabVisible ? (
                     <a href={keyringSameDeviceLink(keyringRequest.triggerLink)} aria-label="Open sign-in request in Keyring">
                       <QRCodeSVG value={keyringRequest.triggerLink} size={190} level="M" />
                     </a>
                   ) : (
-                    <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Sign-in code hidden while this tab is inactive.</span>
+                    <span style={{ color: 'var(--muted-foreground)', fontSize: 13 }}>Sign-in code hidden while this tab is inactive.</span>
                   )}
                 </div>
                 {developmentSignInCommand && (
-                  <div style={{ display: 'grid', gap: 8, padding: 12, border: '1px dashed hsl(var(--border))', borderRadius: 'var(--radius)', background: 'hsl(var(--muted) / .45)' }}>
-                    <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>Development wallet command</span>
+                  <div style={{ display: 'grid', gap: 8, padding: 12, border: '1px dashed var(--border)', borderRadius: 'var(--radius)', background: 'color-mix(in srgb, var(--muted) 45%, transparent)' }}>
+                    <span style={{ color: 'var(--muted-foreground)', fontSize: 11, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>Development wallet command</span>
                     <code className="p-mono" style={{ overflowWrap: 'anywhere', fontSize: 11, lineHeight: 1.5 }}>{developmentSignInCommand}</code>
                     <button className="btn btn-outline btn-sm" type="button" onClick={() => void copyDevelopmentSignInCommand()}>
                       {copiedDevelopmentCommand ? 'Copied command' : 'Copy command'}
@@ -218,8 +219,8 @@ export function UserLogin() {
                   </div>
                 )}
                 {matchNumber && (
-                  <div style={{ textAlign: 'center', padding: '12px 16px', borderRadius: 'var(--radius)', background: 'hsl(var(--muted))' }}>
-                    <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginBottom: 4 }}>Number shown to Keyring</div>
+                  <div style={{ textAlign: 'center', padding: '12px 16px', borderRadius: 'var(--radius)', background: 'var(--muted)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--muted-foreground)', marginBottom: 4 }}>Number shown to Keyring</div>
                     <div className="p-mono" style={{ fontSize: 34, fontWeight: 700, letterSpacing: '.18em' }}>{matchNumber}</div>
                   </div>
                 )}
@@ -240,7 +241,7 @@ export function UserLogin() {
                     ))}
                   </div>
                 )}
-                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'hsl(var(--muted-foreground))' }}>{keyringStatus}</p>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{keyringStatus}</p>
                 <a className="btn btn-default btn-lg btn-block" href={keyringSameDeviceLink(keyringRequest.triggerLink)}>
                   Open in Keyring <span className="arrow">→</span>
                 </a>
@@ -277,7 +278,7 @@ export function UserLogin() {
             </button>
 
             {error && (
-              <p style={{ margin: '12px 0 0', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
+              <p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--destructive)' }}>{error}</p>
             )}
 
           </div>
@@ -290,24 +291,23 @@ export function UserLogin() {
           <div className="grid-bg" />
           <div style={{ position: 'relative', zIndex: 1 }}>
             <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              Create and manage your <em style={{ fontStyle: 'italic', color: '#f4c7c8' }}>Trust Agent.</em>
+              Create and manage your <em>Trust Agent.</em>
             </p>
-            <p style={{ color: 'hsl(0 0% 100% / .65)', fontSize: 15, maxWidth: '42ch', margin: 0, lineHeight: 1.55 }}>
+            <p className="aside-lede">
               Provision a Trust Agent in a couple of minutes and link it to your Keyring wallet or personal network manager.
             </p>
             {/* Sets expectations before anyone invests in an agent here: the
                 hostnames and DIDs an agent mints are permanent, so "this may
                 go away" has to be said before sign-up, not after. */}
-            <div style={{ marginTop: 28, maxWidth: '42ch', padding: '14px 16px', borderRadius: 'var(--radius)', border: '1px solid hsl(359 67% 65% / .28)', background: 'hsl(359 67% 56% / .12)' }}>
-              <p style={{ color: 'hsl(0 0% 100% / .9)', fontSize: 19, fontWeight: 600, margin: '0 0 8px' }}>
+            <div className="aside-note">
+              <p className="aside-note-title">
                 This is a demo site
               </p>
-              <p style={{ color: 'hsl(0 0% 100% / .6)', fontSize: 13, lineHeight: 1.55, margin: 0 }}>
+              <p className="aside-note-body">
                 It may be torn down at a future date, and it may stop accepting
                 new agents once it runs out of space. To run your own instance,
                 the deployment code lives in{' '}
-                <a href="https://github.com/ic3software/vtafarm-k8s" target="_blank" rel="noreferrer noopener"
-                  style={{ color: '#f4c7c8', textDecoration: 'underline' }}>
+                <a href="https://github.com/ic3software/vtafarm-k8s" target="_blank" rel="noreferrer noopener">
                   vtafarm-k8s
                 </a>.
               </p>

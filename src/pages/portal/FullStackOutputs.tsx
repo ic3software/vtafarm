@@ -28,14 +28,14 @@ function Row({
 }) {
   const copied = copiedKey === copyKey
   return (
-    <div className="p-card" style={{ background: 'hsl(var(--muted)/.4)', border: 'none' }}>
+    <div className="p-card" style={{ background: 'color-mix(in srgb, var(--muted) 40%, transparent)', border: 'none' }}>
       <div className="card-content" style={{ padding: '12px 16px' }}>
         <div className="p-row between center" style={{ gap: 12 }}>
           <div className="p-col" style={{ minWidth: 0 }}>
-            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
               {label}
             </span>
-            <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>
+            <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'var(--foreground)' }}>
               {value}
             </p>
             {hint && <span className="field-hint" style={{ marginTop: 4 }}>{hint}</span>}
@@ -63,14 +63,14 @@ function SecretRow({
   const [revealed, setRevealed] = useState(false)
   const copied = copiedKey === copyKey
   return (
-    <div className="p-card" style={{ background: 'hsl(var(--muted)/.4)', border: 'none' }}>
+    <div className="p-card" style={{ background: 'color-mix(in srgb, var(--muted) 40%, transparent)', border: 'none' }}>
       <div className="card-content" style={{ padding: '12px 16px' }}>
         <div className="p-row between center" style={{ gap: 12 }}>
           <div className="p-col" style={{ minWidth: 0 }}>
-            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
               {label}
             </span>
-            <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'hsl(var(--foreground))' }}>
+            <p className="p-mono" style={{ margin: '4px 0 0', fontSize: 12, wordBreak: 'break-all', color: 'var(--foreground)' }}>
               {revealed ? value : '•'.repeat(28)}
             </p>
             <span className="field-hint" style={{ marginTop: 4 }}>{hint}</span>
@@ -142,7 +142,7 @@ export function DidsEnrollAlert({ enrollUrl, claimCode, used, justReissued, hand
           )}
         </p>
         <div className="p-row gap-8 center" style={{ marginTop: 8 }}>
-          <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+          <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
             Claim code
           </span>
           <span className="p-mono" style={{ fontSize: 13, fontWeight: 600 }}>{claimCode}</span>
@@ -152,7 +152,7 @@ export function DidsEnrollAlert({ enrollUrl, claimCode, used, justReissued, hand
           </button>
         </div>
         {openWarning && (
-          <span className="field-hint" style={{ display: 'block', marginTop: 8, color: 'hsl(var(--destructive))' }}>
+          <span className="field-hint" style={{ display: 'block', marginTop: 8, color: 'var(--destructive)' }}>
             Copy the claim code before opening the link.
           </span>
         )}
@@ -189,7 +189,7 @@ export function DidsEnrollConfigRow({ used, reissuing, reissueError, justReissue
               ? 'After reissuing, wait 10 seconds before opening the new link.'
               : 'Link already opened. Reissue a new one to register a passkey.'}
           </span>
-          {reissueError && <span style={{ color: 'hsl(var(--destructive))', display: 'block', marginTop: 4 }} className="field-hint">{reissueError}</span>}
+          {reissueError && <span style={{ color: 'var(--destructive)', display: 'block', marginTop: 4 }} className="field-hint">{reissueError}</span>}
         </div>
         <button className="btn btn-outline btn-sm" style={{ flexShrink: 0 }} onClick={handleReissue} disabled={reissuing}>
           {reissuing ? 'Reissuing…' : 'Reissue link'}
@@ -245,12 +245,12 @@ export function VtcInstallAlert({ installUrl, claimCode, used, reissueError, jus
             </span>
           )}
           {reissueError && (
-            <span style={{ display: 'block', marginTop: 4, color: 'hsl(var(--destructive))' }}>{reissueError}</span>
+            <span style={{ display: 'block', marginTop: 4, color: 'var(--destructive)' }}>{reissueError}</span>
           )}
         </p>
         {claimCode && (
           <div className="p-row gap-8 center" style={{ marginTop: 8 }}>
-            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+            <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
               Claim code
             </span>
             <span className="p-mono" style={{ fontSize: 13, fontWeight: 600 }}>{claimCode}</span>
@@ -261,7 +261,7 @@ export function VtcInstallAlert({ installUrl, claimCode, used, reissueError, jus
           </div>
         )}
         {openWarning && (
-          <span className="field-hint" style={{ display: 'block', marginTop: 8, color: 'hsl(var(--destructive))' }}>
+          <span className="field-hint" style={{ display: 'block', marginTop: 8, color: 'var(--destructive)' }}>
             Copy the claim code before opening the link.
           </span>
         )}
@@ -298,7 +298,7 @@ export function VtcInstallConfigRow({ used, reissuing, reissueError, justReissue
               ? 'After reissuing, wait 10 seconds before opening the new link.'
               : 'Link already opened. Reissue a new one to claim the VTC admin.'}
           </span>
-          {reissueError && <span style={{ color: 'hsl(var(--destructive))', display: 'block', marginTop: 4 }} className="field-hint">{reissueError}</span>}
+          {reissueError && <span style={{ color: 'var(--destructive)', display: 'block', marginTop: 4 }} className="field-hint">{reissueError}</span>}
         </div>
         <button className="btn btn-outline btn-sm" style={{ flexShrink: 0 }} onClick={handleReissue} disabled={reissuing}>
           {reissuing ? 'Reissuing…' : 'Reissue link'}
@@ -391,7 +391,7 @@ export function ConfigLinkRow({ label, href, value }: { label: string; href: str
         target="_blank"
         rel="noopener"
         className="p-mono text-xs"
-        style={{ color: 'hsl(var(--primary))', textAlign: 'right', overflowWrap: 'anywhere', minWidth: 0 }}
+        style={{ color: 'var(--primary)', textAlign: 'right', overflowWrap: 'anywhere', minWidth: 0 }}
       >
         {value}
       </a>
@@ -430,7 +430,7 @@ export function AdminKeysCard({ session }: { session: SetupSession }) {
   const hasContent = !!(mediator_admin_did || did_hosting_admin_did || session.mediator_admin_key || session.webvh_admin_key)
   if (!hasContent) return null
   return (
-    <div className="p-card" style={{ borderColor: 'hsl(var(--warning)/.4)' }}>
+    <div className="p-card" style={{ borderColor: 'color-mix(in srgb, var(--warning) 40%, transparent)' }}>
       <div className="card-header">
         <h3 className="card-title">Admin DIDs &amp; Private Keys</h3>
         <p className="card-desc">
@@ -467,14 +467,14 @@ export function ConnectedToCard({ session }: { session: SetupSession }) {
   const platform = session.connection_source === 'platform'
 
   return (
-    <div className="p-card" style={{ marginBottom: 16, ...(orphaned ? { borderColor: 'hsl(var(--destructive)/.4)' } : {}) }}>
+    <div className="p-card" style={{ marginBottom: 16, ...(orphaned ? { borderColor: 'color-mix(in srgb, var(--destructive) 40%, transparent)' } : {}) }}>
       <div className="card-header">
         <h3 className="card-title">Connection ({platform ? 'Platform' : 'Customized'})</h3>
       </div>
       <div className="card-content p-col gap-12" style={{ paddingTop: 14 }}>
         {orphaned && (
           <>
-            <span className="text-sm" style={{ fontWeight: 600, color: 'hsl(var(--destructive))' }}>
+            <span className="text-sm" style={{ fontWeight: 600, color: 'var(--destructive)' }}>
               Disconnected — this stack was deleted
             </span>
             {/* Not "reconnect" and not "move": the agent's did:webvh contains

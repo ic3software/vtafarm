@@ -137,7 +137,7 @@ export function DashboardView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Dashboard</h1>
+          <h1 className="sr-only">Dashboard</h1>
           <p className="sub">
             Auto-refreshes every {REFRESH_MS / 1000}s
             {updatedAt && ` · updated ${updatedAt.toLocaleTimeString()}`}
@@ -171,7 +171,7 @@ export function DashboardView() {
       </div>
 
       {error && (
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--destructive)' }}>{error}</p>
       )}
       {data?.metrics_warning && (
         <div className="metrics-root mb-4">
@@ -184,7 +184,7 @@ export function DashboardView() {
       )}
 
       {!data ? (
-        !error && <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Loading…</p>
+        !error && <p style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>Loading…</p>
       ) : (
         <>
           <div className="dash-grid cols-3">

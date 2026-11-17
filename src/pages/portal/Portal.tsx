@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
 import { Outlet, useNavigate, useLocation, useMatch } from 'react-router-dom'
 import '@/styles/portal.css'
 import { useUserAuth } from '@/contexts/userAuth'
-import { useTheme } from '@/lib/useTheme'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { api, type SetupSession } from '@/lib/api'
 import { initials } from './portalUtils'
 import { MaintenanceBanner } from '@/components/MaintenanceBanner'
+import { BrandMark } from '@/components/BrandMark'
 
 export interface PortalContext {
   sessions: SetupSession[]
@@ -22,7 +23,6 @@ export interface PortalContext {
 
 export function Portal() {
   const { user, logout, loading } = useUserAuth()
-  const { toggle: toggleTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const matchSession = useMatch('/portal/session/:id')
@@ -132,7 +132,7 @@ export function Portal() {
         <aside className="p-sidebar">
           <div className="sidebar-head">
             <a className="sidebar-brand" href="/portal">
-              <span className="sidebar-mark"/>
+              <BrandMark size={24} />
               <span>VTA Farm</span>
             </a>
           </div>
@@ -178,10 +178,10 @@ export function Portal() {
                 <div className="meta grow">
                   {email
                     ? <div className="n">{email}</div>
-                    : <div className="n" style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{user.unique_id}</div>}
+                    : <div className="n" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{user.unique_id}</div>}
                   <div className="e">User account</div>
                 </div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 15, height: 15, color: 'hsl(var(--muted-foreground))' }}><path d="m18 15-6-6-6 6"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 15, height: 15, color: 'var(--muted-foreground)' }}><path d="m18 15-6-6-6 6"/></svg>
               </div>
             </div>
           </div>
@@ -209,10 +209,7 @@ export function Portal() {
               ))}
             </div>
             <div className="spacer"/>
-            <button className="btn btn-ghost btn-icon btn-sm theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
-              <svg className="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-              <svg className="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-            </button>
+            <ThemeToggle />
           </header>
 
           <MaintenanceBanner />

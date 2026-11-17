@@ -245,7 +245,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
               : 'Regenerate QR code'
     : null
 
-  return <div className="p-card" style={{ marginBottom: 20, borderColor: 'hsl(var(--primary)/.35)' }}>
+  return <div className="p-card" style={{ marginBottom: 20, borderColor: 'color-mix(in srgb, var(--primary) 35%, transparent)' }}>
     <div className="card-header">
       <h3 className="card-title">Connect to your Trust Agent</h3>
       <p className="card-desc">Choose Keyring if you want to manage it from your phone, or PNM if from your computer.</p>
@@ -297,7 +297,7 @@ export function VtaConnectionCard({ session, sessionId, vtaDid, ready, onSession
         busyLabel="Submitting…"
       />}
       {statusError && <p role="status">{statusError}</p>}
-      {error && <p role="alert" style={{ color: 'hsl(var(--destructive))' }}>{error}</p>}
+      {error && <p role="alert" style={{ color: 'var(--destructive)' }}>{error}</p>}
     </div>
   </div>
 }

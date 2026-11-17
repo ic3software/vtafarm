@@ -4,53 +4,68 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Palette ──
+   These values are copied from the public site (vtafarm-site,
+   public/css/site.css) and must stay equal to it in both themes. The names
+   match the site's, with a --vtafarm- prefix. */
 :root {
-  /* ── VTA Farm palette ── */
   --vtafarm-bg: #f7f5f0;
-  --vtafarm-bg-elev: #ffffff;
-  --vtafarm-bg-dark: #0a0a0a;
-  --vtafarm-bg-dark-elev: #161616;
+  --vtafarm-surface: #ffffff;
+  --vtafarm-surface-2: #f0ede7;
   --vtafarm-ink: #0d0d0d;
   --vtafarm-ink-2: #3a3a36;
   --vtafarm-ink-3: #6e6c66;
-  --vtafarm-ink-4: #a09e96;
   --vtafarm-line: #e3e0d6;
-  --vtafarm-line-2: #ececea;
+  --vtafarm-line-2: #e3e0d6;
   --vtafarm-accent: #9d0105;
-  --vtafarm-accent-2: #7f0104;
+  --vtafarm-accent-em: #9d0105;
+  --vtafarm-btn: #9d0105;
+  --vtafarm-btn-hover: #7f0104;
+  --vtafarm-link: #9d0105;
+  --vtafarm-link-hover: #7f0104;
   --vtafarm-accent-soft: #f4c7c8;
+  --vtafarm-accent-soft-ink: #7f0104;
 
-  /* ── shadcn tokens (mapped to VTA Farm palette) ── */
-  --background: #f7f5f0;
-  --foreground: #0d0d0d;
-  --card: #ffffff;
-  --card-foreground: #0d0d0d;
-  --popover: #ffffff;
-  --popover-foreground: #0d0d0d;
-  --primary: #0d0d0d;
+  /* Not on the site: status colors the app needs. */
+  --success: hsl(158 64% 40%);
+  --warning: hsl(35 92% 50%);
+  --destructive: hsl(0 72% 51%);
+  --destructive-foreground: #ffffff;
+
+  /* Corners and motion, as on the site. */
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-panel: 18px;
+  --radius-pill: 999px;
+  --ease: 180ms;
+
+  /* ── shadcn tokens, mapped onto the palette ── */
+  --background: var(--vtafarm-bg);
+  --foreground: var(--vtafarm-ink);
+  --card: var(--vtafarm-surface);
+  --card-foreground: var(--vtafarm-ink);
+  --popover: var(--vtafarm-surface);
+  --popover-foreground: var(--vtafarm-ink);
+  --primary: var(--vtafarm-accent);
   --primary-foreground: #ffffff;
-  --secondary: #f0ede7;
-  --secondary-foreground: #0d0d0d;
-  --muted: #f0ede7;
-  --muted-foreground: #6e6c66;
-  --accent: #f4c7c8;
-  --accent-foreground: #0d0d0d;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: #e3e0d6;
-  --input: #e3e0d6;
-  --ring: #9d0105;
-  --chart-1: #9d0105;
-  --chart-2: #2563eb;
-  --chart-3: #d97706;
+  --secondary: var(--vtafarm-surface-2);
+  --secondary-foreground: var(--vtafarm-ink);
+  --muted: var(--vtafarm-surface-2);
+  --muted-foreground: var(--vtafarm-ink-3);
+  --accent: var(--vtafarm-accent-soft);
+  --accent-foreground: var(--vtafarm-accent-soft-ink);
+  --border: var(--vtafarm-line);
+  --input: var(--vtafarm-line-2);
+  --ring: var(--vtafarm-accent);
   --radius: 0.625rem;
-  --sidebar: #f7f5f0;
-  --sidebar-foreground: #0d0d0d;
-  --sidebar-primary: #0d0d0d;
+  --sidebar: var(--vtafarm-bg);
+  --sidebar-foreground: var(--vtafarm-ink);
+  --sidebar-primary: var(--vtafarm-accent);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4c7c8;
-  --sidebar-accent-foreground: #0d0d0d;
-  --sidebar-border: #e3e0d6;
-  --sidebar-ring: #9d0105;
+  --sidebar-accent: var(--vtafarm-accent-soft);
+  --sidebar-accent-foreground: var(--vtafarm-accent-soft-ink);
+  --sidebar-border: var(--vtafarm-line);
+  --sidebar-ring: var(--vtafarm-accent);
 
   font: 16px/1.5 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color-scheme: light;
@@ -60,50 +75,29 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Dark only restates the palette. The shadcn tokens above follow it. */
 html.dark {
-  /* ── VTA Farm dark palette ── */
   --vtafarm-bg: #0a0a0a;
-  --vtafarm-bg-elev: #121212;
+  --vtafarm-surface: #121212;
+  --vtafarm-surface-2: #212121;
   --vtafarm-ink: #f5f5f2;
   --vtafarm-ink-2: #b5b3ae;
-  --vtafarm-ink-3: #787570;
-  --vtafarm-ink-4: #524f4a;
-  --vtafarm-line: #3a3632;
-  --vtafarm-line-2: #2a2825;
+  --vtafarm-ink-3: #918e88;
+  --vtafarm-line: #2a2825;
+  --vtafarm-line-2: #3a3632;
   --vtafarm-accent: #da4346;
-  --vtafarm-accent-2: #c73a3d;
-  --vtafarm-accent-soft: hsl(358 45% 18%);
+  --vtafarm-accent-em: #f4c7c8;
+  --vtafarm-btn: #c73a3d;
+  --vtafarm-btn-hover: #b03235;
+  --vtafarm-link: #f4c7c8;
+  --vtafarm-link-hover: #ffffff;
+  --vtafarm-accent-soft: #3a1a1b;
+  --vtafarm-accent-soft-ink: #f4c7c8;
 
-  /* ── shadcn tokens (dark) ── */
-  --background: #0a0a0a;
-  --foreground: #f5f5f2;
-  --card: #121212;
-  --card-foreground: #f5f5f2;
-  --popover: #141414;
-  --popover-foreground: #f5f5f2;
-  --primary: #da4346;
-  --primary-foreground: #ffffff;
-  --secondary: #212121;
-  --secondary-foreground: #ebebeb;
-  --muted: #1e1e1e;
-  --muted-foreground: #999999;
-  --accent: hsl(358 45% 18%);
-  --accent-foreground: #f4c7c8;
-  --destructive: oklch(0.55 0.22 27.325);
-  --border: #292929;
-  --input: #2e2e2e;
-  --ring: #da4346;
-  --chart-1: #f05b5e;
-  --chart-2: #60a5fa;
-  --chart-3: #fbbf24;
-  --sidebar: #0a0a0a;
-  --sidebar-foreground: #f5f5f2;
-  --sidebar-primary: #da4346;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: hsl(358 45% 18%);
-  --sidebar-accent-foreground: #f5f5f2;
-  --sidebar-border: #292929;
-  --sidebar-ring: #da4346;
+  --success: hsl(158 60% 48%);
+  --warning: hsl(35 92% 58%);
+  --destructive: hsl(0 62% 52%);
+  --destructive-foreground: hsl(0 0% 98%);
 
   color-scheme: dark;
 }
@@ -119,16 +113,18 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
   --font-heading: var(--font-sans);
 
   --color-vtafarm-bg: var(--vtafarm-bg);
-  --color-vtafarm-bg-dark: var(--vtafarm-bg-dark);
-  --color-vtafarm-bg-dark-elev: var(--vtafarm-bg-dark-elev);
+  --color-vtafarm-surface: var(--vtafarm-surface);
+  --color-vtafarm-surface-2: var(--vtafarm-surface-2);
   --color-vtafarm-ink: var(--vtafarm-ink);
   --color-vtafarm-ink-2: var(--vtafarm-ink-2);
   --color-vtafarm-ink-3: var(--vtafarm-ink-3);
-  --color-vtafarm-ink-4: var(--vtafarm-ink-4);
   --color-vtafarm-line: var(--vtafarm-line);
   --color-vtafarm-line-2: var(--vtafarm-line-2);
   --color-vtafarm-accent: var(--vtafarm-accent);
   --color-vtafarm-accent-soft: var(--vtafarm-accent-soft);
+  --color-vtafarm-link: var(--vtafarm-link);
+  --color-vtafarm-btn: var(--vtafarm-btn);
+  --color-vtafarm-btn-hover: var(--vtafarm-btn-hover);
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -203,25 +199,50 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
 
 /* ── Component classes ── */
 @layer components {
+  /* The small uppercase label above a heading, as on the site. */
   .eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
     font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.16em;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--vtafarm-ink-3);
+    color: var(--vtafarm-accent);
   }
-  .eyebrow .dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    background: var(--vtafarm-accent);
-    flex-shrink: 0;
-  }
+}
+
+/* ── Controls shared by every screen ── */
+
+/* Keyboard focus looks the same on every link and button. Inputs keep their
+   own ring. Tailwind's ring is switched off here so the two never stack. */
+:where(a, button, summary, [role="button"], [role="tab"], [role="menuitem"]):focus-visible {
+  outline: 2px solid var(--vtafarm-accent);
+  outline-offset: 3px;
+  --tw-ring-shadow: 0 0 #0000;
+}
+
+/* Lucide icons are drawn at the weight of the site's header icons. */
+.lucide { stroke-width: 1.8; }
+
+/* The square icon button from the site's header (theme switch, menu). */
+.icon-btn {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--vtafarm-line-2);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--vtafarm-ink-2);
+  transition: color var(--ease), border-color var(--ease);
+}
+.icon-btn:hover {
+  color: var(--vtafarm-ink);
+  border-color: var(--vtafarm-ink-3);
+}
+.icon-btn svg {
+  width: 17px;
+  height: 17px;
 }
 
 /* ── Home landing page ── */
@@ -261,7 +282,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
   color: var(--vtafarm-ink);
 }
 
-.home-brand-mark {
+.brand-mark {
   flex: none;
 }
 
@@ -270,30 +291,6 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
   align-items: center;
   gap: 12px;
   margin-left: auto;
-}
-
-.home-theme-toggle {
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--vtafarm-line);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--vtafarm-ink-2);
-  transition: color 180ms, border-color 180ms, transform 180ms;
-}
-
-.home-theme-toggle:hover {
-  color: var(--vtafarm-ink);
-  border-color: var(--vtafarm-ink-3);
-  transform: translateY(-1px);
-}
-
-.home-theme-toggle svg {
-  width: 17px;
-  height: 17px;
 }
 
 .home-simple-main {
@@ -326,25 +323,25 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
   margin-top: 42px;
 }
 
+/* The three ways in. The first is the site's primary button, the others its
+   secondary button, all at the page-level height. */
 .home-start-option {
   position: relative;
   display: flex;
-  min-height: 84px;
+  min-height: 52px;
   align-items: center;
   justify-content: center;
-  padding: 18px 52px;
-  border: 1px solid var(--vtafarm-line);
-  border-radius: 18px;
-  background: var(--vtafarm-bg-elev);
+  padding: 0 52px;
+  border: 1px solid var(--vtafarm-ink);
+  border-radius: var(--radius-control);
+  background: transparent;
   color: var(--vtafarm-ink);
-  box-shadow: 0 14px 38px -30px rgba(0, 0, 0, .45);
-  transition: border-color 180ms, box-shadow 180ms, transform 180ms;
+  transition: background var(--ease), color var(--ease), border-color var(--ease);
 }
 
 .home-start-option:hover {
-  border-color: var(--vtafarm-ink-3);
-  box-shadow: 0 18px 44px -28px rgba(0, 0, 0, .5);
-  transform: translateY(-2px);
+  background: var(--vtafarm-ink);
+  color: var(--vtafarm-bg);
 }
 
 .home-start-option > span {
@@ -353,63 +350,30 @@ html { scroll-behavior: smooth; scroll-padding-top: 64px; }
 
 .home-start-option strong {
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .home-start-option > svg {
   position: absolute;
   top: 0;
-  right: 22px;
+  right: 20px;
   bottom: 0;
-  width: 19px;
-  height: 19px;
+  width: 18px;
+  height: 18px;
   margin: auto 0;
 }
 
 .home-start-option-primary {
   grid-column: 1 / -1;
-  margin-bottom: 18px;
-  border-color: var(--vtafarm-accent);
-  background: var(--vtafarm-accent);
+  border-color: var(--vtafarm-btn);
+  background: var(--vtafarm-btn);
   color: #fff;
-  box-shadow: 0 16px 38px -24px color-mix(in srgb, var(--vtafarm-accent) 80%, transparent);
-}
-
-.home-start-option-primary strong {
-  font-size: 21px;
 }
 
 .home-start-option-primary:hover {
-  border-color: var(--vtafarm-accent-2);
-  background: var(--vtafarm-accent-2);
-}
-
-.home-start-option-secondary {
-  min-height: 60px;
-  padding: 12px 40px;
-  border-color: var(--vtafarm-ink-4);
-  border-radius: 14px;
-  box-shadow: 0 10px 26px -18px rgba(0, 0, 0, .45);
-}
-
-html.dark .home-start-option-secondary {
-  border-color: #6a665f;
-  background: #1f1e1c;
-}
-
-html.dark .home-start-option-secondary:hover {
-  border-color: var(--vtafarm-ink-3);
-  background: #272522;
-}
-
-.home-start-option-secondary strong {
-  font-size: 15px;
-}
-
-.home-start-option-secondary > svg {
-  right: 18px;
-  width: 16px;
-  height: 16px;
+  border-color: var(--vtafarm-btn-hover);
+  background: var(--vtafarm-btn-hover);
+  color: #fff;
 }
 
 @media (max-width: 860px) {
@@ -419,7 +383,6 @@ html.dark .home-start-option-secondary:hover {
 }
 
 @media (max-width: 620px) {
-
   .home-simple-main {
     align-items: flex-start;
     padding-top: 72px;
@@ -428,15 +391,10 @@ html.dark .home-start-option-secondary:hover {
   .home-start-options {
     grid-template-columns: 1fr;
   }
-
-  .home-start-option-primary strong {
-    font-size: 19px;
-  }
-
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-theme-toggle,
+  .icon-btn,
   .home-start-option,
   .home-start-option svg {
     transition: none;

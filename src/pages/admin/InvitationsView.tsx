@@ -13,12 +13,12 @@ function inviteUrl(token: string) {
 
 function statusBadge(inv: Invitation) {
   if (inv.used_at) {
-    return <span className="p-badge" style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', borderColor: 'transparent', fontSize: 11 }}>Used</span>
+    return <span className="p-badge" style={{ background: 'var(--muted)', color: 'var(--muted-foreground)', borderColor: 'transparent', fontSize: 11 }}>Used</span>
   }
   if (new Date(inv.expires_at) < new Date()) {
-    return <span className="p-badge" style={{ background: 'hsl(var(--destructive) / .12)', color: 'hsl(var(--destructive))', borderColor: 'hsl(var(--destructive) / .25)', fontSize: 11 }}>Expired</span>
+    return <span className="p-badge" style={{ background: 'color-mix(in srgb, var(--destructive) 12%, transparent)', color: 'var(--destructive)', borderColor: 'color-mix(in srgb, var(--destructive) 25%, transparent)', fontSize: 11 }}>Expired</span>
   }
-  return <span className="p-badge badge-default" style={{ background: 'hsl(142 72% 50% / .15)', color: 'hsl(142 72% 38%)', borderColor: 'hsl(142 72% 50% / .3)', fontSize: 11 }}>Active</span>
+  return <span className="p-badge badge-success" style={{ fontSize: 11 }}>Active</span>
 }
 
 export function InvitationsView() {
@@ -61,7 +61,7 @@ export function InvitationsView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Invitations</h1>
+          <h1 className="sr-only">Invitations</h1>
           <p className="sub">Single-use links that let new users register. Each link expires in 24 hours.</p>
         </div>
         <button className="btn btn-default" onClick={handleCreate} disabled={creating}>
@@ -71,7 +71,7 @@ export function InvitationsView() {
       </div>
 
       {createError && (
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'hsl(var(--destructive))' }}>{createError}</p>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--destructive)' }}>{createError}</p>
       )}
 
       <div className="table-wrap">
@@ -89,23 +89,23 @@ export function InvitationsView() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted-foreground)', fontSize: 13 }}>
                   Loading…
                 </td>
               </tr>
             ) : invitations.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '20px 0', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted-foreground)', fontSize: 13 }}>
                   No invitations yet.
                 </td>
               </tr>
             ) : invitations.map(inv => (
               <tr key={inv.id}>
-                <td><span className="p-mono" style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{inv.id}</span></td>
+                <td><span className="p-mono" style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>{inv.id}</span></td>
                 <td>{statusBadge(inv)}</td>
-                <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(inv.expires_at)}</td>
-                <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{inv.used_at ? fmt(inv.used_at) : '—'}</td>
-                <td style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>{fmt(inv.created_at)}</td>
+                <td style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>{fmt(inv.expires_at)}</td>
+                <td style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>{inv.used_at ? fmt(inv.used_at) : '—'}</td>
+                <td style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>{fmt(inv.created_at)}</td>
                 <td className="col-actions">
                   {!inv.used_at && new Date(inv.expires_at) >= new Date() && (
                     <button className="btn btn-ghost btn-sm" onClick={() => copyLink(inv.token, inv.id)}>

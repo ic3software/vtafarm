@@ -169,7 +169,7 @@ export function UpgradeModal({
             </div>
             <div className="dialog-body">
               {rows === null ? (
-                <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Loading image lists…</p>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted-foreground)' }}>Loading image lists…</p>
               ) : availableComponents.map(component => {
                 const row = rows[component]
                 return (
@@ -180,7 +180,7 @@ export function UpgradeModal({
                       {componentLabels[component]}
                     </label>
                     {row.unavailable ? (
-                      <span style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{row.unavailable}</span>
+                      <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>{row.unavailable}</span>
                     ) : (
                       <Select value={row.image} disabled={!row.include}
                         onValueChange={image => updateRow(component, { image })}>
@@ -211,7 +211,7 @@ export function UpgradeModal({
                   </p>
                   {preview.targets.length > 0 && (
                     <div>
-                      <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                      <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 600, color: 'var(--foreground)' }}>
                         Will run
                       </p>
                       <VersionChangeList labelWidth={160} items={preview.targets.map((t, i) => {
@@ -251,7 +251,7 @@ export function UpgradeModal({
                             columnGap: 12,
                             alignItems: 'start',
                             padding: '5px 0',
-                            borderTop: i === 0 ? 'none' : '1px solid hsl(var(--border) / 0.65)',
+                            borderTop: i === 0 ? 'none' : '1px solid color-mix(in srgb, var(--border) 65%, transparent)',
                           }}>
                             <span className="p-mono" style={{ fontSize: 12, overflowWrap: 'anywhere' }}>
                               {s.session_id}
@@ -269,7 +269,7 @@ export function UpgradeModal({
                   )}
                 </div>
               )}
-              {error && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
+              {error && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{error}</p>}
             </div>
             <div className="dialog-footer">
               <button className="btn btn-outline" type="button" disabled={busy} onClick={() => onClose(false)}>
@@ -304,19 +304,19 @@ export function UpgradeModal({
             </div>
             <div className="dialog-body" style={{ maxHeight: 360, overflowY: 'auto' }}>
               {batch === null ? (
-                <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Loading…</p>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted-foreground)' }}>Loading…</p>
               ) : batch.tasks.map((t, i) => (
                 <div key={`${t.session_id}-${t.component}-${i}`} className="p-row" style={{ alignItems: 'center', gap: 10, fontSize: 13 }}>
                   <span className="p-mono" style={{ fontSize: 12, minWidth: 70 }}>{t.vta_name || t.session_id || '(deleted)'}</span>
                   <span className="p-badge badge-secondary">{t.component}</span>
-                  <span style={{ color: 'hsl(var(--muted-foreground))', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ color: 'var(--muted-foreground)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     <span className="p-mono" style={{ fontSize: 11.5 }}>{imageTag(t.from_image)} → {imageTag(t.to_image)}</span>
                   </span>
                   <span className={`p-badge ${taskBadge(t.status)}`} title={t.error_msg || undefined}>{t.status.replaceAll('_', ' ')}</span>
                 </div>
               ))}
               {batch?.tasks.some(t => t.error_msg) && (
-                <div style={{ fontSize: 12, color: 'hsl(var(--destructive))' }}>
+                <div style={{ fontSize: 12, color: 'var(--destructive)' }}>
                   {batch.tasks.filter(t => t.error_msg).map((t, i) => (
                     <p key={i} style={{ margin: '2px 0' }}>
                       <span className="p-mono">{t.vta_name || t.session_id || '(deleted)'}</span> ({t.component}): {t.error_msg}
@@ -324,7 +324,7 @@ export function UpgradeModal({
                   ))}
                 </div>
               )}
-              {error && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
+              {error && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{error}</p>}
             </div>
             <div className="dialog-footer">
               {batch?.status === 'paused' && !batch.tasks.some(t => t.status === 'running' || t.status === 'rolling_back') && (

@@ -89,7 +89,7 @@ export function LoadTestingView() {
     <section className="p-content">
       <div className="page-head">
         <div>
-          <h1>Load testing</h1>
+          <h1 className="sr-only">Load testing</h1>
           <p className="sub">Provision VTA-only sessions in parallel, verify readiness, then tear down the complete run.</p>
         </div>
       </div>
@@ -135,7 +135,7 @@ export function LoadTestingView() {
               <div className="grow"><p className="alert-title">Finish or delete the active run before starting another.</p></div>
             </div>
           )}
-          {error && <p style={{ margin: 0, fontSize: 13, color: 'hsl(var(--destructive))' }}>{error}</p>}
+          {error && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{error}</p>}
           <div>
             <button className="btn btn-default" type="submit"
               disabled={creating || hasActiveRun || !countIsValid || !selectedImage}>
