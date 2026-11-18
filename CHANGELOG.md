@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.21.1] - 2026-11-18
+
+### Changed
+
+- Matched the look and feel of vta.farm across the landing page, sign-in and
+  account setup flows, user portal, and administration pages.
+- Updated Tailwind CSS, Vite, Lucide, TypeScript ESLint, and Recharts.
+
+Requires vtafarm-api 0.21.0.
+
 ## [v0.21.0] - 2026-11-16
 
 ### Added
