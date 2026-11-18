@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.21.2] - 2026-11-18
+
+### Fixed
+
+- Restored distinct chart colors in dark mode.
+
+Requires vtafarm-api 0.21.0.
+
 ## [v0.21.1] - 2026-11-18
 
 ### Changed
