@@ -31,6 +31,9 @@
   --warning: hsl(35 92% 50%);
   --destructive: hsl(0 72% 51%);
   --destructive-foreground: #ffffff;
+  --chart-1: #9d0105;
+  --chart-2: #2563eb;
+  --chart-3: #d97706;
 
   /* Corners and motion, as on the site. */
   --radius-control: 10px;
@@ -98,6 +101,9 @@ html.dark {
   --warning: hsl(35 92% 58%);
   --destructive: hsl(0 62% 52%);
   --destructive-foreground: hsl(0 0% 98%);
+  --chart-1: #f05b5e;
+  --chart-2: #60a5fa;
+  --chart-3: #fbbf24;
 
   color-scheme: dark;
 }
