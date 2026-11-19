@@ -307,9 +307,25 @@ export function SessionsView() {
   // visit) so the admin can get back to its progress view.
   const refreshActiveBatch = useCallback(() => (
     api.listUpgrades(true)
-      .then(batches => {
+      .then(async batches => {
         const active = batches.find(b => b.status === 'running' || b.status === 'paused')
-        setActiveBatch(active ?? null)
+        if (!active) {
+          setActiveBatch(null)
+          return
+        }
+        try {
+          const [stack, detail] = await Promise.all([
+            api.getPlatformStack(),
+            api.getUpgrade(active.id),
+          ])
+          // Platform-only batches are managed beside that stack. Surfacing one
+          // here would put Resume/Cancel back on a page that no longer lists it.
+          const platformOnly = stack.exists && !!stack.id && detail.tasks.length > 0
+            && detail.tasks.every(task => task.session_id === stack.id)
+          setActiveBatch(platformOnly ? null : active)
+        } catch {
+          setActiveBatch(active)
+        }
       })
       .catch(() => {})
   ), [])

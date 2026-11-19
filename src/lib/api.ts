@@ -950,6 +950,7 @@ export interface ApiError extends Error {
   validationErrors?: Record<string, string>
   rolledBack?: boolean
   available?: number
+  skipped?: UpgradeSkipped[]
 }
 
 function apiError(msg: string, status: number, reason?: string, extra?: Partial<ApiError>): ApiError {
@@ -980,6 +981,7 @@ async function req<T>(
       validationErrors: data.validation_errors,
       rolledBack: data.rolled_back,
       available: data.available,
+      skipped: data.skipped,
     })
   }
   return data as T
