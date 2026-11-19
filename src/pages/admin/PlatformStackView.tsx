@@ -306,7 +306,7 @@ function PlatformStackTabs({
             <TrustRegistryCard sessionId={session.id} admin onEnabled={() => { void onStackUpdated() }} />
           )}
           <StackConfigEditor admin />
-          <SessionExportCard admin session={session} sessionId={session.id} />
+          <SessionExportCard admin session={session} sessionId={session.id} retentionDays={30} />
         </div>
         <div className="session-danger-zone">
           <hr className="p-sep" />
