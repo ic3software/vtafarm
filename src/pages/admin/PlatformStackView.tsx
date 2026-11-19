@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useCallback, useRef, type KeyboardEvent, type RefObject } from 'react'
+import { lazy, Suspense, useState, useEffect, useCallback, useMemo, useRef, type KeyboardEvent, type RefObject } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, API_BASE, ALL_COMPONENTS, type ImageOption, type PlatformStack, type SetupSession, type UpgradeComponent } from '@/lib/api'
 import { imageLabel, preferredImage } from '@/lib/utils'
@@ -16,6 +16,7 @@ import { TrustRegistryCard, TrustRegistryImagePicker } from '../TrustRegistryCar
 import { StackConfigEditor } from '../StackConfigEditor'
 import { SessionExportCard } from '../portal/SessionExportCard'
 import { SessionVersionsCard } from '../portal/SessionVersionsCard'
+import { ResourceModal } from './ResourceModal'
 
 // The farm's own full_stack, running under our zone's fixed labels —
 // vta.{CLUSTER_DOMAIN}, vtc., mediator., dids. This is the only place it can be
@@ -151,6 +152,7 @@ function PlatformStackTabs({
   onDeleted: () => Promise<void>
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showResourceModal, setShowResourceModal] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
@@ -158,6 +160,7 @@ function PlatformStackTabs({
   const activeTab = PLATFORM_STACK_TABS.some(tab => tab.value === requestedTab)
     ? requestedTab as PlatformStackTab
     : 'overview'
+  const resourceSessions = useMemo(() => [{ id: session.id, mode: session.mode }], [session.id, session.mode])
 
   function selectTab(tab: PlatformStackTab) {
     const next = new URLSearchParams(searchParams)
@@ -302,6 +305,22 @@ function PlatformStackTabs({
       >
         <div className="session-settings-column">
           <SessionVersionsCard admin session={session} onUpgraded={() => { void onStackUpdated() }} />
+          <div className="p-card">
+            <div className="card-header">
+              <h3 className="card-title">Pod resources</h3>
+              <p className="card-desc">Configure memory requests and limits for each platform stack service.</p>
+            </div>
+            <div className="card-content" style={{ paddingTop: 14 }}>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => setShowResourceModal(true)}
+                disabled={session.status !== 'running'}
+                title={session.status === 'running' ? undefined : 'Resources can only be changed while the platform stack is running'}
+              >
+                Configure resources
+              </button>
+            </div>
+          </div>
           {stack.trust_registry?.state !== 'active' && (
             <TrustRegistryCard sessionId={session.id} admin onEnabled={() => { void onStackUpdated() }} />
           )}
@@ -373,6 +392,16 @@ function PlatformStackTabs({
             </div>
           </div>
         </div>
+      )}
+
+      {showResourceModal && (
+        <ResourceModal
+          sessions={resourceSessions}
+          onClose={didApply => {
+            setShowResourceModal(false)
+            if (didApply) void onStackUpdated()
+          }}
+        />
       )}
     </>
   )
