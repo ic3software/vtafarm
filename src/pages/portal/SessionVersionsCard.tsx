@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   api,
+  type ApiError,
   type SetupSession,
   type SetupMode,
   type SessionUpgrade,
@@ -52,9 +53,19 @@ interface ComponentRow {
   unavailable?: string
 }
 
-const inFlight = (u: SessionUpgrade | null): boolean => !!u && (
-  u.status === 'running' || u.tasks.some(t => t.status === 'running' || t.status === 'rolling_back')
+const activeUpgrade = (u: SessionUpgrade | null): boolean => !!u && (
+  u.status === 'running' || u.status === 'paused' || u.tasks.some(t => t.status === 'running' || t.status === 'rolling_back')
 )
+
+function upgradeErrorMessage(err: unknown) {
+  const apiErr = err as ApiError
+  if (apiErr.skipped?.length) {
+    return apiErr.skipped.map(item => (
+      `${item.component ? componentLabels[item.component] : item.session_id}: ${item.reason}`
+    )).join('\n')
+  }
+  return err instanceof Error ? err.message : 'Request failed'
+}
 
 interface SessionVersionsCardProps {
   session: SetupSession
@@ -105,7 +116,9 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const running = inFlight(upgrade)
+  const active = activeUpgrade(upgrade)
+  const paused = upgrade?.status === 'paused'
+  const hasActiveTask = upgrade?.tasks.some(t => t.status === 'running' || t.status === 'rolling_back') === true
 
   // Load each component's registry tag list once, and pick up an upgrade
   // already in flight (e.g. after a page reload).
@@ -141,7 +154,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
       .then(u => {
         if (stopped) return
         setUpgrade(u)
-        setShowResult(inFlight(u))
+        setShowResult(activeUpgrade(u))
       })
       .catch(() => {})
     return () => { stopped = true }
@@ -151,7 +164,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
 
   // Progress phase: poll until the upgrade reaches a terminal state.
   useEffect(() => {
-    if (!running || !upgrade) return
+    if (!active || !upgrade) return
     let stopped = false
     const timer = setInterval(() => {
       const request = admin
@@ -161,13 +174,13 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
         .then(u => {
           if (stopped) return
           setUpgrade(u)
-          if (!inFlight(u)) onUpgraded()
+          if (!activeUpgrade(u)) onUpgraded()
         })
         .catch(() => {})
     }, 3000)
     return () => { stopped = true; clearInterval(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.id, running, admin, upgrade?.id])
+  }, [session.id, active, admin, upgrade?.id])
 
   const changes = components.flatMap(component => {
     const from = currentImage(sessionImages, component)
@@ -191,7 +204,23 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
         setConfirming(false)
         setSelected({})
       })
-      .catch(err => setError(err instanceof Error ? err.message : 'Request failed'))
+      .catch(err => setError(upgradeErrorMessage(err)))
+      .finally(() => setBusy(false))
+  }
+
+  function actOnBatch(action: (id: number) => Promise<unknown>) {
+    if (!admin || !upgrade) return
+    setBusy(true)
+    setError('')
+    action(upgrade.id)
+      .then(() => api.getUpgrade(upgrade.id))
+      .then(batch => {
+        const next = sessionUpgradeFromBatch(batch, session.id)
+        setUpgrade(next)
+        setShowResult(true)
+        if (!activeUpgrade(next)) onUpgraded()
+      })
+      .catch(err => setError(upgradeErrorMessage(err)))
       .finally(() => setBusy(false))
   }
 
@@ -209,10 +238,10 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
     <div className="p-card">
       <div className="card-header with-action">
         <h3 className="card-title">Versions</h3>
-        {running && (
-          <span className="p-badge badge-default">
-            <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 11, height: 11 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-            {rollingBack ? 'rolling back' : 'updating'}
+        {active && (
+          <span className={`p-badge ${paused ? 'badge-warning' : 'badge-default'}`}>
+            {(!paused || rollingBack) && <svg className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ width: 11, height: 11 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>}
+            {rollingBack ? 'rolling back' : paused ? 'paused' : 'updating'}
           </span>
         )}
       </div>
@@ -245,7 +274,25 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
             {upgrade.status === 'completed' && (
               <p style={{ margin: 0, fontSize: 12, color: 'var(--success)' }}>All components updated.</p>
             )}
-            {!running && (
+            {paused && (
+              <p className="text-xs" style={{ margin: 0 }}>
+                Upgrade paused after a failure. Review the error above, then resume the remaining tasks or cancel the batch.
+              </p>
+            )}
+            {admin && (upgrade.status === 'running' || paused) && (
+              <div className="p-row gap-8 wrap-flex">
+                {paused && !hasActiveTask && (
+                  <button className="btn btn-default btn-sm" disabled={busy} onClick={() => actOnBatch(api.resumeUpgrade)}>
+                    {busy ? 'Working…' : 'Resume'}
+                  </button>
+                )}
+                <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => actOnBatch(api.cancelUpgrade)}>
+                  {busy ? 'Working…' : 'Cancel batch'}
+                </button>
+              </div>
+            )}
+            {error && <p role="alert" style={{ margin: 0, fontSize: 12, color: 'var(--destructive)', whiteSpace: 'pre-wrap' }}>{error}</p>}
+            {!active && (
               <div>
                 <button className="btn btn-outline btn-sm" onClick={dismissResult}>Done</button>
               </div>
@@ -307,7 +354,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
                 </div>
               )
             })}
-            {error && <p style={{ margin: 0, fontSize: 12, color: 'var(--destructive)' }}>{error}</p>}
+            {error && <p style={{ margin: 0, fontSize: 12, color: 'var(--destructive)', whiteSpace: 'pre-wrap' }}>{error}</p>}
             <div className="p-row center" style={{ justifyContent: 'flex-end' }}>
               <button className="btn btn-default btn-sm" disabled={maintenanceBlocked || changes.length === 0} onClick={() => setConfirming(true)} title={maintenanceBlocked ? 'Maintenance mode is active' : undefined}>
                 Update
@@ -342,7 +389,7 @@ export function SessionVersionsCard({ session, onUpgraded, admin = false }: Sess
                   next: imageTag(to),
                 }
               })} />
-              {error && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)' }}>{error}</p>}
+              {error && <p style={{ margin: 0, fontSize: 13, color: 'var(--destructive)', whiteSpace: 'pre-wrap' }}>{error}</p>}
             </div>
             <div className="dialog-footer">
               <button className="btn btn-ghost" disabled={busy} onClick={() => { setConfirming(false); setError('') }}>Cancel</button>
