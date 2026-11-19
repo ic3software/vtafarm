@@ -164,6 +164,7 @@ export interface SetupSession {
 
 export type MetricsScope = 'stack' | 'component' | 'pod'
 export type MetricsRange = '1h' | '6h' | '24h' | '7d' | '30d'
+export type LogRange = '1d' | '7d' | '30d'
 
 export interface MetricsTarget {
   scope: MetricsScope
@@ -1200,8 +1201,8 @@ export const api = {
   // Admin twins of exportSessionConfigs/-Logs — any user's session.
   adminExportSessionConfigs: (id: string) =>
     download(`/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/export/configs`, `${id}-configs.zip`),
-  adminExportSessionLogs: (id: string) =>
-    download(`/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/export/logs`, `${id}-logs.zip`),
+  adminExportSessionLogs: (id: string, range: LogRange) =>
+    download(`/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/export/logs?range=${range}`, `${id}-logs.zip`),
 
   // ── Admin — platform stack ───────────────────────────────────────────────────
   // The farm's own full stack under our zone's fixed labels. Created whole —
@@ -1406,8 +1407,8 @@ export const api = {
   // Read from the running pods; the configs archive carries credentials.
   exportSessionConfigs: (id: string) =>
     download(`/api/v1/setup/${encodeURIComponent(id)}/export/configs`, `${id}-configs.zip`),
-  exportSessionLogs: (id: string) =>
-    download(`/api/v1/setup/${encodeURIComponent(id)}/export/logs`, `${id}-logs.zip`),
+  exportSessionLogs: (id: string, range: LogRange) =>
+    download(`/api/v1/setup/${encodeURIComponent(id)}/export/logs?range=${range}`, `${id}-logs.zip`),
   getMobileConnection: (id: string) =>
     req<MobileConnectionState>('GET', `/api/v1/setup/${id}/mobile-connections/current`),
   createMobileConnection: (id: string) =>

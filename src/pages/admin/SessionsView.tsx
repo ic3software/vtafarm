@@ -204,7 +204,6 @@ function ResourcesCell({ session }: { session: AdminSetupSession }) {
   )
 }
 
-// Both read the session's live containers, so only a running session offers them.
 function ExportCell({ session }: { session: AdminSetupSession }) {
   const [busy, setBusy] = useState<'configs' | 'logs' | null>(null)
   const [failed, setFailed] = useState('')
@@ -215,7 +214,7 @@ function ExportCell({ session }: { session: AdminSetupSession }) {
     setFailed('')
     try {
       if (kind === 'configs') await api.adminExportSessionConfigs(session.vta_name)
-      else await api.adminExportSessionLogs(session.vta_name)
+      else await api.adminExportSessionLogs(session.vta_name, '30d')
     } catch (err) {
       setFailed(err instanceof Error ? err.message : `Failed to download ${kind}`)
     }
@@ -229,9 +228,9 @@ function ExportCell({ session }: { session: AdminSetupSession }) {
         title={ready ? `Download ${session.vta_name}'s configs` : 'Available once the session is running'}>
         {busy === 'configs' ? '…' : 'Configs'}
       </button>
-      <button className="btn btn-outline btn-sm" disabled={!ready || busy !== null}
+      <button className="btn btn-outline btn-sm" disabled={busy !== null}
         onClick={() => run('logs')}
-        title={ready ? `Download ${session.vta_name}'s logs` : 'Available once the session is running'}>
+        title={`Download ${session.vta_name}'s logs`}>
         {busy === 'logs' ? '…' : 'Logs'}
       </button>
       {failed && (

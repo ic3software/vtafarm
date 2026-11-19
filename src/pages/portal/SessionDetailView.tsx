@@ -47,7 +47,7 @@ function SessionDetailContent() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { loadSessions } = useOutletContext<PortalContext>()
+  const { loadSessions, fullstackAccess } = useOutletContext<PortalContext>()
   const sessionId = id!
 
   const [session, setSession] = useState<SetupSession | null>(null)
@@ -425,7 +425,11 @@ function SessionDetailContent() {
               <StackConfigEditor sessionId={sessionId} vtaOnly={!isFullStack} />
             </>
           )}
-          <SessionExportCard session={session} sessionId={sessionId} />
+          <SessionExportCard
+            session={session}
+            sessionId={sessionId}
+            retentionDays={fullstackAccess ? 30 : 7}
+          />
         </div>
         <div className="session-danger-zone">
           <hr className="p-sep" />
