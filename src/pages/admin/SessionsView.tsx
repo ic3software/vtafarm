@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { api, ALL_COMPONENTS, type AdminSessionResourceSummary, type AdminSetupSession, type SetupMode, type SetupStatus, type UpgradeBatchSummary, type UpgradeComponent } from '@/lib/api'
+import { api, ALL_COMPONENTS, type AdminSessionResourceSummary, type AdminSetupSession, type LogRange, type LogSource, type SetupMode, type SetupStatus, type UpgradeBatchSummary, type UpgradeComponent } from '@/lib/api'
 import { UpgradeModal } from './UpgradeModal'
 import { ResourceModal } from './ResourceModal'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { imageTag, pageNumbers } from '@/lib/utils'
 import { SessionRecoveryModal } from '../SessionRecoveryModal'
 import { recoveryComponentsForSession } from '../sessionRecovery'
+import { LOG_RANGES, logSourceLabel } from '@/lib/logExport'
 
 const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'
 
@@ -204,9 +208,11 @@ function ResourcesCell({ session }: { session: AdminSetupSession }) {
   )
 }
 
-function ExportCell({ session }: { session: AdminSetupSession }) {
+function ExportCell({ session, logSource }: { session: AdminSetupSession; logSource?: LogSource }) {
   const [busy, setBusy] = useState<'configs' | 'logs' | null>(null)
   const [failed, setFailed] = useState('')
+  const [logsOpen, setLogsOpen] = useState(false)
+  const [logRange, setLogRange] = useState<LogRange>('1d')
   const ready = session.status === 'running'
 
   async function run(kind: 'configs' | 'logs') {
@@ -214,27 +220,74 @@ function ExportCell({ session }: { session: AdminSetupSession }) {
     setFailed('')
     try {
       if (kind === 'configs') await api.adminExportSessionConfigs(session.vta_name)
-      else await api.adminExportSessionLogs(session.vta_name, '30d')
+      else {
+        await api.adminExportSessionLogs(session.vta_name, logRange)
+        setLogsOpen(false)
+      }
     } catch (err) {
       setFailed(err instanceof Error ? err.message : `Failed to download ${kind}`)
+    } finally {
+      setBusy(null)
     }
-    setBusy(null)
   }
 
   return (
     <div className="p-row gap-8" style={{ alignItems: 'center' }}>
-      <button className="btn btn-outline btn-sm" disabled={!ready || busy !== null}
+      <button type="button" className="btn btn-outline btn-sm" disabled={!ready || busy !== null}
         onClick={() => run('configs')}
         title={ready ? `Download ${session.vta_name}'s configs` : 'Available once the session is running'}>
         {busy === 'configs' ? '…' : 'Configs'}
       </button>
-      <button className="btn btn-outline btn-sm" disabled={busy !== null}
-        onClick={() => run('logs')}
-        title={`Download ${session.vta_name}'s logs`}>
-        {busy === 'logs' ? '…' : 'Logs'}
-      </button>
-      {failed && (
-        <span title={failed} style={{ fontSize: 12, color: 'var(--destructive)' }}>failed</span>
+      <Dialog open={logsOpen} onOpenChange={open => {
+        if (busy === 'logs') return
+        setLogsOpen(open)
+        if (open) setFailed('')
+      }}>
+        <DialogTrigger asChild>
+          <button type="button" className="btn btn-outline btn-sm" disabled={busy !== null}
+            title={`Download ${session.vta_name}'s logs`}>
+            Logs
+          </button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Download logs</DialogTitle>
+            <DialogDescription>
+              Log source: {logSourceLabel(logSource)}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium">History range</span>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={logRange}
+              onValueChange={value => {
+                if (value) setLogRange(value as LogRange)
+              }}
+              aria-label="Log history range"
+              className="w-full"
+            >
+              {LOG_RANGES.map(option => (
+                <ToggleGroupItem key={option.value} value={option.value} className="flex-1">
+                  {option.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+          {failed && <p className="m-0 text-sm text-destructive" role="alert">{failed}</p>}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" disabled={busy === 'logs'}>Cancel</Button>
+            </DialogClose>
+            <Button onClick={() => run('logs')} disabled={busy === 'logs'}>
+              {busy === 'logs' ? 'Preparing…' : 'Download logs'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {failed && !logsOpen && (
+        <span className="text-xs text-destructive" title={failed}>failed</span>
       )}
     </div>
   )
@@ -267,6 +320,7 @@ export function SessionsView() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [logSource, setLogSource] = useState<LogSource>()
   // vta_name → mode, so the upgrade modal can pre-check the right components
   const [selected, setSelected] = useState<Map<string, string>>(new Map())
   const [modal, setModal] = useState<ModalState>(null)
@@ -292,6 +346,7 @@ export function SessionsView() {
         if (sequence !== requestSequence.current) return
         setSessions(res.items); setTotal(res.total)
         setAvailableStatuses(res.statuses)
+        setLogSource(res.log_source)
         setLoadError('')
       })
       .catch(err => {
@@ -701,7 +756,7 @@ export function SessionsView() {
                   </button>
                 </td>
                 <td className="col-actions" style={{ textAlign: 'left' }}>
-                  <ExportCell session={s} />
+                  <ExportCell session={s} logSource={logSource} />
                 </td>
                 <td className="col-actions" style={{ textAlign: 'left' }}>
                   <button

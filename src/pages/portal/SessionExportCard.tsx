@@ -2,12 +2,7 @@ import { useState } from 'react'
 import { api, type LogRange, type SetupSession } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-
-const LOG_RANGES: Array<{ value: LogRange; days: 1 | 7 | 30; label: string }> = [
-  { value: '1d', days: 1, label: '1 day' },
-  { value: '7d', days: 7, label: '7 days' },
-  { value: '30d', days: 30, label: '30 days' },
-]
+import { LOG_RANGES, logSourceLabel } from '@/lib/logExport'
 
 export function SessionExportCard({
   session,
@@ -73,7 +68,7 @@ export function SessionExportCard({
           <CardHeader>
             <CardTitle>Logs</CardTitle>
             <CardDescription>
-              Choose how much log history to include, up to {retentionDays} days.
+              Log source: {logSourceLabel(session.log_source)}.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">

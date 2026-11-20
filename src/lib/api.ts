@@ -99,6 +99,7 @@ export interface SetupSessionActionRequired {
 
 /** Where a VTA-only agent's DID hosting came from. The mediator is chosen separately. */
 export type ConnectionSource = 'platform' | 'in_farm' | 'external'
+export type LogSource = 'retained' | 'kubernetes'
 
 export interface ConnectionInspection {
   source: ConnectionSource
@@ -121,6 +122,8 @@ export interface TrustRegistryState {
 export interface SetupSession {
   id: string
   status: SetupStatus
+  /** Configured source; individual retained-log requests can still fall back to Kubernetes. */
+  log_source?: LogSource
   /** Status that was active immediately before status became `failed`. */
   failed_stage?: SetupStatus
   mode: SetupMode
@@ -523,6 +526,7 @@ export interface PlatformStack {
   /** The session's `vta_name` — present only while one exists. */
   id?: string
   status?: SetupStatus
+  log_source?: LogSource
   failed_stage?: SetupStatus
   /** Reaches no hostname; it survives only in `did:webvh` paths. */
   label?: string
@@ -604,6 +608,7 @@ export interface AdminSessionsPage {
   total: number
   page: number
   page_size: number
+  log_source: LogSource
   /** Distinct statuses matching search and mode, independent of the active status filter. */
   statuses: SetupStatus[]
 }
