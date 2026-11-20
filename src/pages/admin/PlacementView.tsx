@@ -61,24 +61,24 @@ function nodeState(node: PlacementNode) {
   if (!node.metrics_available) {
     return {
       label: 'Metrics unavailable',
-      badge: 'badge-secondary',
+      tone: 'unknown',
       meter: 'unknown',
     }
   }
 
   switch (node.memory_state) {
     case 'green':
-      return { label: 'Healthy', badge: 'badge-success', meter: 'healthy' }
+      return { label: 'Healthy', tone: 'healthy', meter: 'healthy' }
     case 'yellow':
-      return { label: 'Elevated', badge: 'badge-warning', meter: 'warning' }
+      return { label: 'Elevated', tone: 'elevated', meter: 'warning' }
     case 'orange':
-      return { label: 'High', badge: 'badge-warning', meter: 'critical' }
+      return { label: 'High', tone: 'high', meter: 'critical' }
     case 'hot':
-      return { label: 'Hot', badge: 'badge-destructive', meter: 'critical' }
+      return { label: 'Hot', tone: 'hot', meter: 'critical' }
     default:
       return {
         label: 'Not classified',
-        badge: 'badge-secondary',
+        tone: 'unknown',
         meter: 'unknown',
       }
   }
@@ -358,11 +358,8 @@ export function PlacementView() {
             return (
               <article className="p-card placement-node-card" key={node.name}>
                 <div className="placement-node-head">
-                  <div className="placement-node-name">
-                    <Server aria-hidden="true" />
-                    <span className="p-mono">{node.name}</span>
-                  </div>
-                  <span className={`p-badge ${state.badge}`}>{state.label}</span>
+                  <Server aria-hidden="true" />
+                  <span className="p-mono placement-node-name">{node.name}</span>
                 </div>
                 <div className="placement-memory-value">
                   <strong>{percent}%</strong>
@@ -375,9 +372,15 @@ export function PlacementView() {
                   <span><strong>{node.vta_only_pods}</strong> VTA pods</span>
                   <span><strong>{fmtBytes(node.memory_reserved_bytes)}</strong> reserved</span>
                 </div>
-                <div className={`placement-eligibility ${node.eligible && node.metrics_available ? 'eligible' : ''}`}>
-                  <span className="placement-status-dot" aria-hidden="true" />
-                  {node.eligible && node.metrics_available ? 'Eligible destination' : 'Not eligible for placement'}
+                <div className="placement-node-statuses">
+                  <span className={`placement-node-state ${state.tone}`}>
+                    <span className="placement-node-state-dot" aria-hidden="true" />
+                    {state.label}
+                  </span>
+                  <span className={`placement-eligibility ${node.eligible && node.metrics_available ? 'eligible' : ''}`}>
+                    <span className="placement-status-dot" aria-hidden="true" />
+                    {node.eligible && node.metrics_available ? 'Eligible destination' : 'Not eligible for placement'}
+                  </span>
                 </div>
               </article>
             )
