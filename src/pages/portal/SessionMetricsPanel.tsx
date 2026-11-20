@@ -319,7 +319,7 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
       if (!active) return
       setMeta(value)
       setComponent(value.components.includes('vta') ? 'vta' : (value.components[0] ?? 'vta'))
-      setScope(value.mode === 'full_stack' ? 'stack' : 'component')
+      setScope('component')
     }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load metrics') }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [admin, sessionId])
@@ -418,6 +418,9 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
     : [response?.start ?? 0, response?.end ?? 0]
   const chartScaleKey = `${timeChoice}:${scope}:${component}:${response?.start ?? 0}`
   const targetChoice = scope === 'stack' ? 'stack' : component
+  const orderedComponents = meta.components.includes('vta')
+    ? ['vta', ...meta.components.filter(item => item !== 'vta')]
+    : meta.components
 
   return (
     <div className="metrics-root flex flex-col gap-5">
@@ -463,8 +466,7 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
           aria-label="Metrics target"
           className="max-w-full flex-wrap justify-start"
         >
-          <ToggleGroupItem value="stack">All</ToggleGroupItem>
-          {meta.components.map(item => <ToggleGroupItem key={item} value={item}>{componentLabels[item] ?? item}</ToggleGroupItem>)}
+          {orderedComponents.map(item => <ToggleGroupItem key={item} value={item}>{componentLabels[item] ?? item}</ToggleGroupItem>)}
         </ToggleGroup>
       )}
       {timeChoice === 'live' && liveState !== 'connected' && (
