@@ -500,6 +500,7 @@ export function PlatformStackView() {
     ? {
         id: stack.id,
         status: stack.status ?? 'running',
+        log_source: stack.log_source,
         mode: 'full_stack',
         urls: stack.urls,
         collected: stack.collected,
