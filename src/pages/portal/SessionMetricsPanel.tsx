@@ -257,7 +257,7 @@ function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, axisV
         {data.length === 0 ? <p className="py-14 text-center text-sm text-muted-foreground">No samples in this range.</p> : (
           <ChartContainer config={config} className="h-64 w-full aspect-auto">
             <ComposedChart data={data} accessibilityLayer margin={{ left: 0, right: 16 }}>
-              <CartesianGrid vertical={false} />
+              <CartesianGrid vertical={false} stroke="var(--muted-foreground)" strokeOpacity={0.45} />
               <XAxis
                 dataKey="timestamp"
                 type="number"
