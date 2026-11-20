@@ -1,5 +1,21 @@
 # Changelog
 
+## [v0.21.4] - 2026-11-20
+
+### Added
+
+- Administrators can choose one, seven, or 30 days when exporting session
+  logs, and log export views identify whether retained Loki history or current
+  Kubernetes pod logs are available.
+
+### Fixed
+
+- Metrics charts use more visible grid lines in dark mode.
+- Session metrics open on the VTA component by default and list it first
+  instead of initially querying the entire stack.
+
+Requires vtafarm-api 0.21.4.
+
 ## [v0.21.3] - 2026-11-19
 
 ### Added
