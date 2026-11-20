@@ -1,5 +1,22 @@
 # Changelog
 
+## [v0.21.3] - 2026-11-19
+
+### Added
+
+- Session owners can choose how much retained log history to download, up to
+  seven days for standard access or 30 days for Full Stack access.
+- Administrators can configure memory requests and limits for every Platform
+  Stack service and resume or cancel paused Platform Stack updates from its
+  settings page.
+
+### Fixed
+
+- Long node names and their status indicators stay within workload placement
+  cards.
+
+Requires vtafarm-api 0.21.3.
+
 ## [v0.21.2] - 2026-11-18
 
 ### Fixed
