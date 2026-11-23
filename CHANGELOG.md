@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.22.0] - 2026-11-23
+
+### Fixed
+
+- Session metrics show concise, actionable messages when metrics are
+  temporarily unavailable or historical data is incomplete, without exposing
+  backend error details.
+
+Requires vtafarm-api 0.22.0.
+
 ## [v0.21.4] - 2026-11-20
 
 ### Added
