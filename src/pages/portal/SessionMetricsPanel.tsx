@@ -26,6 +26,21 @@ const standardRanges: Array<{ value: TimeChoice; label: string }> = [
 
 const thirtyDayRange: { value: TimeChoice; label: string } = { value: '30d', label: '30d' }
 
+const partialMetricsMessage = 'Some historical metrics are temporarily unavailable. Charts may be incomplete. Try again in a few minutes.'
+const unavailableMetricsMessage = 'Metrics are temporarily unavailable. Try again in a few minutes.'
+
+function displayMetricsError(error: string): string {
+  const normalized = error.trim().toLowerCase()
+  if (
+    normalized === 'failed to fetch'
+    || normalized.includes('rpc error')
+    || normalized.includes('service is unable to handle request')
+    || normalized.includes('service unavailable')
+    || normalized.includes('metrics backend')
+  ) return unavailableMetricsMessage
+  return error || unavailableMetricsMessage
+}
+
 const componentLabels: Record<string, string> = {
   vta: 'VTA',
   mediator: 'Mediator',
@@ -398,7 +413,7 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
       </div>
     )
   }
-  if (!meta) return <Alert variant="destructive"><AlertTriangle /><AlertTitle>Metrics unavailable</AlertTitle><AlertDescription>{error || 'The metrics service could not be reached.'}</AlertDescription></Alert>
+  if (!meta) return <Alert variant="destructive"><AlertTriangle /><AlertTitle>Metrics unavailable</AlertTitle><AlertDescription>{displayMetricsError(error)}</AlertDescription></Alert>
 
   const summary = response?.summary ?? {}
   const ready = summary.pod_ready ?? 0
@@ -475,8 +490,8 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
         </div>
       )}
 
-      {error && <Alert variant="destructive"><AlertTriangle /><AlertTitle>Metrics query problem</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
-      {response?.warnings?.map(warning => <Alert key={warning}><AlertTriangle /><AlertTitle>Partial data</AlertTitle><AlertDescription>{warning}</AlertDescription></Alert>)}
+      {error && <Alert variant="destructive"><AlertTriangle /><AlertTitle>Metrics unavailable</AlertTitle><AlertDescription>{displayMetricsError(error)}</AlertDescription></Alert>}
+      {!!response?.warnings?.length && <Alert><AlertTriangle /><AlertTitle>Partial metrics</AlertTitle><AlertDescription>{partialMetricsMessage}</AlertDescription></Alert>}
 
       {loading && !response ? <MetricsSkeleton /> : !response?.series.length ? (
         <Empty className="min-h-64 border"><EmptyHeader><EmptyMedia variant="icon"><Activity /></EmptyMedia><EmptyTitle>No metrics yet</EmptyTitle><EmptyDescription>The selected workload may still be starting, or Prometheus has not scraped its first sample.</EmptyDescription></EmptyHeader></Empty>
