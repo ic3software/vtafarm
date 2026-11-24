@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.22.1] - 2026-11-24
+
+### Changed
+
+- Updated heading typography across the landing, onboarding, authentication,
+  and portal views to match the site's sans-serif design.
+- Updated React Router, Recharts, Tailwind Merge, ESLint, and TypeScript ESLint.
+
+Requires vtafarm-api 0.22.0.
+
 ## [v0.22.0] - 2026-11-23
 
 ### Fixed
