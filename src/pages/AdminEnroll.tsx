@@ -83,8 +83,8 @@ export function AdminEnroll() {
             </span>
           </div>
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              The keys to the <em>trust layer.</em>
+            <p className="aside-title">
+              The keys to the trust layer.
             </p>
             <p className="aside-lede">
               Set up your admin passkey to gain access to the VTA Farm control plane.

@@ -36,7 +36,7 @@ All tokens live in `src/index.css`. Do not define colors anywhere else, and do n
 ### Look
 
 - **Accent**: red, `#9d0105` in light and `#da4346` in dark. Filled buttons use `--vtafarm-btn`, which is darker than the accent in dark mode so white text stays readable.
-- **Fonts**: IBM Plex Sans (UI), IBM Plex Mono (labels, technical and DID strings), Instrument Serif at weight 400 (the large titles on the home and Get started pages only).
+- **Fonts**: IBM Plex Sans (UI), IBM Plex Mono (labels, technical and DID strings), Inter at weight 600 (`--font-heading`, every heading and the large stat figures). Headings are upright and one color: no serif, no italics, no accent-colored words. Hierarchy comes from size and spacing.
 - **Buttons**: one primary (filled) and one secondary (1px ink outline that inverts on hover), 10px corners. 52px tall for page-level calls to action, 44px compact, and the portal's denser 36px and 30px.
 - **Page titles**: portal and admin pages do not show a title, because the sidebar and breadcrumb already name the page. Keep an `<h1 className="sr-only">` for screen readers. A visible `h1` is only for the name of the thing being viewed (an agent, a pool, a run), in sans.
 - **Logo**: `BrandMark` in `src/components/BrandMark.tsx`. The theme switch is `ThemeToggle` in `src/components/ThemeToggle.tsx`.

@@ -143,8 +143,8 @@ export function Register() {
             </span>
           </div>
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              Identity that <em>proves itself.</em>
+            <p className="aside-title">
+              Identity that proves itself.
             </p>
             <p className="aside-lede">
               Provision a Verifiable Trust Agent, mint a DID, and issue credentials — all from one quiet console.

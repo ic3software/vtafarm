@@ -45,8 +45,8 @@ export function AdminLogin() {
         <div className="auth-aside" style={{ justifyContent: 'center' }}>
           <div className="grid-bg" />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              Create and manage your <em>Verifiable Trust Community</em>
+            <p className="aside-title">
+              Create and manage your Verifiable Trust Community
             </p>
             <p className="aside-lede">
               Provision your VTC and manage your community members&rsquo; Trust Agents
