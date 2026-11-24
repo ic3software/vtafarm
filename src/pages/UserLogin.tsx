@@ -290,8 +290,8 @@ export function UserLogin() {
         <div className="auth-aside" style={{ justifyContent: 'center' }}>
           <div className="grid-bg" />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <p className="p-serif" style={{ fontSize: 36, lineHeight: 1.1, letterSpacing: '-.02em', margin: '0 0 16px' }}>
-              Create and manage your <em>Trust Agent.</em>
+            <p className="aside-title">
+              Create and manage your Trust Agent.
             </p>
             <p className="aside-lede">
               Provision a Trust Agent in a couple of minutes and link it to your Keyring wallet or personal network manager.
