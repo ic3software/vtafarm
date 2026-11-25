@@ -221,6 +221,35 @@ export interface MetricsLiveSample {
   warnings?: string[]
 }
 
+export type IncidentSeverity = 'warning' | 'critical'
+export type IncidentStatus = 'firing' | 'resolved'
+
+export interface Incident {
+  id: string
+  session_id: string
+  cluster: string
+  alert_name: string
+  type: string
+  component: 'vta' | 'mediator' | 'dids' | 'vtc' | 'trust-registry'
+  resource?: 'cpu' | 'memory' | 'storage' | string
+  severity: IncidentSeverity
+  status: IncidentStatus
+  title: string
+  message: string
+  usage_percent?: number
+  started_at: string
+  resolved_at?: string
+  last_seen_at: string
+  read_at?: string
+  downtime_seconds?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface IncidentList {
+  incidents: Incident[]
+}
+
 /**
  * Why a mode can't be created right now.
  *
@@ -1338,6 +1367,15 @@ export const api = {
     if (target.pod) params.set('pod', target.pod)
     return `${API_BASE}/api/v1/setup/${encodeURIComponent(id)}/metrics/live?${params}`
   },
+  sessionIncidents: (id: string) =>
+    req<IncidentList>('GET', `/api/v1/setup/${encodeURIComponent(id)}/incidents`),
+  markSessionIncidentRead: (id: string, incidentId: string, read: boolean) =>
+    req<Incident>('PATCH', `/api/v1/setup/${encodeURIComponent(id)}/incidents/${encodeURIComponent(incidentId)}`, { read }),
+  exportSessionIncidentLogs: (id: string, incidentId: string) =>
+    download(
+      `/api/v1/setup/${encodeURIComponent(id)}/incidents/${encodeURIComponent(incidentId)}/logs`,
+      `${id}-${incidentId}-logs.zip`,
+    ),
   adminSessionMetricsMeta: (id: string) =>
     req<MetricsMeta>('GET', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/metrics/meta`),
   adminSessionMetricsRange: (id: string, range: MetricsRange, target: MetricsTarget) => {
