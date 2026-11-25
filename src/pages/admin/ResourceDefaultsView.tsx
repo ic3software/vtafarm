@@ -96,8 +96,8 @@ export function ResourceDefaultsView() {
         return
       }
       const storage = memoryMi(draft[key].storage_size)
-      if (!Number.isFinite(storage) || storage < 200 || storage > 100 * 1024) {
-        setError(`${label}: storage must be between 200Mi and 100Gi.`)
+      if (!Number.isFinite(storage) || storage < 200 || storage > 2 * 1024) {
+        setError(`${label}: storage must be between 200Mi and 2Gi.`)
         return
       }
     }
