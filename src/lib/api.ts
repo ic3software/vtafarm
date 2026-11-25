@@ -434,6 +434,8 @@ export interface AdminSetupSession {
 
 export interface AdminSessionResourceSummary {
   component: UpgradeComponent
+  cpu_request: string
+  cpu_limit: string
   memory_request: string
   memory_limit: string
   customized: boolean
@@ -454,7 +456,7 @@ export interface ResourceProfile {
 export interface WorkloadResource {
   component: UpgradeComponent
   defaults: ResourceProfile
-  desired: Pick<ResourceProfile, 'memory_request' | 'memory_limit'>
+  desired: ResourceProfile
   actual: ResourceProfile
   status: 'in_sync' | 'drifted' | 'failed'
   apply_error?: string
@@ -1139,7 +1141,7 @@ export const api = {
     return req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?${params}`)
   },
   adminResourceDefaults: () => req<ResourceDefaults>('GET', '/api/v1/admin/resource-defaults'),
-  adminSaveResourceDefaults: (resources: Array<{ component: UpgradeComponent; memory_request: string; memory_limit: string }>) =>
+  adminSaveResourceDefaults: (resources: Array<{ component: UpgradeComponent; cpu_request: string; cpu_limit: string; memory_request: string; memory_limit: string }>) =>
     req<ResourceDefaults>('PUT', '/api/v1/admin/resource-defaults', { resources }),
   adminImageDefaults: () => req<ImageDefaults>('GET', '/api/v1/admin/image-defaults'),
   /**
@@ -1153,7 +1155,7 @@ export const api = {
     req<AdminSessionResources>('GET', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/resources`),
   adminApplySessionResources: (
     sessionIds: string[],
-    resources: Array<{ component: UpgradeComponent; memory_request: string; memory_limit: string }>,
+    resources: Array<{ component: UpgradeComponent; cpu_request: string; cpu_limit: string; memory_request: string; memory_limit: string }>,
   ) => req<{ results: ResourceApplyResult[] }>('PUT', '/api/v1/admin/setup-sessions/resources', {
     session_ids: sessionIds,
     resources,

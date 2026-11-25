@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { cpuMillicores, cpuOptions } from '@/lib/resourceCpu'
 import { memoryMi, memoryOptions } from '@/lib/resourceMemory'
 import {
   api,
@@ -23,9 +24,11 @@ interface Props {
 
 interface ResourceRow {
   component: UpgradeComponent
+  cpuRequest: string
+  cpuLimit: string
   memoryRequest: string
   memoryLimit: string
-  currentValues: Array<{ memoryRequest: string; memoryLimit: string }>
+  currentValues: Array<{ cpuRequest: string; cpuLimit: string; memoryRequest: string; memoryLimit: string }>
   defaults: ResourceProfile
 }
 
@@ -57,13 +60,17 @@ function optionValues(current: string, options: string[]) {
 
 function hasChanged(row: ResourceRow) {
   return row.currentValues.some(current => (
-    row.memoryRequest !== current.memoryRequest
+    row.cpuRequest !== current.cpuRequest
+    || row.cpuLimit !== current.cpuLimit
+    || row.memoryRequest !== current.memoryRequest
     || row.memoryLimit !== current.memoryLimit
   ))
 }
 
-function selectedMemory(row: ResourceRow) {
+function selectedResources(row: ResourceRow) {
   return {
+    cpuRequest: row.cpuRequest || row.defaults.cpu_request,
+    cpuLimit: row.cpuLimit || row.defaults.cpu_limit,
     memoryRequest: row.memoryRequest || row.defaults.memory_request,
     memoryLimit: row.memoryLimit || row.defaults.memory_limit,
   }
@@ -106,7 +113,13 @@ export function ResourceModal({ sessions, onClose }: Props) {
       return
     }
     for (const row of changed) {
-      const selected = selectedMemory(row)
+      const selected = selectedResources(row)
+      const cpuRequest = cpuMillicores(selected.cpuRequest)
+      const cpuLimit = cpuMillicores(selected.cpuLimit)
+      if (!Number.isFinite(cpuRequest) || !Number.isFinite(cpuLimit) || cpuRequest < 10 || cpuLimit > 2000 || cpuRequest > cpuLimit) {
+        setError(`${labels[row.component]} CPU request and limit must be between 10m and 2 cores, with request ≤ limit.`)
+        return
+      }
       const request = memoryMi(selected.memoryRequest)
       const limit = memoryMi(selected.memoryLimit)
       if (!Number.isFinite(request) || !Number.isFinite(limit) || request < 16 || limit > 1024) {
@@ -125,9 +138,11 @@ export function ResourceModal({ sessions, onClose }: Props) {
       const response = await api.adminApplySessionResources(
         sessions.map(session => session.id),
         changed.map(row => {
-          const selected = selectedMemory(row)
+          const selected = selectedResources(row)
           return {
             component: row.component,
+            cpu_request: selected.cpuRequest,
+            cpu_limit: selected.cpuLimit,
             memory_request: selected.memoryRequest,
             memory_limit: selected.memoryLimit,
           }
@@ -148,9 +163,9 @@ export function ResourceModal({ sessions, onClose }: Props) {
 
   return (
     <div className="p-overlay">
-      <div className="p-dialog" style={{ maxWidth: 680 }}>
+      <div className="p-dialog" style={{ maxWidth: 760 }}>
         <div className="dialog-header">
-          <h3 className="dialog-title">Memory resources</h3>
+          <h3 className="dialog-title">CPU and memory resources</h3>
           <p className="dialog-desc">
             {sessions.length === 1 ? sessions[0].id : `${sessions.length} selected sessions`}
           </p>
@@ -161,7 +176,25 @@ export function ResourceModal({ sessions, onClose }: Props) {
               <div style={{ marginBottom: 12 }}>
                 <span style={{ fontWeight: 600 }}>{labels[row.component]}</span>
               </div>
-              <div className={`resource-fields${sessions.length === 1 ? ' with-default' : ''}`}>
+              <div className="resource-fields">
+                <label>
+                  <span className="p-label">CPU request</span>
+                  <Select value={row.cpuRequest || undefined} onValueChange={value => update(row.component, { cpuRequest: value })}>
+                    <SelectTrigger className="resource-select"><SelectValue placeholder={row.defaults.cpu_request} /></SelectTrigger>
+                    <SelectContent className="resource-select-content">
+                      {optionValues(row.cpuRequest, cpuOptions).map(value => <SelectItem key={value} value={value}>{value}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </label>
+                <label>
+                  <span className="p-label">CPU limit</span>
+                  <Select value={row.cpuLimit || undefined} onValueChange={value => update(row.component, { cpuLimit: value })}>
+                    <SelectTrigger className="resource-select"><SelectValue placeholder={row.defaults.cpu_limit} /></SelectTrigger>
+                    <SelectContent className="resource-select-content">
+                      {optionValues(row.cpuLimit, cpuOptions).map(value => <SelectItem key={value} value={value}>{value}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </label>
                 <label>
                   <span className="p-label">Memory request</span>
                   <Select
@@ -194,19 +227,15 @@ export function ResourceModal({ sessions, onClose }: Props) {
                     </SelectContent>
                   </Select>
                 </label>
-                {sessions.length === 1 && (
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-sm resource-default"
-                    onClick={() => update(row.component, {
-                      memoryRequest: row.defaults.memory_request,
-                      memoryLimit: row.defaults.memory_limit,
-                    })}
-                  >
-                    Set to Default
-                  </button>
-                )}
               </div>
+              {sessions.length === 1 && (
+                <button type="button" className="btn btn-outline btn-sm" style={{ marginTop: 12 }} onClick={() => update(row.component, {
+                  cpuRequest: row.defaults.cpu_request,
+                  cpuLimit: row.defaults.cpu_limit,
+                  memoryRequest: row.defaults.memory_request,
+                  memoryLimit: row.defaults.memory_limit,
+                })}>Set to Default</button>
+              )}
             </div>
           ))}
           <div className="p-alert alert-warning">
@@ -247,11 +276,21 @@ function buildRows(
     const memoryLimit = usesDefaultBaseline
       ? first.defaults.memory_limit
       : first.desired.memory_limit
+    const cpuRequest = usesDefaultBaseline
+      ? first.defaults.cpu_request
+      : first.desired.cpu_request
+    const cpuLimit = usesDefaultBaseline
+      ? first.defaults.cpu_limit
+      : first.desired.cpu_limit
     return {
       component,
+      cpuRequest,
+      cpuLimit,
       memoryRequest,
       memoryLimit,
       currentValues: resources.map(resource => ({
+        cpuRequest: resource.desired.cpu_request,
+        cpuLimit: resource.desired.cpu_limit,
         memoryRequest: resource.desired.memory_request,
         memoryLimit: resource.desired.memory_limit,
       })),

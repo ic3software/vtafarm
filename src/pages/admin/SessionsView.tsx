@@ -172,7 +172,7 @@ function ResourceLine({ resource }: { resource: AdminSessionResourceSummary }) {
     <span className="p-row gap-8" style={{ ...tagStyle, display: 'inline-flex' }}>
       <span>
         <span style={{ color: 'var(--muted-foreground)' }}>{resource.component} </span>
-        {resource.memory_request} / {resource.memory_limit}
+        CPU {resource.cpu_request} / {resource.cpu_limit || 'unlimited'} · Memory {resource.memory_request} / {resource.memory_limit}
       </span>
       <span className={`p-badge ${resource.customized ? 'badge-warning' : 'badge-success'}`}>
         {resource.customized ? 'Customized' : 'Default'}
@@ -193,7 +193,7 @@ function ResourcesCell({ session }: { session: AdminSetupSession }) {
         type="button"
         aria-expanded={open}
         onClick={() => setOpen(value => !value)}
-        title={rows.map(resource => `${resource.component} ${resource.memory_request} / ${resource.memory_limit}`).join('\n')}
+        title={rows.map(resource => `${resource.component} CPU ${resource.cpu_request} / ${resource.cpu_limit || 'unlimited'} · Memory ${resource.memory_request} / ${resource.memory_limit}`).join('\n')}
         style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
       >
         <ResourceLine resource={rows[0]} />

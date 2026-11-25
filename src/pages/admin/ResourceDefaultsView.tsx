@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
+import { cpuMillicores, cpuOptions } from '@/lib/resourceCpu'
 import { memoryMi, memoryOptions } from '@/lib/resourceMemory'
 import { api, type ImageOption, type ResourceDefaults, type UpgradeComponent } from '@/lib/api'
 import { imageLabel, imageTag } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const components: Array<{ key: UpgradeComponent; label: string }> = [
-  { key: 'mediator', label: 'Mediator' },
-  { key: 'vtc', label: 'VTC' },
   { key: 'vta', label: 'VTA' },
+  { key: 'mediator', label: 'Mediator' },
   { key: 'dids', label: 'DID Hosting' },
+  { key: 'vtc', label: 'VTC' },
   { key: 'trust-registry', label: 'Trust Registry' },
 ]
 const memoryFields = ['memory_request', 'memory_limit'] as const
+const cpuFields = ['cpu_request', 'cpu_limit'] as const
+const resourceFields = [...cpuFields, ...memoryFields] as const
 
 const imageComponents: Array<{ key: UpgradeComponent; label: string }> = [
   { key: 'vta', label: 'VTA' },
@@ -70,7 +73,7 @@ export function ResourceDefaultsView() {
   }, [imageReload])
 
   const changed = !!draft && !!saved && components.some(({ key }) =>
-    memoryFields.some(field => draft[key][field] !== saved.resources[key][field]),
+    resourceFields.some(field => draft[key][field] !== saved.resources[key][field]),
   )
 
   async function save() {
@@ -78,6 +81,12 @@ export function ResourceDefaultsView() {
     setError('')
     setNotice('')
     for (const { key, label } of components) {
+      const cpuRequest = cpuMillicores(draft[key].cpu_request)
+      const cpuLimit = cpuMillicores(draft[key].cpu_limit)
+      if (!Number.isFinite(cpuRequest) || !Number.isFinite(cpuLimit) || cpuRequest < 10 || cpuLimit > 2000 || cpuRequest > cpuLimit) {
+        setError(`${label}: CPU request and limit must be between 10m and 2 cores, with request ≤ limit.`)
+        return
+      }
       const request = memoryMi(draft[key].memory_request)
       const limit = memoryMi(draft[key].memory_limit)
       if (!Number.isFinite(request) || !Number.isFinite(limit) || request < 16 || limit > 1024 || request > limit) {
@@ -89,6 +98,8 @@ export function ResourceDefaultsView() {
     try {
       const data = await api.adminSaveResourceDefaults(components.map(({ key }) => ({
         component: key,
+        cpu_request: draft[key].cpu_request,
+        cpu_limit: draft[key].cpu_limit,
         memory_request: draft[key].memory_request,
         memory_limit: draft[key].memory_limit,
       })))
@@ -221,7 +232,7 @@ export function ResourceDefaultsView() {
       <div className="p-card">
         <div className="card-header">
           <h3 className="card-title">Resource defaults</h3>
-          <p className="card-desc">Memory requests and limits for new deployments and capacity estimates.</p>
+          <p className="card-desc">CPU and memory requests and limits for new deployments and capacity estimates.</p>
         </div>
         <div className="card-content">
           {loading ? <p className="p-muted" role="status">Loading defaults…</p> : !draft || !saved ? (
@@ -230,14 +241,15 @@ export function ResourceDefaultsView() {
             <>
               <div className="table-wrap">
                 <table className="p-table">
-                  <thead><tr><th>Component</th><th>Memory request</th><th>Memory limit</th></tr></thead>
+                  <thead><tr><th>Component</th><th>CPU request</th><th>CPU limit</th><th>Memory request</th><th>Memory limit</th></tr></thead>
                   <tbody>
                     {components.map(({ key, label }) => (
                       <tr key={key}>
                         <td>{label}</td>
-                        {memoryFields.map(field => {
+                        {resourceFields.map(field => {
                           const current = draft[key][field]
-                          const values = memoryOptions.includes(current) ? memoryOptions : [current, ...memoryOptions]
+                          const options: readonly string[] = field.startsWith('cpu_') ? cpuOptions : memoryOptions
+                          const values = options.includes(current) ? options : [current, ...options]
                           return (
                             <td key={field}>
                               <Select value={current} disabled={saving} onValueChange={value => {
@@ -245,7 +257,7 @@ export function ResourceDefaultsView() {
                                 setNotice('')
                                 setError('')
                               }}>
-                                <SelectTrigger aria-label={`${label} memory ${field === 'memory_request' ? 'request' : 'limit'}`} className="w-36">
+                                <SelectTrigger aria-label={`${label} ${field.replace('_', ' ')}`} className="w-36">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>{values.map(value => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent>
@@ -257,6 +269,9 @@ export function ResourceDefaultsView() {
                     ))}
                     <tr>
                       <td><strong>Fullstack total</strong></td>
+                      {cpuFields.map(field => (
+                        <td key={field}><strong>{components.reduce((sum, { key }) => sum + cpuMillicores(draft[key][field]), 0)}m</strong></td>
+                      ))}
                       {memoryFields.map(field => (
                         <td key={field}><strong>{components.reduce((sum, { key }) => sum + memoryMi(draft[key][field]), 0)}Mi</strong></td>
                       ))}
