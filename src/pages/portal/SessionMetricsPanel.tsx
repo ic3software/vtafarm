@@ -119,10 +119,9 @@ function cpuAxisScale(maxCores: number): { max: number; ticks: number[] } {
   const maxMillicores = Math.max(1, maxCores * 1000)
   if (maxMillicores <= 1) return { max: 0.001, ticks: [0, 0.001] }
   const step = niceAxisStep(maxMillicores / 4)
-  const axisMaxMillicores = Math.ceil(maxMillicores / step) * step
-  const intervalCount = Math.round(axisMaxMillicores / step)
+  const intervalCount = Math.floor(maxMillicores / step)
   return {
-    max: axisMaxMillicores / 1000,
+    max: maxMillicores / 1000,
     ticks: Array.from({ length: intervalCount + 1 }, (_, index) => (index * step) / 1000),
   }
 }
@@ -418,6 +417,8 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
   const summary = response?.summary ?? {}
   const ready = summary.pod_ready ?? 0
   const restarts = summary.container_restarts_total ?? 0
+  const cpuLimit = summary.cpu_limit_cores ?? 0
+  const memoryLimit = summary.memory_limit_bytes ?? 0
   const storageUsed = summary.persistent_volume_used_bytes ?? 0
   const storageCapacity = summary.persistent_volume_capacity_bytes ?? 0
   const selectedPodCount = scope === 'component'
@@ -498,8 +499,8 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
       ) : (
         <>
           <div data-metrics-grid="summary" className="grid sm:grid-cols-2 lg:grid-cols-5">
-            <Card data-metrics-card="summary"><CardHeader><CardDescription>CPU now</CardDescription></CardHeader><CardContent><p>{formatCores(summary.cpu_usage_cores ?? 0)}</p></CardContent></Card>
-            <Card data-metrics-card="summary"><CardHeader><CardDescription>Memory now</CardDescription></CardHeader><CardContent><p>{formatBytes(summary.memory_working_set_bytes ?? 0)}</p></CardContent></Card>
+            <Card data-metrics-card="summary"><CardHeader><CardDescription>CPU now</CardDescription></CardHeader><CardContent><p>{formatCores(summary.cpu_usage_cores ?? 0)}</p>{cpuLimit > 0 && <span className="mt-1 block text-xs text-muted-foreground">of {formatCores(cpuLimit)} limit</span>}</CardContent></Card>
+            <Card data-metrics-card="summary"><CardHeader><CardDescription>Memory now</CardDescription></CardHeader><CardContent><p>{formatBytes(summary.memory_working_set_bytes ?? 0)}</p>{memoryLimit > 0 && <span className="mt-1 block text-xs text-muted-foreground">of {formatBytes(memoryLimit)} limit</span>}</CardContent></Card>
             <Card data-metrics-card="summary"><CardHeader><CardDescription>Storage used</CardDescription></CardHeader><CardContent><p>{formatBytes(storageUsed)}</p><span className="mt-1 block text-xs text-muted-foreground">of {formatBytes(storageCapacity)} total</span></CardContent></Card>
             <Card data-metrics-card="summary"><CardHeader><CardDescription>Ready pods</CardDescription></CardHeader><CardContent><p>{Math.round(ready)} / {readyPodCount}</p></CardContent></Card>
             <Card data-metrics-card="summary"><CardHeader><CardDescription>Container restarts</CardDescription></CardHeader><CardContent><p>{Math.round(restarts)}</p></CardContent></Card>
