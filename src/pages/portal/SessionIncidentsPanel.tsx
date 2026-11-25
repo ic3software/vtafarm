@@ -349,12 +349,12 @@ export function SessionIncidentsPanel({ sessionId, unreadCount, onIncidentsRead 
               const firing = incident.status === 'firing'
               const unread = !incident.read_at
               const selected = selectedIds.has(incident.id)
-              const summary = (
+              const summary = (insideButton: boolean) => (
                 <span className="flex min-w-0 items-center gap-3">
                   <span className="shrink-0" title={`${incident.severity} incident`}>
                     {incident.severity === 'critical'
-                      ? <TriangleAlert data-icon="inline-start" className="text-destructive" />
-                      : <Bell data-icon="inline-start" className="text-muted-foreground" />}
+                      ? <TriangleAlert data-icon="inline-start" className={cn(!insideButton && 'size-4', 'text-destructive')} />
+                      : <Bell data-icon="inline-start" className={cn(!insideButton && 'size-4', 'text-muted-foreground')} />}
                   </span>
                   <span className="flex min-w-0 flex-col gap-1">
                     <span className="flex min-w-0 items-center gap-2">
@@ -392,9 +392,9 @@ export function SessionIncidentsPanel({ sessionId, unreadCount, onIncidentsRead 
                       onClick={() => void markRead(incident)}
                       aria-label={`Mark ${incident.title} as read`}
                     >
-                      {summary}
+                      {summary(true)}
                     </Button>
-                  ) : summary}
+                  ) : summary(false)}
                   <span className="hidden font-semibold tabular-nums xl:block">
                     {incident.usage_percent !== undefined ? `${incident.usage_percent.toFixed(1)}%` : '—'}
                   </span>
