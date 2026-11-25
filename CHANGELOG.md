@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.23.0] - 2026-11-25
+
+### Added
+
+- Administrators can configure CPU requests and limits for component defaults
+  and apply CPU and memory settings to existing sessions.
+- Administrators can configure per-component PVC storage defaults for new
+  deployments; existing PVCs remain unchanged.
+- Session owners can inspect, filter, and mark resource and availability
+  incidents as read, see active alerts alongside metrics, and download logs
+  for an incident's time window.
+
+Requires vtafarm-api 0.23.0.
+
 ## [v0.22.1] - 2026-11-24
 
 ### Changed
