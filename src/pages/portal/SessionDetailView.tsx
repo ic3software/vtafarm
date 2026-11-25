@@ -41,6 +41,18 @@ const INCIDENTS_TAB: { value: SessionTab; label: string } = {
   label: 'Incidents',
 }
 
+const METRICS_QUERY_PARAMS = ['metrics_range'] as const
+const INCIDENT_QUERY_PARAMS = ['range', 'status', 'page'] as const
+
+function removeInactiveTabParams(params: URLSearchParams, tab: string | null) {
+  if (tab !== 'metrics') {
+    for (const key of METRICS_QUERY_PARAMS) params.delete(key)
+  }
+  if (tab !== 'incidents') {
+    for (const key of INCIDENT_QUERY_PARAMS) params.delete(key)
+  }
+}
+
 const SessionMetricsPanel = lazy(() => import('./SessionMetricsPanel').then(module => ({ default: module.SessionMetricsPanel })))
 const SessionIncidentsPanel = lazy(() => import('./SessionIncidentsPanel').then(module => ({ default: module.SessionIncidentsPanel })))
 
@@ -115,6 +127,14 @@ function SessionDetailContent() {
       clearInterval(interval)
     }
   }, [sessionId, session?.status])
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams)
+    removeInactiveTabParams(next, searchParams.get('tab'))
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     if (!session) return
@@ -199,6 +219,7 @@ function SessionDetailContent() {
     const next = new URLSearchParams(searchParams)
     if (tab === defaultTab) next.delete('tab')
     else next.set('tab', tab)
+    removeInactiveTabParams(next, tab)
     setSearchParams(next, { replace: true })
   }
 
