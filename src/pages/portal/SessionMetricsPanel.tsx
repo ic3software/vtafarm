@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, AlertTriangle, Gauge, MemoryStick, Network, RefreshCw } from 'lucide-react'
 import { Area, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts'
+import { useSearchParams } from 'react-router-dom'
 
 import { api, type MetricsLiveSample, type MetricsMeta, type MetricsRange, type MetricsResponse, type MetricsScope, type MetricsSeries, type MetricsTarget } from '@/lib/api'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
@@ -15,6 +15,13 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 type TimeChoice = 'live' | MetricsRange
 
 const defaultLiveWindowSeconds = 5 * 60
+const metricsRangeParam = 'metrics_range'
+
+function timeChoiceFromQuery(value: string | null): TimeChoice {
+  return value === 'live' || value === '1h' || value === '6h' || value === '24h' || value === '7d' || value === '30d'
+    ? value
+    : '1h'
+}
 
 const standardRanges: Array<{ value: TimeChoice; label: string }> = [
   { value: 'live', label: 'Live' },
@@ -213,7 +220,10 @@ function MetricsSkeleton() {
         {Array.from({ length: 5 }, (_, index) => (
           <Card data-metrics-card="summary" key={index}>
             <CardHeader><Skeleton className="h-3 w-20" /></CardHeader>
-            <CardContent><Skeleton className="h-8 w-24" /></CardContent>
+            <CardContent>
+              <Skeleton className="h-8 w-24" />
+              {index < 3 && <Skeleton className="mt-1 h-3 w-28" />}
+            </CardContent>
           </Card>
         ))}
       </div>
@@ -316,13 +326,17 @@ function MetricChart({ title, icon: Icon, series, metrics, valueFormatter, axisV
 
 export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: string; admin?: boolean }) {
   const [meta, setMeta] = useState<MetricsMeta | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [scope, setScope] = useState<Exclude<MetricsScope, 'pod'>>('component')
   const [component, setComponent] = useState('vta')
-  const [timeChoice, setTimeChoice] = useState<TimeChoice>('1h')
+  const requestedTimeChoice = searchParams.get(metricsRangeParam)
+  const queryTimeChoice = timeChoiceFromQuery(requestedTimeChoice)
+  const timeChoice = queryTimeChoice === '30d' && meta && meta.retention_days < 30 ? '1h' : queryTimeChoice
   const [response, setResponse] = useState<MetricsResponse | null>(null)
+  const [responseRequestKey, setResponseRequestKey] = useState<string | null>(null)
+  const [settledRequestKey, setSettledRequestKey] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [liveState, setLiveState] = useState<'connecting' | 'connected' | 'degraded'>('connecting')
   const [liveNow, setLiveNow] = useState(() => Math.floor(Date.now() / 1000))
   const [refreshKey, setRefreshKey] = useState(0)
 
@@ -334,7 +348,11 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
       setMeta(value)
       setComponent(value.components.includes('vta') ? 'vta' : (value.components[0] ?? 'vta'))
       setScope('component')
-    }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load metrics') }).finally(() => { if (active) setLoading(false) })
+    }).catch(reason => {
+      if (!active) return
+      setError(reason instanceof Error ? reason.message : 'Could not load metrics')
+      setLoading(false)
+    })
     return () => { active = false }
   }, [admin, sessionId])
 
@@ -342,6 +360,19 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
     scope,
     ...(scope === 'component' ? { component } : {}),
   }), [scope, component])
+  const requestKey = `${admin ? 'admin' : 'portal'}:${sessionId}:${timeChoice}:${scope}:${component}:${refreshKey}`
+  const currentResponse = responseRequestKey === requestKey ? response : null
+  const metricsLoading = loading || settledRequestKey !== requestKey
+
+  useEffect(() => {
+    const invalid = requestedTimeChoice !== null && timeChoiceFromQuery(requestedTimeChoice) !== requestedTimeChoice
+    const nonCanonicalDefault = requestedTimeChoice === '1h'
+    const unavailableThirtyDayRange = requestedTimeChoice === '30d' && meta !== null && meta.retention_days < 30
+    if (!invalid && !nonCanonicalDefault && !unavailableThirtyDayRange) return
+    const next = new URLSearchParams(searchParams)
+    next.delete(metricsRangeParam)
+    setSearchParams(next, { replace: true })
+  }, [meta, requestedTimeChoice, searchParams, setSearchParams])
 
   useEffect(() => {
     if (!meta) return
@@ -350,36 +381,63 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
       const request = admin
         ? api.adminSessionMetricsRange(sessionId, timeChoice, target)
         : api.sessionMetricsRange(sessionId, timeChoice, target)
-      request.then(value => { if (active) setResponse(value) }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load metrics') }).finally(() => { if (active) setLoading(false) })
+      request.then(value => {
+        if (!active) return
+        setResponse(value)
+        setResponseRequestKey(requestKey)
+      }).catch(reason => {
+        if (active) setError(reason instanceof Error ? reason.message : 'Could not load metrics')
+      }).finally(() => {
+        if (!active) return
+        setSettledRequestKey(requestKey)
+        setLoading(false)
+      })
       return () => { active = false }
     }
 
     const liveURL = admin ? api.adminSessionMetricsLiveURL(sessionId, target) : api.sessionMetricsLiveURL(sessionId, target)
+    let active = true
     const source = new EventSource(liveURL, { withCredentials: true })
-    source.addEventListener('status', () => { setLiveState('connected'); setLoading(false) })
-    source.addEventListener('snapshot', event => { setResponse(JSON.parse((event as MessageEvent).data) as MetricsResponse); setLiveState('connected'); setLoading(false) })
+    source.addEventListener('snapshot', event => {
+      if (!active) return
+      setResponse(JSON.parse((event as MessageEvent).data) as MetricsResponse)
+      setResponseRequestKey(requestKey)
+      setSettledRequestKey(requestKey)
+      setError('')
+      setLoading(false)
+    })
     source.addEventListener('sample', event => {
+      if (!active) return
       const sample = JSON.parse((event as MessageEvent).data) as MetricsLiveSample
       setResponse(current => current ? mergeLive(
         { ...current, series: current.series.map(item => ({ ...item, points: [...item.points] })) },
         sample,
         meta.live_window_seconds ?? defaultLiveWindowSeconds,
       ) : current)
-      setLiveState('connected')
+      setError('')
     })
-    source.addEventListener('problem', event => { const problem = JSON.parse((event as MessageEvent).data) as { message: string }; setError(problem.message); setLiveState('degraded'); setLoading(false) })
-    source.addEventListener('reconnect', () => setLiveState('connecting'))
-    source.onerror = () => { setLiveState('degraded'); setLoading(false) }
-    return () => source.close()
-  }, [admin, sessionId, meta, scope, component, timeChoice, target, refreshKey])
+    source.addEventListener('problem', event => {
+      if (!active) return
+      const problem = JSON.parse((event as MessageEvent).data) as { message: string }
+      setError(problem.message)
+    })
+    return () => {
+      active = false
+      source.close()
+    }
+  }, [admin, sessionId, meta, requestKey, timeChoice, target])
 
   useEffect(() => {
     const onVisibility = () => {
-      if (document.hidden && timeChoice === 'live') setTimeChoice('1h')
+      if (document.hidden && timeChoice === 'live') {
+        const next = new URLSearchParams(searchParams)
+        next.delete(metricsRangeParam)
+        setSearchParams(next, { replace: true })
+      }
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [timeChoice])
+  }, [searchParams, setSearchParams, timeChoice])
 
   useEffect(() => {
     if (timeChoice !== 'live') return
@@ -414,7 +472,7 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
   }
   if (!meta) return <Alert variant="destructive"><AlertTriangle /><AlertTitle>Metrics unavailable</AlertTitle><AlertDescription>{displayMetricsError(error)}</AlertDescription></Alert>
 
-  const summary = response?.summary ?? {}
+  const summary = currentResponse?.summary ?? {}
   const ready = summary.pod_ready ?? 0
   const restarts = summary.container_restarts_total ?? 0
   const cpuLimit = summary.cpu_limit_cores ?? 0
@@ -427,12 +485,12 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
   const availableRanges = meta.retention_days >= 30
     ? [...standardRanges, thirtyDayRange]
     : standardRanges
-  const observedPodCount = new Set(response?.series.map(item => item.labels?.pod).filter(Boolean)).size
+  const observedPodCount = new Set(currentResponse?.series.map(item => item.labels?.pod).filter(Boolean)).size
   const readyPodCount = summary.pod_total ?? (selectedPodCount || observedPodCount)
   const chartTimeDomain: [number, number] = timeChoice === 'live'
     ? [liveNow - (meta.live_window_seconds ?? defaultLiveWindowSeconds), liveNow]
-    : [response?.start ?? 0, response?.end ?? 0]
-  const chartScaleKey = `${timeChoice}:${scope}:${component}:${response?.start ?? 0}`
+    : [currentResponse?.start ?? 0, currentResponse?.end ?? 0]
+  const chartScaleKey = `${timeChoice}:${scope}:${component}:${currentResponse?.start ?? 0}`
   const targetChoice = scope === 'stack' ? 'stack' : component
   const orderedComponents = meta.components.includes('vta')
     ? ['vta', ...meta.components.filter(item => item !== 'vta')]
@@ -443,7 +501,17 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
       <div data-metrics-toolbar className="flex flex-wrap items-center justify-between gap-4">
         <h2>Agent metrics</h2>
         <div className="ml-auto flex max-w-full items-center gap-2 overflow-x-auto">
-          <ToggleGroup type="single" spacing={2} value={timeChoice} onValueChange={value => { if (!value) return; setLoading(true); setResponse(null); setError(''); setLiveState('connecting'); setTimeChoice(value as TimeChoice) }} aria-label="Metrics time range">
+          <ToggleGroup type="single" spacing={2} value={timeChoice} onValueChange={value => {
+            if (!value) return
+            const nextTimeChoice = value as TimeChoice
+            const next = new URLSearchParams(searchParams)
+            if (nextTimeChoice === '1h') next.delete(metricsRangeParam)
+            else next.set(metricsRangeParam, nextTimeChoice)
+            setLoading(true)
+            setResponse(null)
+            setError('')
+            setSearchParams(next)
+          }} aria-label="Metrics time range">
             {availableRanges.map(item => <ToggleGroupItem key={item.value} value={item.value}>{item.label}</ToggleGroupItem>)}
           </ToggleGroup>
           <Button
@@ -451,11 +519,10 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
             variant="outline"
             size="icon-sm"
             aria-label="Refresh metrics"
-            disabled={loading}
+            disabled={metricsLoading}
             onClick={() => {
               setLoading(true)
               setError('')
-              setLiveState('connecting')
               setRefreshKey(value => value + 1)
             }}
           >
@@ -475,7 +542,6 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
             setLoading(true)
             setResponse(null)
             setError('')
-            setLiveState('connecting')
             if (value === 'stack') setScope('stack')
             else { setScope('component'); setComponent(value) }
           }}
@@ -485,16 +551,10 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
           {orderedComponents.map(item => <ToggleGroupItem key={item} value={item}>{componentLabels[item] ?? item}</ToggleGroupItem>)}
         </ToggleGroup>
       )}
-      {timeChoice === 'live' && liveState !== 'connected' && (
-        <div>
-          <Badge variant="secondary">{liveState === 'degraded' ? 'Live connection degraded; reconnecting' : 'Connecting to live metrics'}</Badge>
-        </div>
-      )}
-
       {error && <Alert variant="destructive"><AlertTriangle /><AlertTitle>Metrics unavailable</AlertTitle><AlertDescription>{displayMetricsError(error)}</AlertDescription></Alert>}
-      {!!response?.warnings?.length && <Alert><AlertTriangle /><AlertTitle>Partial metrics</AlertTitle><AlertDescription>{partialMetricsMessage}</AlertDescription></Alert>}
+      {!!currentResponse?.warnings?.length && <Alert><AlertTriangle /><AlertTitle>Partial metrics</AlertTitle><AlertDescription>{partialMetricsMessage}</AlertDescription></Alert>}
 
-      {loading && !response ? <MetricsSkeleton /> : !response?.series.length ? (
+      {metricsLoading && !currentResponse ? <MetricsSkeleton /> : !currentResponse ? null : !currentResponse.series.length ? (
         <Empty className="min-h-64 border"><EmptyHeader><EmptyMedia variant="icon"><Activity /></EmptyMedia><EmptyTitle>No metrics yet</EmptyTitle><EmptyDescription>The selected workload may still be starting, or Prometheus has not scraped its first sample.</EmptyDescription></EmptyHeader></Empty>
       ) : (
         <>
@@ -506,9 +566,9 @@ export function SessionMetricsPanel({ sessionId, admin = false }: { sessionId: s
             <Card data-metrics-card="summary"><CardHeader><CardDescription>Container restarts</CardDescription></CardHeader><CardContent><p>{Math.round(restarts)}</p></CardContent></Card>
           </div>
           <div data-metrics-grid="charts" className="grid">
-            <MetricChart key={`cpu:${chartScaleKey}`} title="CPU" icon={Gauge} series={response.series} metrics={['cpu_usage_cores', 'cpu_limit_cores']} valueFormatter={formatCores} axisValueFormatter={formatAxisCores} timeDomain={chartTimeDomain} timeRange={timeChoice} />
-            <MetricChart key={`memory:${chartScaleKey}`} title="Memory" icon={MemoryStick} series={response.series} metrics={['memory_working_set_bytes', 'memory_limit_bytes']} valueFormatter={formatBytes} axisValueFormatter={formatAxisBytes} timeDomain={chartTimeDomain} timeRange={timeChoice} />
-            <MetricChart key={`network:${chartScaleKey}`} title="Network" icon={Network} series={response.series} metrics={['network_receive_bytes_per_second', 'network_transmit_bytes_per_second']} valueFormatter={value => `${formatBytes(value)}/s`} axisValueFormatter={value => `${formatAxisBytes(value)}/s`} timeDomain={chartTimeDomain} timeRange={timeChoice} />
+            <MetricChart key={`cpu:${chartScaleKey}`} title="CPU" icon={Gauge} series={currentResponse.series} metrics={['cpu_usage_cores', 'cpu_limit_cores']} valueFormatter={formatCores} axisValueFormatter={formatAxisCores} timeDomain={chartTimeDomain} timeRange={timeChoice} />
+            <MetricChart key={`memory:${chartScaleKey}`} title="Memory" icon={MemoryStick} series={currentResponse.series} metrics={['memory_working_set_bytes', 'memory_limit_bytes']} valueFormatter={formatBytes} axisValueFormatter={formatAxisBytes} timeDomain={chartTimeDomain} timeRange={timeChoice} />
+            <MetricChart key={`network:${chartScaleKey}`} title="Network" icon={Network} series={currentResponse.series} metrics={['network_receive_bytes_per_second', 'network_transmit_bytes_per_second']} valueFormatter={value => `${formatBytes(value)}/s`} axisValueFormatter={value => `${formatAxisBytes(value)}/s`} timeDomain={chartTimeDomain} timeRange={timeChoice} />
           </div>
         </>
       )}

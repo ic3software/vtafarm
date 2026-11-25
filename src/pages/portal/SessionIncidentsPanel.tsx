@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell, CheckCircle2, ChevronLeft, ChevronRight, Download, RefreshCw, TriangleAlert } from 'lucide-react'
+import { Bell, CheckCheck, CheckCircle2, ChevronLeft, ChevronRight, Download, RefreshCw, TriangleAlert } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 
 import { api, type Incident, type IncidentListOptions, type IncidentStatus } from '@/lib/api'
@@ -7,13 +7,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 const PAGE_SIZE = 10
-const INCIDENT_GRID_COLUMNS = 'xl:grid-cols-[minmax(16rem,1fr)_5rem_10.5rem_10.5rem_5rem_7rem_7.5rem]'
+const INCIDENT_GRID_COLUMNS = 'xl:grid-cols-[2rem_minmax(16rem,1fr)_5rem_10.5rem_10.5rem_5rem_7rem_7.5rem]'
 
 type RangeFilter = IncidentListOptions['range']
 type StatusFilter = IncidentStatus | 'all'
@@ -58,10 +59,11 @@ function incidentDuration(incident: Incident): string {
 
 interface SessionIncidentsPanelProps {
   sessionId: string
-  onIncidentRead: () => void
+  unreadCount: number
+  onIncidentsRead: (count: number) => void
 }
 
-export function SessionIncidentsPanel({ sessionId, onIncidentRead }: SessionIncidentsPanelProps) {
+export function SessionIncidentsPanel({ sessionId, unreadCount, onIncidentsRead }: SessionIncidentsPanelProps) {
   const requestSequence = useRef(0)
   const [searchParams, setSearchParams] = useSearchParams()
   const range = rangeFromQuery(searchParams.get('range'))
@@ -75,6 +77,8 @@ export function SessionIncidentsPanel({ sessionId, onIncidentRead }: SessionInci
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [downloading, setDownloading] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [markingRead, setMarkingRead] = useState<'selected' | 'all' | null>(null)
   const loading = loadedQuery !== queryKey
 
   useEffect(() => {
@@ -89,6 +93,7 @@ export function SessionIncidentsPanel({ sessionId, onIncidentRead }: SessionInci
       setIncidents(result.incidents)
       setTotal(result.total ?? result.incidents.length)
       setTotalPages(result.total_pages ?? (result.incidents.length > 0 ? 1 : 0))
+      setSelectedIds(new Set())
       setError('')
     }).catch(cause => {
       if (requestId === requestSequence.current) {
@@ -114,6 +119,7 @@ export function SessionIncidentsPanel({ sessionId, onIncidentRead }: SessionInci
       setIncidents(result.incidents)
       setTotal(result.total ?? result.incidents.length)
       setTotalPages(result.total_pages ?? (result.incidents.length > 0 ? 1 : 0))
+      setSelectedIds(new Set())
     } catch (cause) {
       if (requestId === requestSequence.current) {
         setError(cause instanceof Error ? cause.message : 'Could not load incidents')
@@ -127,9 +133,58 @@ export function SessionIncidentsPanel({ sessionId, onIncidentRead }: SessionInci
     try {
       const updated = await api.markSessionIncidentRead(sessionId, incident.id, true)
       setIncidents(current => current.map(item => item.id === updated.id ? updated : item))
-      onIncidentRead()
+      setSelectedIds(current => {
+        const next = new Set(current)
+        next.delete(incident.id)
+        return next
+      })
+      onIncidentsRead(1)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not update the incident')
+    }
+  }
+
+  function toggleSelection(incidentId: string, selected: boolean) {
+    setSelectedIds(current => {
+      const next = new Set(current)
+      if (selected) next.add(incidentId)
+      else next.delete(incidentId)
+      return next
+    })
+  }
+
+  async function markSelectedRead() {
+    const incidentIds = Array.from(selectedIds)
+    if (incidentIds.length === 0) return
+    setMarkingRead('selected')
+    setError('')
+    try {
+      const result = await api.markSessionIncidentsRead(sessionId, { incident_ids: incidentIds })
+      const selected = new Set(incidentIds)
+      const readAt = new Date().toISOString()
+      setIncidents(current => current.map(incident => selected.has(incident.id) ? { ...incident, read_at: incident.read_at ?? readAt } : incident))
+      setSelectedIds(new Set())
+      onIncidentsRead(result.updated)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not mark selected incidents read')
+    } finally {
+      setMarkingRead(null)
+    }
+  }
+
+  async function markAllRead() {
+    setMarkingRead('all')
+    setError('')
+    try {
+      const result = await api.markSessionIncidentsRead(sessionId, { all: true })
+      const readAt = new Date().toISOString()
+      setIncidents(current => current.map(incident => ({ ...incident, read_at: incident.read_at ?? readAt })))
+      setSelectedIds(new Set())
+      onIncidentsRead(result.updated)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not mark all incidents read')
+    } finally {
+      setMarkingRead(null)
     }
   }
 
@@ -173,6 +228,9 @@ export function SessionIncidentsPanel({ sessionId, onIncidentRead }: SessionInci
 
   const firstRecord = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const lastRecord = Math.min(page * PAGE_SIZE, total)
+  const unreadPageIds = incidents.filter(incident => !incident.read_at).map(incident => incident.id)
+  const allPageSelected = unreadPageIds.length > 0 && unreadPageIds.every(incidentId => selectedIds.has(incidentId))
+  const somePageSelected = unreadPageIds.some(incidentId => selectedIds.has(incidentId))
 
   return (
     <div className="flex flex-col gap-[16px]">
@@ -209,10 +267,30 @@ export function SessionIncidentsPanel({ sessionId, onIncidentRead }: SessionInci
             </Select>
           </div>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void refresh()} disabled={refreshing || loading}>
-          <RefreshCw data-icon="inline-start" className={refreshing ? 'animate-spin' : undefined} />
-          Refresh
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {selectedIds.size > 0 && (
+            <>
+              <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
+              <Button size="sm" onClick={() => void markSelectedRead()} disabled={markingRead !== null}>
+                <CheckCheck data-icon="inline-start" />
+                {markingRead === 'selected' ? 'Marking read…' : 'Mark selected as read'}
+              </Button>
+            </>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void markAllRead()}
+            disabled={markingRead !== null || loading || unreadCount === 0}
+          >
+            <CheckCheck data-icon="inline-start" />
+            {markingRead === 'all' ? 'Marking all read…' : 'Mark all as read'}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => void refresh()} disabled={refreshing || loading || markingRead !== null}>
+            <RefreshCw data-icon="inline-start" className={refreshing ? 'animate-spin' : undefined} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {error && !loading && (
@@ -242,6 +320,22 @@ export function SessionIncidentsPanel({ sessionId, onIncidentRead }: SessionInci
       ) : (
         <Card className="gap-0 py-0">
           <CardHeader className={cn('hidden items-center gap-3 border-b bg-muted/30 px-4 py-2.5 text-xs font-medium text-muted-foreground xl:grid', INCIDENT_GRID_COLUMNS)}>
+            <Checkbox
+              aria-label="Select all unread incidents on this page"
+              checked={allPageSelected ? true : somePageSelected ? 'indeterminate' : false}
+              disabled={unreadPageIds.length === 0 || markingRead !== null}
+              onCheckedChange={checked => {
+                const selected = checked === true
+                setSelectedIds(current => {
+                  const next = new Set(current)
+                  for (const incidentId of unreadPageIds) {
+                    if (selected) next.add(incidentId)
+                    else next.delete(incidentId)
+                  }
+                  return next
+                })
+              }}
+            />
             <span className="pl-7">Incident</span>
             <span>Usage</span>
             <span>Started</span>
@@ -254,16 +348,19 @@ export function SessionIncidentsPanel({ sessionId, onIncidentRead }: SessionInci
             {incidents.map(incident => {
               const firing = incident.status === 'firing'
               const unread = !incident.read_at
+              const selected = selectedIds.has(incident.id)
               const summary = (
                 <span className="flex min-w-0 items-center gap-3">
-                  <span className="relative shrink-0" title={`${incident.severity} incident`}>
+                  <span className="shrink-0" title={`${incident.severity} incident`}>
                     {incident.severity === 'critical'
                       ? <TriangleAlert data-icon="inline-start" className="text-destructive" />
                       : <Bell data-icon="inline-start" className="text-muted-foreground" />}
-                    {unread && <span className="absolute -top-1 -right-1 size-2 rounded-full bg-primary" aria-label="Unread" />}
                   </span>
                   <span className="flex min-w-0 flex-col gap-1">
-                    <span className="truncate font-semibold">{incident.title}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className={cn('truncate', unread ? 'font-semibold' : 'font-medium')}>{incident.title}</span>
+                      {unread && <Badge variant="secondary">Unread</Badge>}
+                    </span>
                     <span className="truncate text-xs font-normal text-muted-foreground">
                       {componentLabels[incident.component]}
                       <span className="xl:hidden">
@@ -277,11 +374,17 @@ export function SessionIncidentsPanel({ sessionId, onIncidentRead }: SessionInci
                 <div
                   key={incident.id}
                   className={cn(
-                    'grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border-b px-4 py-3 last:border-b-0',
+                    'grid grid-cols-[2rem_minmax(0,1fr)_auto_auto] items-center gap-3 border-b px-4 py-3 last:border-b-0',
                     INCIDENT_GRID_COLUMNS,
-                    unread && 'bg-muted/30',
+                    selected ? 'bg-muted/50' : unread && 'bg-muted/30',
                   )}
                 >
+                  <Checkbox
+                    aria-label={`Select ${incident.title}`}
+                    checked={selected}
+                    disabled={!unread || markingRead !== null}
+                    onCheckedChange={checked => toggleSelection(incident.id, checked === true)}
+                  />
                   {unread ? (
                     <Button
                       variant="ghost"

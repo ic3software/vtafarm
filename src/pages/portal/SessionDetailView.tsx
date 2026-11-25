@@ -448,7 +448,8 @@ function SessionDetailContent() {
             <Suspense fallback={<p className="p-muted">Loading incidents…</p>}>
               <SessionIncidentsPanel
                 sessionId={sessionId}
-                onIncidentRead={() => setUnreadIncidentCount(current => Math.max(0, current - 1))}
+                unreadCount={unreadIncidentCount}
+                onIncidentsRead={count => setUnreadIncidentCount(current => Math.max(0, current - count))}
               />
             </Suspense>
           )}

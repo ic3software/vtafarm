@@ -263,6 +263,10 @@ export interface IncidentListOptions {
   limit: number
 }
 
+export type MarkIncidentsReadInput =
+  | { incident_ids: string[]; all?: never }
+  | { all: true; incident_ids?: never }
+
 /**
  * Why a mode can't be created right now.
  *
@@ -1393,6 +1397,8 @@ export const api = {
   },
   markSessionIncidentRead: (id: string, incidentId: string, read: boolean) =>
     req<Incident>('PATCH', `/api/v1/setup/${encodeURIComponent(id)}/incidents/${encodeURIComponent(incidentId)}`, { read }),
+  markSessionIncidentsRead: (id: string, input: MarkIncidentsReadInput) =>
+    req<{ updated: number }>('PATCH', `/api/v1/setup/${encodeURIComponent(id)}/incidents/read`, input),
   exportSessionIncidentLogs: (id: string, incidentId: string) =>
     download(
       `/api/v1/setup/${encodeURIComponent(id)}/incidents/${encodeURIComponent(incidentId)}/logs`,
