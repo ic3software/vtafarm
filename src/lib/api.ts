@@ -248,6 +248,19 @@ export interface Incident {
 
 export interface IncidentList {
   incidents: Incident[]
+  page?: number
+  page_size?: number
+  total?: number
+  total_pages?: number
+}
+
+export interface IncidentListOptions {
+  range: '24h' | '7d' | '30d' | 'all'
+  status?: IncidentStatus
+  resource?: 'cpu' | 'memory' | 'storage' | 'runtime' | 'availability'
+  unread?: boolean
+  page: number
+  limit: number
 }
 
 /**
@@ -1367,8 +1380,17 @@ export const api = {
     if (target.pod) params.set('pod', target.pod)
     return `${API_BASE}/api/v1/setup/${encodeURIComponent(id)}/metrics/live?${params}`
   },
-  sessionIncidents: (id: string) =>
-    req<IncidentList>('GET', `/api/v1/setup/${encodeURIComponent(id)}/incidents`),
+  sessionIncidents: (id: string, options: IncidentListOptions) => {
+    const params = new URLSearchParams({
+      range: options.range,
+      page: String(options.page),
+      limit: String(options.limit),
+    })
+    if (options.status) params.set('status', options.status)
+    if (options.resource) params.set('resource', options.resource)
+    if (options.unread) params.set('unread', 'true')
+    return req<IncidentList>('GET', `/api/v1/setup/${encodeURIComponent(id)}/incidents?${params}`)
+  },
   markSessionIncidentRead: (id: string, incidentId: string, read: boolean) =>
     req<Incident>('PATCH', `/api/v1/setup/${encodeURIComponent(id)}/incidents/${encodeURIComponent(incidentId)}`, { read }),
   exportSessionIncidentLogs: (id: string, incidentId: string) =>

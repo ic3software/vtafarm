@@ -16,6 +16,7 @@ import { SessionRecoveryModal } from '../SessionRecoveryModal'
 import { recoveryComponentsForSession } from '../sessionRecovery'
 import { useMaintenance } from '@/contexts/maintenance'
 import type { PortalContext } from './Portal'
+import { Badge } from '@/components/ui/badge'
 
 type SessionTab = 'overview' | 'metrics' | 'incidents' | 'connections' | 'settings' | 'credentials'
 
@@ -68,6 +69,7 @@ function SessionDetailContent() {
   const [deleteInput, setDeleteInput] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [showRecovery, setShowRecovery] = useState(false)
+  const [unreadIncidentCount, setUnreadIncidentCount] = useState(0)
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const didsEnroll = useDidsEnroll(session)
   const vtcInstall = useVtcInstall(session?.mode === 'full_stack' ? session : null)
@@ -91,6 +93,27 @@ function SessionDetailContent() {
     // Keyed on the status, not the object: this effect's own poll replaces
     // `session` every tick, so depending on it would rebuild the interval.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, session?.status])
+
+  useEffect(() => {
+    if (session?.status !== 'running') return
+    let active = true
+    const loadUnreadCount = () => {
+      api.sessionIncidents(sessionId, {
+        range: 'all',
+        unread: true,
+        page: 1,
+        limit: 100,
+      }).then(result => {
+        if (active) setUnreadIncidentCount(result.total ?? result.incidents.length)
+      }).catch(() => {})
+    }
+    loadUnreadCount()
+    const interval = setInterval(loadUnreadCount, 30_000)
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
   }, [sessionId, session?.status])
 
   useEffect(() => {
@@ -330,6 +353,11 @@ function SessionDetailContent() {
             onKeyDown={event => handleTabKey(event, index)}
           >
             {tab.label}
+            {tab.value === 'incidents' && unreadIncidentCount > 0 && (
+              <Badge variant="destructive" className="ml-1.5 min-w-5 px-1.5 tabular-nums" aria-label={`${unreadIncidentCount} unread incidents`}>
+                {unreadIncidentCount > 99 ? '99+' : unreadIncidentCount}
+              </Badge>
+            )}
           </button>
         ))}
       </div>
@@ -418,7 +446,10 @@ function SessionDetailContent() {
         >
           {activeTab === 'incidents' && (
             <Suspense fallback={<p className="p-muted">Loading incidents…</p>}>
-              <SessionIncidentsPanel sessionId={sessionId} onViewMetrics={() => selectTab('metrics')} />
+              <SessionIncidentsPanel
+                sessionId={sessionId}
+                onIncidentRead={() => setUnreadIncidentCount(current => Math.max(0, current - 1))}
+              />
             </Suspense>
           )}
         </section>
