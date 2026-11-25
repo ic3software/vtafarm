@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const componentLabels: Record<Incident['component'], string> = {
@@ -99,10 +99,7 @@ export function SessionIncidentsPanel({ sessionId, onViewMetrics }: SessionIncid
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">Incidents</h2>
-          <p className="text-sm text-muted-foreground">Resource pressure and availability events detected for this agent.</p>
-        </div>
+        <h2 className="text-lg font-semibold">Incidents</h2>
         <Button variant="outline" onClick={() => void refresh()} disabled={refreshing}>
           <RefreshCw data-icon="inline-start" className={refreshing ? 'animate-spin' : undefined} />
           Refresh
@@ -124,7 +121,6 @@ export function SessionIncidentsPanel({ sessionId, onViewMetrics }: SessionIncid
               <EmptyHeader>
                 <EmptyMedia variant="icon"><CheckCircle2 /></EmptyMedia>
                 <EmptyTitle>No incidents detected</EmptyTitle>
-                <EmptyDescription>CPU, memory, storage, restarts, and component availability are within their alert thresholds.</EmptyDescription>
               </EmptyHeader>
             </Empty>
           </CardContent>
