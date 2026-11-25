@@ -442,8 +442,8 @@ export interface AdminSessionResourceSummary {
 }
 
 export interface ResourceDefaults {
-  resources: Record<UpgradeComponent, ResourceProfile>
-  factory_defaults: Record<UpgradeComponent, ResourceProfile>
+  resources: Record<UpgradeComponent, ResourceDefaultProfile>
+  factory_defaults: Record<UpgradeComponent, ResourceDefaultProfile>
 }
 
 export interface ResourceProfile {
@@ -451,6 +451,10 @@ export interface ResourceProfile {
   cpu_limit: string
   memory_request: string
   memory_limit: string
+}
+
+export interface ResourceDefaultProfile extends ResourceProfile {
+  storage_size: string
 }
 
 export interface WorkloadResource {
@@ -1141,7 +1145,7 @@ export const api = {
     return req<AdminSessionsPage>('GET', `/api/v1/admin/setup-sessions?${params}`)
   },
   adminResourceDefaults: () => req<ResourceDefaults>('GET', '/api/v1/admin/resource-defaults'),
-  adminSaveResourceDefaults: (resources: Array<{ component: UpgradeComponent; cpu_request: string; cpu_limit: string; memory_request: string; memory_limit: string }>) =>
+  adminSaveResourceDefaults: (resources: Array<{ component: UpgradeComponent; cpu_request: string; cpu_limit: string; memory_request: string; memory_limit: string; storage_size: string }>) =>
     req<ResourceDefaults>('PUT', '/api/v1/admin/resource-defaults', { resources }),
   adminImageDefaults: () => req<ImageDefaults>('GET', '/api/v1/admin/image-defaults'),
   /**
