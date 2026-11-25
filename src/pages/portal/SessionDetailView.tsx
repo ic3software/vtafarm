@@ -16,8 +16,9 @@ import { SessionRecoveryModal } from '../SessionRecoveryModal'
 import { recoveryComponentsForSession } from '../sessionRecovery'
 import { useMaintenance } from '@/contexts/maintenance'
 import type { PortalContext } from './Portal'
+import { Badge } from '@/components/ui/badge'
 
-type SessionTab = 'overview' | 'metrics' | 'connections' | 'settings' | 'credentials'
+type SessionTab = 'overview' | 'metrics' | 'incidents' | 'connections' | 'settings' | 'credentials'
 
 const SESSION_TABS: Array<{ value: SessionTab; label: string }> = [
   { value: 'overview', label: 'Overview' },
@@ -35,7 +36,25 @@ const METRICS_TAB: { value: SessionTab; label: string } = {
   label: 'Metrics',
 }
 
+const INCIDENTS_TAB: { value: SessionTab; label: string } = {
+  value: 'incidents',
+  label: 'Incidents',
+}
+
+const METRICS_QUERY_PARAMS = ['metrics_range'] as const
+const INCIDENT_QUERY_PARAMS = ['range', 'status', 'page'] as const
+
+function removeInactiveTabParams(params: URLSearchParams, tab: string | null) {
+  if (tab !== 'metrics') {
+    for (const key of METRICS_QUERY_PARAMS) params.delete(key)
+  }
+  if (tab !== 'incidents') {
+    for (const key of INCIDENT_QUERY_PARAMS) params.delete(key)
+  }
+}
+
 const SessionMetricsPanel = lazy(() => import('./SessionMetricsPanel').then(module => ({ default: module.SessionMetricsPanel })))
+const SessionIncidentsPanel = lazy(() => import('./SessionIncidentsPanel').then(module => ({ default: module.SessionIncidentsPanel })))
 
 export function SessionDetailView() {
   const { id } = useParams<{ id: string }>()
@@ -62,6 +81,7 @@ function SessionDetailContent() {
   const [deleteInput, setDeleteInput] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [showRecovery, setShowRecovery] = useState(false)
+  const [unreadIncidentCount, setUnreadIncidentCount] = useState(0)
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const didsEnroll = useDidsEnroll(session)
   const vtcInstall = useVtcInstall(session?.mode === 'full_stack' ? session : null)
@@ -86,6 +106,35 @@ function SessionDetailContent() {
     // `session` every tick, so depending on it would rebuild the interval.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, session?.status])
+
+  useEffect(() => {
+    if (session?.status !== 'running') return
+    let active = true
+    const loadUnreadCount = () => {
+      api.sessionIncidents(sessionId, {
+        range: 'all',
+        unread: true,
+        page: 1,
+        limit: 100,
+      }).then(result => {
+        if (active) setUnreadIncidentCount(result.total ?? result.incidents.length)
+      }).catch(() => {})
+    }
+    loadUnreadCount()
+    const interval = setInterval(loadUnreadCount, 30_000)
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [sessionId, session?.status])
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams)
+    removeInactiveTabParams(next, searchParams.get('tab'))
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     if (!session) return
@@ -153,7 +202,7 @@ function SessionDetailContent() {
   const setupPhaseIndex = Math.max(0, phaseIndex(setupPhases, setupProgressStatus))
   const isFullStackCompleted = isFullStack && session.status === 'running'
   const tabsWithMetrics = session.status === 'running'
-    ? [SESSION_TABS[0], METRICS_TAB, ...SESSION_TABS.slice(1)]
+    ? [SESSION_TABS[0], METRICS_TAB, INCIDENTS_TAB, ...SESSION_TABS.slice(1)]
     : SESSION_TABS
   const sessionTabs = isFullStackCompleted
     ? [...tabsWithMetrics.slice(0, -1), CREDENTIALS_TAB, tabsWithMetrics.at(-1)!]
@@ -170,6 +219,7 @@ function SessionDetailContent() {
     const next = new URLSearchParams(searchParams)
     if (tab === defaultTab) next.delete('tab')
     else next.set('tab', tab)
+    removeInactiveTabParams(next, tab)
     setSearchParams(next, { replace: true })
   }
 
@@ -324,6 +374,11 @@ function SessionDetailContent() {
             onKeyDown={event => handleTabKey(event, index)}
           >
             {tab.label}
+            {tab.value === 'incidents' && unreadIncidentCount > 0 && (
+              <Badge variant="destructive" className="ml-1.5 min-w-5 px-1.5 tabular-nums" aria-label={`${unreadIncidentCount} unread incidents`}>
+                {unreadIncidentCount > 99 ? '99+' : unreadIncidentCount}
+              </Badge>
+            )}
           </button>
         ))}
       </div>
@@ -398,6 +453,25 @@ function SessionDetailContent() {
           {activeTab === 'metrics' && (
             <Suspense fallback={<p className="p-muted">Loading metrics…</p>}>
               <SessionMetricsPanel sessionId={sessionId} />
+            </Suspense>
+          )}
+        </section>
+      )}
+
+      {session.status === 'running' && (
+        <section
+          id="session-panel-incidents"
+          role="tabpanel"
+          aria-labelledby="session-tab-incidents"
+          hidden={activeTab !== 'incidents'}
+        >
+          {activeTab === 'incidents' && (
+            <Suspense fallback={<p className="p-muted">Loading incidents…</p>}>
+              <SessionIncidentsPanel
+                sessionId={sessionId}
+                unreadCount={unreadIncidentCount}
+                onIncidentsRead={count => setUnreadIncidentCount(current => Math.max(0, current - count))}
+              />
             </Suspense>
           )}
         </section>
