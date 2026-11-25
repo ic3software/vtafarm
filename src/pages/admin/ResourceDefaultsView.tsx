@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { cpuMillicores, cpuOptions } from '@/lib/resourceCpu'
 import { memoryMi, memoryOptions } from '@/lib/resourceMemory'
+import { storageOptions } from '@/lib/resourceStorage'
 import { api, type ImageOption, type ResourceDefaults, type UpgradeComponent } from '@/lib/api'
 import { imageLabel, imageTag } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -14,7 +15,8 @@ const components: Array<{ key: UpgradeComponent; label: string }> = [
 ]
 const memoryFields = ['memory_request', 'memory_limit'] as const
 const cpuFields = ['cpu_request', 'cpu_limit'] as const
-const resourceFields = [...cpuFields, ...memoryFields] as const
+const storageFields = ['storage_size'] as const
+const resourceFields = [...cpuFields, ...memoryFields, ...storageFields] as const
 
 const imageComponents: Array<{ key: UpgradeComponent; label: string }> = [
   { key: 'vta', label: 'VTA' },
@@ -93,6 +95,11 @@ export function ResourceDefaultsView() {
         setError(`${label}: request and limit must be between 16Mi and 1Gi, with request ≤ limit.`)
         return
       }
+      const storage = memoryMi(draft[key].storage_size)
+      if (!Number.isFinite(storage) || storage < 200 || storage > 100 * 1024) {
+        setError(`${label}: storage must be between 200Mi and 100Gi.`)
+        return
+      }
     }
     setSaving(true)
     try {
@@ -102,6 +109,7 @@ export function ResourceDefaultsView() {
         cpu_limit: draft[key].cpu_limit,
         memory_request: draft[key].memory_request,
         memory_limit: draft[key].memory_limit,
+        storage_size: draft[key].storage_size,
       })))
       setSaved(data)
       setDraft(data.resources)
@@ -232,7 +240,7 @@ export function ResourceDefaultsView() {
       <div className="p-card">
         <div className="card-header">
           <h3 className="card-title">Resource defaults</h3>
-          <p className="card-desc">CPU and memory requests and limits for new deployments and capacity estimates.</p>
+          <p className="card-desc">CPU, memory, and PVC storage defaults for new deployments and capacity estimates. Existing PVCs are unchanged.</p>
         </div>
         <div className="card-content">
           {loading ? <p className="p-muted" role="status">Loading defaults…</p> : !draft || !saved ? (
@@ -241,14 +249,16 @@ export function ResourceDefaultsView() {
             <>
               <div className="table-wrap">
                 <table className="p-table">
-                  <thead><tr><th>Component</th><th>CPU request</th><th>CPU limit</th><th>Memory request</th><th>Memory limit</th></tr></thead>
+                  <thead><tr><th>Component</th><th>CPU request</th><th>CPU limit</th><th>Memory request</th><th>Memory limit</th><th>Storage</th></tr></thead>
                   <tbody>
                     {components.map(({ key, label }) => (
                       <tr key={key}>
                         <td>{label}</td>
                         {resourceFields.map(field => {
                           const current = draft[key][field]
-                          const options: readonly string[] = field.startsWith('cpu_') ? cpuOptions : memoryOptions
+                          const options: readonly string[] = field.startsWith('cpu_')
+                            ? cpuOptions
+                            : field === 'storage_size' ? storageOptions : memoryOptions
                           const values = options.includes(current) ? options : [current, ...options]
                           return (
                             <td key={field}>
@@ -273,6 +283,9 @@ export function ResourceDefaultsView() {
                         <td key={field}><strong>{components.reduce((sum, { key }) => sum + cpuMillicores(draft[key][field]), 0)}m</strong></td>
                       ))}
                       {memoryFields.map(field => (
+                        <td key={field}><strong>{components.reduce((sum, { key }) => sum + memoryMi(draft[key][field]), 0)}Mi</strong></td>
+                      ))}
+                      {storageFields.map(field => (
                         <td key={field}><strong>{components.reduce((sum, { key }) => sum + memoryMi(draft[key][field]), 0)}Mi</strong></td>
                       ))}
                     </tr>
