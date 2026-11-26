@@ -92,7 +92,7 @@ function SecretRow({
 
 // Single-use DID-hosting admin enrollment link and its required second-channel
 // claim code. Reissuing lives in the Configuration card.
-export function DidsEnrollAlert({ enrollUrl, claimCode, used, justReissued, handleOpen }: DidsEnrollState) {
+export function DidsEnrollAlert({ enrollUrl, claimCode, subjectDid, used, justReissued, handleOpen }: DidsEnrollState) {
   const { copiedKey, copy } = useCopyState()
   const [claimCopied, setClaimCopied] = useState(false)
   const [openWarning, setOpenWarning] = useState(false)
@@ -137,10 +137,15 @@ export function DidsEnrollAlert({ enrollUrl, claimCode, used, justReissued, hand
           Copy the claim code, then open the link.
           {justReissued && (
             <span style={{ display: 'block', marginTop: 4 }}>
-              After reissuing, wait 10 seconds before opening the new link.
+              A separate backup administrator invite was created. Wait 10 seconds before opening the new link.
             </span>
           )}
         </p>
+        {subjectDid && (
+          <div className="p-mono text-xs" style={{ marginTop: 8, overflowWrap: 'anywhere' }}>
+            {subjectDid}
+          </div>
+        )}
         <div className="p-row gap-8 center" style={{ marginTop: 8 }}>
           <span className="p-muted text-xs" style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
             Claim code
@@ -175,7 +180,7 @@ export function DidsEnrollAlert({ enrollUrl, claimCode, used, justReissued, hand
 // Reissue control for the DID-hosting admin enrollment link — lives in the
 // Configuration card, and only appears once the original link has been
 // opened (before that, the top banner's "Open enrollment" is the action).
-export function DidsEnrollConfigRow({ used, reissuing, reissueError, justReissued, handleReissue }: DidsEnrollState) {
+export function DidsEnrollConfigRow({ used, reissuing, reissueError, handleReissue }: DidsEnrollState) {
   if (!used) return null
 
   return (
@@ -185,14 +190,12 @@ export function DidsEnrollConfigRow({ used, reissuing, reissueError, justReissue
         <div className="p-col" style={{ minWidth: 0 }}>
           <span className="p-muted text-sm">DID hosting enrollment</span>
           <span className="field-hint" style={{ marginTop: 4 }}>
-            {justReissued
-              ? 'After reissuing, wait 10 seconds before opening the new link.'
-              : 'Link already opened. Reissue a new one to register a passkey.'}
+            The original enrollment was opened. Create an invite for a separate backup administrator.
           </span>
           {reissueError && <span style={{ color: 'var(--destructive)', display: 'block', marginTop: 4 }} className="field-hint">{reissueError}</span>}
         </div>
         <button className="btn btn-outline btn-sm" style={{ flexShrink: 0 }} onClick={handleReissue} disabled={reissuing}>
-          {reissuing ? 'Reissuing…' : 'Reissue link'}
+          {reissuing ? 'Creating invite…' : 'Create admin invite'}
         </button>
       </div>
     </>

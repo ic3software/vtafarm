@@ -13,6 +13,7 @@ import { userSessionActions, type SessionActionApi } from './sessionActions'
 export function useDidsEnroll(session: SetupSession | null, actions: SessionActionApi = userSessionActions) {
   const [enrollUrl, setEnrollUrl] = useState('')
   const [claimCode, setClaimCode] = useState('')
+  const [subjectDid, setSubjectDid] = useState('')
   const [used, setUsed] = useState(false)
   const [reissuing, setReissuing] = useState(false)
   const [reissueError, setReissueError] = useState('')
@@ -46,6 +47,7 @@ export function useDidsEnroll(session: SetupSession | null, actions: SessionActi
       const r = await actions.reissueDidsEnroll(session.id)
       setEnrollUrl(r.dids_admin_enroll_url)
       setClaimCode(r.dids_admin_enroll_claim_code)
+      setSubjectDid(r.dids_admin_did)
       setUsed(false)
       setJustReissued(true)
     } catch (err) {
@@ -55,7 +57,7 @@ export function useDidsEnroll(session: SetupSession | null, actions: SessionActi
     }
   }
 
-  return { enrollUrl, claimCode, used, reissuing, reissueError, justReissued, handleOpen, handleReissue }
+  return { enrollUrl, claimCode, subjectDid, used, reissuing, reissueError, justReissued, handleOpen, handleReissue }
 }
 
 export type DidsEnrollState = ReturnType<typeof useDidsEnroll>

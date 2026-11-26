@@ -1229,7 +1229,7 @@ export const api = {
   // the platform stack's single-use enrollment and install links but never
   // acknowledge or reissue one — which is most of finishing the stack.
   adminReissueDidsEnroll: (id: string) =>
-    req<{ dids_admin_enroll_url: string; dids_admin_enroll_claim_code: string }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/dids/reissue-enroll`),
+    req<{ dids_admin_enroll_url: string; dids_admin_enroll_claim_code: string; dids_admin_did: string }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/dids/reissue-enroll`),
   adminAckDidsEnroll: (id: string) =>
     req<{ dids_enroll_used: boolean }>('POST', `/api/v1/admin/setup-sessions/${encodeURIComponent(id)}/dids/enroll-ack`),
   adminReissueVtcInstall: (id: string) =>
@@ -1516,7 +1516,7 @@ export const api = {
     req<SessionUpgrade>('POST', `/api/v1/setup/${id}/upgrade`, { components }),
   getSessionUpgrade: (id: string) => req<SessionUpgrade | null>('GET', `/api/v1/setup/${id}/upgrade`),
   reissueDidsEnroll: (id: string) =>
-    req<{ dids_admin_enroll_url: string; dids_admin_enroll_claim_code: string }>('POST', `/api/v1/setup/${id}/dids/reissue-enroll`),
+    req<{ dids_admin_enroll_url: string; dids_admin_enroll_claim_code: string; dids_admin_did: string }>('POST', `/api/v1/setup/${id}/dids/reissue-enroll`),
   ackDidsEnroll: (id: string) =>
     req<{ dids_enroll_used: boolean }>('POST', `/api/v1/setup/${id}/dids/enroll-ack`),
   reissueVtcInstall: (id: string) =>
