@@ -29,7 +29,9 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
     return () => clearInterval(iv)
   }, [sessionId])
 
-  // Reconnect the log stream whenever the raw status changes — each step is its own Job/pod.
+  // Registry preparation runs several Jobs without changing the raw session
+  // status; its phase selects those Jobs, and its minted DID switches the
+  // source back to the VTC setup Job.
   useEffect(() => {
     if (!session || session.status === 'failed' || session.status === 'awaiting_admin_did') return
     // Clear when the stream actually opens rather than up front: the previous
@@ -43,10 +45,10 @@ export function FullStackCreateProgress({ sessionId, vtaName }: { sessionId: str
     es.addEventListener('done', () => es.close())
     es.onerror = () => es.close()
     return () => es.close()
-    // Keyed on the status, not the object: the 3s poll replaces `session` every
-    // tick, so depending on it would reconnect this stream continuously.
+    // Keyed on scalar progress fields, not the object: the 3s poll replaces
+    // `session` every tick, which would reconnect this stream continuously.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, session?.status])
+  }, [sessionId, session?.status, session?.trust_registry?.phase, session?.trust_registry?.did])
 
   // Scroll only within the console body — not the whole page — as new lines arrive.
   useEffect(() => {

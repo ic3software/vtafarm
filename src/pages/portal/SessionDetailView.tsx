@@ -146,10 +146,10 @@ function SessionDetailContent() {
     es.addEventListener('done', () => es.close())
     es.onerror = () => es.close()
     return () => es.close()
-    // Keyed on the status, not the object: the 3s poll replaces `session` every
-    // tick, so depending on it would reconnect this stream continuously.
+    // Keyed on scalar progress fields, not the object: the 3s poll replaces
+    // `session` every tick, which would reconnect this stream continuously.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, session?.status, logStreamGeneration])
+  }, [sessionId, session?.status, session?.trust_registry?.phase, session?.trust_registry?.did, logStreamGeneration])
 
   function reconnectVtaLogs() {
     setLogs([])
