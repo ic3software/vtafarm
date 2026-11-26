@@ -457,8 +457,9 @@ export function PlatformStackView() {
     return () => clearInterval(iv)
   }, [settled, load])
 
-  // Reconnect the log stream on every status change — each pipeline step is
-  // its own Job and its own pod, so the previous stream has already ended.
+  // Reconnect when either the pipeline step or Registry sub-step changes —
+  // Registry preparation runs several Jobs while status stays step_vtc_setup,
+  // then the minted DID switches the source back to the VTC setup Job.
   const sessionId = stack?.id
   useEffect(() => {
     if (!sessionId || status === 'failed' || status === 'awaiting_admin_did') return
@@ -474,7 +475,7 @@ export function PlatformStackView() {
     es.addEventListener('done', () => es.close())
     es.onerror = () => es.close()
     return () => es.close()
-  }, [sessionId, status, logStreamGeneration])
+  }, [sessionId, status, stack?.trust_registry?.phase, stack?.trust_registry?.did, logStreamGeneration])
 
   function reconnectVtaLogs() {
     setLogs([])
