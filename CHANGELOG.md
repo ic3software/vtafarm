@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.23.1] - 2026-11-27
+
+### Fixed
+
+- Full Stack setup logs follow each Trust Registry sub-step so the current
+  job's output remains visible while registry preparation progresses.
+- Reissuing a DID Hosting enrollment after the original link is opened
+  presents a separate backup administrator invite and its subject DID.
+
+Requires vtafarm-api 0.23.1.
+
 ## [v0.23.0] - 2026-11-25
 
 ### Added
